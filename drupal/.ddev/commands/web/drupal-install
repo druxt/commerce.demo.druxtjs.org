@@ -5,4 +5,8 @@
 ## Example: "ddev drupal-install"
 
 composer install
-drush -y tome:install
+drush -y site:install commerce_kickstart
+drush -y pm:enable commerce_demo druxt
+drush role:perm:add anonymous "access druxt resources"
+drush mailer:import
+drush cache:rebuild
