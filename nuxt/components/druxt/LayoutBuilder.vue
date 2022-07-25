@@ -1,7 +1,12 @@
 <template>
   <div class="layout_builder">
     <template v-for="(section, index) of sections">
-      <component v-if="componentIs(section.layout_id) !== 'div'" :is="componentIs(section.layout_id)" :key="index">
+      <component
+        v-if="componentIs(section.layout_id) !== 'div'"
+        :is="componentIs(section.layout_id)"
+        :key="index"
+        :section="section"
+      >
         <template v-for="component of Object.values(section.components)" v-slot:[component.uuid]>
           <component
             v-if="componentIs(component.configuration.id) !== 'div'"
