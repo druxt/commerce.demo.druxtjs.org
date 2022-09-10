@@ -105,6 +105,9 @@
     "extra": {
         "composer-exit-on-patch-failure": true,
         "patches": {
+            "drupal/core": {
+                "#2942975 Expose Layout Builder data to REST and JSON:API": "https://www.drupal.org/files/issues/2022-06-24/2942975-199.patch"
+            },
             "drupal/default_content": {
                 "#3160146 Add a Normalizer and Denormalizer to support Layout Builder": "patches/default_content/3160146-layout-builder.patch"
             }
