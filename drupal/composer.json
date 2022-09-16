@@ -60,7 +60,7 @@
         "ext-curl": "*",
         "centarro/certified-projects": "^1.0",
         "centarro/commerce_kickstart": "^3.0",
-        "composer/installers": "^1.12",
+        "composer/installers": "^2.0",
         "cweagans/composer-patches": "^1.7",
         "drupal/commerce_demo": "^3.0",
         "drupal/core-composer-scaffold": "^9.4",
