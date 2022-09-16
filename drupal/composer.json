@@ -108,6 +108,9 @@
             "drupal/core": {
                 "#2942975 Expose Layout Builder data to REST and JSON:API": "https://www.drupal.org/files/issues/2022-06-24/2942975-199.patch"
             },
+            "drupal/commerce_demo": {
+                "#3310011 Remove tabs from info file": "https://git.drupalcode.org/project/commerce_demo/-/merge_requests/5.diff"
+            },
             "drupal/default_content": {
                 "#3160146 Add a Normalizer and Denormalizer to support Layout Builder": "https://www.drupal.org/files/issues/2022-05-15/default_content-3160146-52.patch"
             }
