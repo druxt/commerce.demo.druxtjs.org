@@ -38,11 +38,11 @@ class ScriptHandler {
     }
 
     // Prepare the settings file for installation
-    if (!$fs->exists($drupalRoot . '/sites/default/settings.php') && $fs->exists($drupalRoot . '/profiles/contrib/commerce_kickstart/assets/settings.php')) {
-      $fs->copy($drupalRoot . '/profiles/contrib/commerce_kickstart/assets/settings.php', $drupalRoot . '/sites/default/settings.php');
-      $fs->chmod($drupalRoot . '/sites/default/settings.php', 0666);
-      $event->getIO()->write("Created a sites/default/settings.php file with chmod 0666");
-    }
+    // if (!$fs->exists($drupalRoot . '/sites/default/settings.php') && $fs->exists($drupalRoot . '/profiles/contrib/commerce_kickstart/assets/settings.php')) {
+    //   $fs->copy($drupalRoot . '/profiles/contrib/commerce_kickstart/assets/settings.php', $drupalRoot . '/sites/default/settings.php');
+    //   $fs->chmod($drupalRoot . '/sites/default/settings.php', 0666);
+    //   $event->getIO()->write("Created a sites/default/settings.php file with chmod 0666");
+    // }
 
     // Create the files directory with chmod 0777
     if (!$fs->exists($drupalRoot . '/sites/default/files')) {
@@ -51,7 +51,7 @@ class ScriptHandler {
       umask($oldmask);
       $event->getIO()->write("Created a sites/default/files directory with chmod 0777");
     }
-    
+
     // Mirror config splits from the profile to the project config directory.
     $fs->mirror($drupalRoot . '/profiles/contrib/commerce_kickstart/config/splits', $composerRoot . '/config/splits');
     $event->getIO()->write("Mirrored config splits from Commerce Kickstart into ../config/splits");
