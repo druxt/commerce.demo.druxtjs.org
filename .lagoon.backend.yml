@@ -5,40 +5,8 @@ project: druxtjs-org-demo-commerce
 tasks:
   post-rollout:
     - run:
-        name: drush si
-        command: drush -y site:install commerce_kickstart
-        service: cli
-
-    - run:
-        name: drush en
-        command: drush -y pm:enable commerce_demo druxt
-        service: cli
-
-    - run:
-        name: drush rap
-        command: drush role:perm:add anonymous "access druxt resources"
-        service: cli
-
-    # - run:
-    #     name: drush config:set
-    #     command: |
-    #       drush config:set druxt_node_preview.settings frontends "Production|https://demo.druxtjs.org/node/preview/[view_mode]#[jsonapi_node_preview]" -y
-    #       drush config:set jsonapi.settings read_only 0 -y
-    #     service: cli
-
-    # - run:
-    #     name: drush search-api:index
-    #     command: drush search-api:index
-    #     service: cli
-
-    - run:
-        name: drush mailer:import
-        command: drush mailer:import
-        service: cli
-
-    - run:
-        name: drush cache:rebuild
-        command: drush cache:rebuild
+        name: drush tome:install
+        command: drush -y tome:install
         service: cli
 
     - run:

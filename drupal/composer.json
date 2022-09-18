@@ -1,6 +1,6 @@
 {
-    "name": "centarro/commerce-kickstart-project",
-    "description": "Centarro Commerce Kickstart 3.x project template",
+    "name": "druxt/druxtjs-org-demo-commerce",
+    "description": "Drupal 9 JSON:API backend for Commerce kickstart.",
     "type": "project",
     "license": "GPL-2.0-or-later",
     "authors": [
@@ -62,11 +62,13 @@
         "centarro/commerce_kickstart": "^3.0",
         "composer/installers": "^1.9",
         "cweagans/composer-patches": "^1.7",
+        "drupal-tome/tome_drush": "dev-master",
         "drupal/commerce_demo": "^3.0",
         "drupal/core-composer-scaffold": "^9.1",
         "drupal/core-dev": "^9.1",
         "drupal/default_content": "2.0.0-alpha1",
         "drupal/druxt": "^1.1",
+        "drupal/tome": "^1.7",
         "drush/drush": "^11.0",
         "vlucas/phpdotenv": "^5.1",
         "webflo/drupal-finder": "^1.2",
@@ -82,26 +84,9 @@
     "minimum-stability": "dev",
     "prefer-stable": true,
     "autoload": {
-        "classmap": [
-            "scripts/composer/ScriptHandler.php"
-        ],
         "files": ["load.environment.php"]
     },
-    "scripts": {
-        "drupal-scaffold": "DrupalComposer\\DrupalScaffold\\Plugin::scaffold",
-        "pre-install-cmd": [
-            "DrupalProject\\composer\\ScriptHandler::checkComposerVersion"
-        ],
-        "pre-update-cmd": [
-            "DrupalProject\\composer\\ScriptHandler::checkComposerVersion"
-        ],
-        "post-install-cmd": [
-            "DrupalProject\\composer\\ScriptHandler::createRequiredFiles"
-        ],
-        "post-update-cmd": [
-            "DrupalProject\\composer\\ScriptHandler::createRequiredFiles"
-        ]
-    },
+    "scripts": {},
     "extra": {
         "composer-exit-on-patch-failure": true,
         "patches": {

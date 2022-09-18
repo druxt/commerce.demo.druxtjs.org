@@ -10,7 +10,7 @@ services:
     build:
       context: .
       dockerfile: .docker/Dockerfile.cli
-    image: &cli-image druxt-umami-cli
+    image: &cli-image druxtjs-org-demo-commerce-cli
     labels:
       lagoon.type: cli-persistent
       lagoon.persistent.name: nginx
