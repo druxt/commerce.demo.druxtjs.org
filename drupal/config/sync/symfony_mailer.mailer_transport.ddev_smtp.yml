@@ -1,0 +1,14 @@
+uuid: 4a52846b-87e7-4274-aad1-8fb04d72de1b
+langcode: en
+status: true
+dependencies: {  }
+_core:
+  default_config_hash: 7WoLLLhl8OFdTzOV44Q5DNIBr0-iilYpE-JKlSRmvqA
+id: ddev_smtp
+label: 'ddev SMTP'
+plugin: smtp
+configuration:
+  user: ''
+  pass: ''
+  host: 127.0.0.1
+  port: 1025

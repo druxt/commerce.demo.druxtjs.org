@@ -1,0 +1,20 @@
+uuid: 16d59ac9-f9ac-48f2-be74-a96fe51144a1
+langcode: en
+status: true
+dependencies:
+  theme:
+    - centarro_claro
+_core:
+  default_config_hash: MU6CIFtyelNAF9DEmjrZZCTiqCPAfhvczjGaB6qrjxA
+id: centarro_claro_local_actions
+theme: centarro_claro
+region: content
+weight: -10
+provider: null
+plugin: local_actions_block
+settings:
+  id: local_actions_block
+  label: 'Primary admin actions'
+  label_display: '0'
+  provider: core
+visibility: {  }

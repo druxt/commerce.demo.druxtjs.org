@@ -1,0 +1,12 @@
+_core:
+  default_config_hash: '-fBMq6ZFuv7K579bW6tiQkSAJ0KXjafKPzGNcrbuPxY'
+favicon:
+  use_default: true
+features:
+  comment_user_picture: true
+  comment_user_verification: true
+  favicon: true
+  node_user_picture: true
+logo:
+  use_default: true
+theme_size: compact

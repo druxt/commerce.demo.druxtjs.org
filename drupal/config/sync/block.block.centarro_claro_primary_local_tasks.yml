@@ -1,0 +1,22 @@
+uuid: 089e422f-5354-4985-865b-7239ba452879
+langcode: en
+status: true
+dependencies:
+  theme:
+    - centarro_claro
+_core:
+  default_config_hash: mQYLMonh5C015m1qMXwC5V3DNn7IPrAlGrfM9eHG0tI
+id: centarro_claro_primary_local_tasks
+theme: centarro_claro
+region: header
+weight: 0
+provider: null
+plugin: local_tasks_block
+settings:
+  id: local_tasks_block
+  label: 'Primary tabs'
+  label_display: '0'
+  provider: core
+  primary: true
+  secondary: false
+visibility: {  }

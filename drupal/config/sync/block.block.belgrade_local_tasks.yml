@@ -1,0 +1,22 @@
+uuid: 90975d9a-9d9a-46de-8f81-27e543fde64e
+langcode: en
+status: true
+dependencies:
+  theme:
+    - belgrade
+_core:
+  default_config_hash: ShCI2CrHlOLfouMMyUnPcqHa3_sX443kM-yE9dIm05E
+id: belgrade_local_tasks
+theme: belgrade
+region: content
+weight: -9
+provider: null
+plugin: local_tasks_block
+settings:
+  id: local_tasks_block
+  label: Tabs
+  label_display: '0'
+  provider: core
+  primary: true
+  secondary: true
+visibility: {  }

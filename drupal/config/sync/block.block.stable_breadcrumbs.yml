@@ -1,0 +1,26 @@
+uuid: 620a513e-6f33-45a3-91f2-c6384fb59c25
+langcode: en
+status: true
+dependencies:
+  module:
+    - system
+  theme:
+    - stable
+_core:
+  default_config_hash: o9654zFbOpjd88E5j5l4Cby3t-WwUuTfQ6xcKSLsodg
+id: stable_breadcrumbs
+theme: stable
+region: highlighted
+weight: -7
+provider: null
+plugin: system_breadcrumb_block
+settings:
+  id: system_breadcrumb_block
+  label: Breadcrumbs
+  label_display: '0'
+  provider: system
+visibility:
+  request_path:
+    id: request_path
+    negate: true
+    pages: "/cart*\r\n/checkout*\r\n<front>"

@@ -1,0 +1,22 @@
+uuid: d92b2276-567f-4e78-9004-e036001f166c
+langcode: en
+status: true
+dependencies:
+  module:
+    - system
+  theme:
+    - centarro_claro
+_core:
+  default_config_hash: Qk8uyFaFgDwn4NcA_6bxVW0820KO1hls-9xT7LQhwGc
+id: centarro_claro_breadcrumbs
+theme: centarro_claro
+region: breadcrumb
+weight: 0
+provider: null
+plugin: system_breadcrumb_block
+settings:
+  id: system_breadcrumb_block
+  label: Breadcrumbs
+  label_display: '0'
+  provider: system
+visibility: {  }

@@ -1,0 +1,27 @@
+uuid: e0f3d597-a683-44df-9634-281ef74dfba9
+langcode: en
+status: true
+dependencies:
+  config:
+    - system.menu.account
+  module:
+    - system
+  theme:
+    - stable
+_core:
+  default_config_hash: W1mUb_Fv5zaCLkG8UWNiJ76yfWgtvNV8gX5jk8SSnEE
+id: stable_account_menu
+theme: stable
+region: sidebar_first
+weight: -6
+provider: null
+plugin: 'system_menu_block:account'
+settings:
+  id: 'system_menu_block:account'
+  label: 'User account menu'
+  label_display: '0'
+  provider: system
+  level: 1
+  depth: 1
+  expand_all_items: false
+visibility: {  }

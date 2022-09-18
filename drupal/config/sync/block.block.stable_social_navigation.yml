@@ -1,0 +1,27 @@
+uuid: f10de047-9d7c-4de9-b4aa-b74431b3c208
+langcode: en
+status: true
+dependencies:
+  config:
+    - system.menu.social
+  module:
+    - system
+  theme:
+    - stable
+_core:
+  default_config_hash: Dr78JU06qEPwMRS9CDsTk011MO9E7Dv6zPVNyM1rDNM
+id: stable_social_navigation
+theme: stable
+region: sidebar_first
+weight: 0
+provider: null
+plugin: 'system_menu_block:social'
+settings:
+  id: 'system_menu_block:social'
+  label: Social
+  label_display: '0'
+  provider: system
+  level: 1
+  depth: 0
+  expand_all_items: false
+visibility: {  }

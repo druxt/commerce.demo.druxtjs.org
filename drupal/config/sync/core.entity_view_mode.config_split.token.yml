@@ -1,0 +1,10 @@
+uuid: b2750039-beab-41a2-83ac-2a23d03d9555
+langcode: en
+status: true
+dependencies:
+  module:
+    - config_split
+id: config_split.token
+label: Token
+targetEntityType: config_split
+cache: true
