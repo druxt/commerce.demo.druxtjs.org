@@ -1,4 +1,4 @@
-docker-compose-yaml: 'docker-compose.yml'
+docker-compose-yaml: 'docker-compose.backend.yml'
 
 project: druxtjs-org-demo-commerce
 
@@ -47,22 +47,10 @@ tasks:
         service: cli
 
 environments:
-  staging/frontend:
-    routes:
-      - app:
-          - staging.commerce.demo.druxtjs.org
-      - storybook:
-          - storybook.staging.commerce.demo.druxtjs.org
   staging/backend:
     routes:
       - nginx:
           - api.staging.commerce.demo.druxtjs.org
-  production/frontend:
-    routes:
-      - app:
-          - commerce.demo.druxtjs.org
-      - storybook:
-          - storybook.commerce.demo.druxtjs.org
   production/backend:
     routes:
       - nginx:
