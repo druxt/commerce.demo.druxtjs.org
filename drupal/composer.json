@@ -67,7 +67,7 @@
         "drupal/core-dev": "^9.4",
         "drupal/default_content": "2.0.0-alpha2",
         "drupal/druxt": "^1.1",
-        "drush/drush": "^11.1",
+        "drush/drush": "^12.5.2",
         "vlucas/phpdotenv": "^5.4",
         "webflo/drupal-finder": "^1.2",
         "webmozart/path-util": "^2.3"
