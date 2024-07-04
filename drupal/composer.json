@@ -63,7 +63,7 @@
         "composer/installers": "^2.0",
         "cweagans/composer-patches": "^1.7",
         "drupal/commerce_demo": "^3.0",
-        "drupal/core-composer-scaffold": "^9.4",
+        "drupal/core-composer-scaffold": "^10.3.1",
         "drupal/core-dev": "^9.4",
         "drupal/default_content": "2.0.0-alpha2",
         "drupal/druxt": "^1.1",
