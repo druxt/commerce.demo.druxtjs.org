@@ -64,7 +64,7 @@
         "cweagans/composer-patches": "^1.7",
         "drupal/commerce_demo": "^3.0",
         "drupal/core-composer-scaffold": "^9.4",
-        "drupal/core-dev": "^9.4",
+        "drupal/core-dev": "^10.3.1",
         "drupal/default_content": "2.0.0-alpha2",
         "drupal/druxt": "^1.1",
         "drush/drush": "^11.1",
@@ -73,7 +73,7 @@
         "webmozart/path-util": "^2.3"
     },
     "require-dev": {
-        "drupal/core-dev": "^9.4",
+        "drupal/core-dev": "^10.3.1",
         "zaporylie/composer-drupal-optimizations": "^1.2"
     },
     "conflict": {
