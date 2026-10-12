@@ -192,9 +192,15 @@ $config->getEditable('purge_purger_http.settings.druxt_live')
   ->set('http_errors', FALSE)
   ->save();
 
-// An account with no role, for the console's wrong-role screen.
+// An account with no role, for the console's wrong-role screen. Its password
+// comes from the environment too, with the same kind of local default.
 if (!user_load_by_name('shopper')) {
-  User::create(['name' => 'shopper', 'mail' => 'shopper@example.com', 'pass' => 'shopper', 'status' => 1])->save();
+  User::create([
+    'name' => 'shopper',
+    'mail' => 'shopper@example.com',
+    'status' => 1,
+    'pass' => getenv('SHOPPER_PASSWORD') ?: 'shopper',
+  ])->save();
 }
 
 print "live setup done\n";

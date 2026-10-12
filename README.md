@@ -215,7 +215,8 @@ BASE_URL=http://127.0.0.1:8888 STOREFRONT_ORIGIN=http://127.0.0.1:3000 PORT=3001
 
 The local operator account is `operator`. Its password is `OPERATOR_PASSWORD`
 when the backend was provisioned, or `operator`. An account without the role
-signs in and is told it cannot operate the store.
+signs in and is told it cannot operate the store: `shopper`, whose password is
+`SHOPPER_PASSWORD` or `shopper`.
 
 In production the console is the `ops` service on its own route, built by
 `.docker/Dockerfile.ops` and served by `operator/server/start.js`, which also
