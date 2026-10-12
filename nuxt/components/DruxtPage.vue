@@ -12,6 +12,9 @@ import { seoHead } from '~/utils/seo'
  * modules/seo-files.js puts this component on the router's route.
  */
 export default {
+  // Druxt finds a page's theme components by the router's own name. Under the
+  // file's name it would look for DruxtPage ones, which do not exist.
+  name: 'DruxtRouter',
   extends: DruxtRouter,
 
   head() {
