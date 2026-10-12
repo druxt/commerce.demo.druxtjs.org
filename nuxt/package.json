@@ -1,6 +1,6 @@
 {
   "name": "quickstart-druxt-site",
-  "version": "1.0.0",
+  "version": "0.3.0",
   "private": true,
   "scripts": {
     "dev": "nuxt",
@@ -11,8 +11,11 @@
   "dependencies": {
     "bootstrap-vue": "^2.22.0",
     "core-js": "3.25.1",
-    "druxt-site": "^0.13.0",
-    "nuxt": "2.15.8"
+    "dotenv": "^16.0.3",
+    "druxt-site": "^0.14.3",
+    "nuxt": "2.15.8",
+    "vue-server-renderer": "^2.7.14",
+    "vue-template-compiler": "^2.7.14"
   },
   "devDependencies": {
     "@nuxtjs/storybook": "4.3.2",

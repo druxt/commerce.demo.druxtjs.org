@@ -1,0 +1,318 @@
+stages:
+  - lint
+  - build
+  - test
+
+variables:
+  PHP_APT_PACKAGES: 'git unzip libsqlite3-dev libzip-dev libicu-dev libpng-dev libjpeg62-turbo-dev libfreetype6-dev libonig-dev libxml2-dev'
+  PHP_EXTENSIONS: 'mbstring pdo_sqlite intl gd bcmath xml zip opcache'
+
+cache:
+  paths:
+    - drupal/vendor/
+    - nuxt/node_modules/
+
+#
+# --- Lint Stage ---
+#
+# Root-level tooling only (package.json at the repo root) - none of this
+# needs PHP/Composer or nuxt/'s own dependencies, so it stays off the
+# heavier .php-node-setup image entirely.
+.node-lint:
+  # 22, not this repo's pinned 16 - the lint
+  # tools themselves need it: cspell requires >=22.18.0, markdownlint-cli2
+  # >=22, commitlint >=22.12.0. This template only runs root-level
+  # tooling, never touches the app's own runtime.
+  image: node:22
+  cache:
+    key:
+      files:
+        - package-lock.json
+    paths:
+      - node_modules/
+  before_script:
+    - npm install
+
+lint:js:
+  extends: .node-lint
+  stage: lint
+  interruptible: true
+  script:
+    - npm run lint:js
+
+lint:format:
+  extends: .node-lint
+  stage: lint
+  interruptible: true
+  script:
+    - npm run lint:format
+
+lint:cspell:
+  extends: .node-lint
+  stage: lint
+  interruptible: true
+  script:
+    - npm run lint:cspell
+
+lint:md:
+  extends: .node-lint
+  stage: lint
+  interruptible: true
+  script:
+    - npm run lint:md
+
+lint:knip:
+  extends: .node-lint
+  stage: lint
+  interruptible: true
+  script:
+    - npm run lint:knip
+
+lint:audit:
+  extends: .node-lint
+  stage: lint
+  interruptible: true
+  script:
+    - npm run lint:audit
+
+lint:renovate:
+  extends: .node-lint
+  stage: lint
+  interruptible: true
+  script:
+    - npm run lint:renovate
+
+# This repository is public and is what people copy to start a site, so a
+# URL only the author can reach is a defect in the published artefact,
+# not a stray comment.
+lint:private:
+  extends: .node-lint
+  stage: lint
+  interruptible: true
+  script:
+    - npm run lint:private
+
+# Only checks the most recent commit - good enough to catch the common
+# case (a single non-conforming commit message) without the complexity of
+# resolving a full MR commit range across both push and merge_request
+# pipeline triggers.
+lint:commit:
+  extends: .node-lint
+  stage: lint
+  interruptible: true
+  script:
+    - npx commitlint --from HEAD~1 --to HEAD --verbose
+
+lint:json:
+  stage: lint
+  interruptible: true
+  image: python:3-slim
+  script:
+    - |
+      rc=0; count=0
+      while IFS= read -r -d '' f; do
+        count=$((count + 1))
+        if python3 -m json.tool "$f" > /dev/null 2>&1; then
+          echo "  [PASS] $f"
+        else
+          echo "  [FAIL] $f"
+          rc=1
+        fi
+      done < <(find . -name '*.json' -not -path '*/.git/*' -not -path '*/node_modules/*' \
+        -not -path '*/nuxt/*' -not -path '*/drupal/*' -not -path '*/.vscode/*' -not -path '*/.devcontainer/*' -print0)
+      echo "--- $count JSON file(s) checked ---"
+      exit "$rc"
+
+lint:shell:
+  stage: lint
+  interruptible: true
+  image: bash:5
+  script:
+    - |
+      rc=0; count=0
+      while IFS= read -r -d '' f; do
+        count=$((count + 1))
+        if bash -n "$f" 2>/dev/null; then
+          echo "  [PASS] $f"
+        else
+          echo "  [FAIL] $f"
+          rc=1
+        fi
+      done < <(find . -name '*.sh' -not -path '*/.git/*' -not -path '*/node_modules/*' \
+        -not -path '*/nuxt/*' -not -path '*/drupal/*' -print0)
+      echo "--- $count shell file(s) checked ---"
+      exit "$rc"
+
+lint:yaml:
+  stage: lint
+  interruptible: true
+  image: python:3-slim
+  script:
+    - pip install yamllint -q
+    # No .github/workflows here - this repo is gitlab-only.
+    - 'yamllint -d "{extends: default, rules: {line-length: {max: 200, level: warning}}}" .gitlab-ci.yml'
+
+# Prose-quality lint for README.md: flags AI-generated-text tells (em-dash overuse,
+# hedging, anthropomorphic verbs, overused vocabulary, etc.) via the
+# vale-ai-tells style package, scoped by .vale.ini to hand-authored prose
+# only. Blocking: all real findings against current content are fixed,
+# and ai-tells.ColonUsage is disabled (see the comment in .vale.ini) since
+# it can't tell this repo's "**term**: Description" convention apart from
+# a genuine AI tell.
+lint:vale:
+  stage: lint
+  interruptible: true
+  image: python:3-slim
+  script:
+    - |
+      vale_version="3.17.1"
+      arch="$(uname -m)"
+      case "$arch" in
+        aarch64|arm64)
+          vale_arch=arm64
+          vale_sha256=92d91ebf9ee69ec077379be95cd09e6710ab33d3d5bab66bb482e66ebc80dc23
+          ;;
+        x86_64)
+          vale_arch=64-bit
+          vale_sha256=db947f89f2292e6a0381a61de155f6a5f5cb4cb460ca178ea412ef605559cefd
+          ;;
+        *) echo "Unsupported architecture: $arch" >&2; exit 1 ;;
+      esac
+      apt-get update -yqq && apt-get install -yqq curl >/dev/null
+      curl -sL --max-time 60 "https://github.com/vale-cli/vale/releases/download/v${vale_version}/vale_${vale_version}_Linux_${vale_arch}.tar.gz" -o /tmp/vale.tar.gz
+      echo "${vale_sha256}  /tmp/vale.tar.gz" | sha256sum -c - || { echo "vale checksum mismatch" >&2; exit 1; }
+      tar -xzf /tmp/vale.tar.gz -C /usr/local/bin vale
+      chmod +x /usr/local/bin/vale
+    - |
+      ai_tells_version="1.31.0"
+      ai_tells_sha256="bc1267248f13e65928475c439ad7ae1bf806a20d09254c08d7d8c4a9c8b811f0"
+      curl -sL --max-time 60 "https://github.com/tbhb/vale-ai-tells/releases/download/v${ai_tells_version}/ai-tells.zip" -o /tmp/ai-tells.zip
+      echo "${ai_tells_sha256}  /tmp/ai-tells.zip" | sha256sum -c - || { echo "ai-tells checksum mismatch" >&2; exit 1; }
+      python3 -c "
+      import zipfile, os
+      with zipfile.ZipFile('/tmp/ai-tells.zip') as z:
+          for name in z.namelist():
+              if name.startswith('ai-tells/styles/') and not name.endswith('/'):
+                  target = os.path.join('styles', name[len('ai-tells/styles/'):])
+                  os.makedirs(os.path.dirname(target), exist_ok=True)
+                  with open(target, 'wb') as f:
+                      f.write(z.read(name))
+      "
+    - vale README.md
+
+.php-node-setup:
+  image: php:8.4
+  before_script:
+    - apt-get update -yqq
+    - apt-get install -yqq $PHP_APT_PACKAGES python3 python3-setuptools build-essential
+    - docker-php-ext-install $PHP_EXTENSIONS
+    - curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer --version=2.10.2
+    - curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh | bash
+    - export NVM_DIR="$HOME/.nvm" && . "$NVM_DIR/nvm.sh" --no-use
+    - nvm install && nvm use
+
+build:
+  extends: .php-node-setup
+  stage: build
+  script:
+    # Validate and install Composer dependencies.
+    - cd drupal && composer validate --strict && composer install --no-interaction --no-progress
+
+    # Install Nuxt dependencies. Not `npm run build` - Druxt fetches the
+    # JSON:API index at build time, so building needs a live Drupal
+    # backend (with Commerce Kickstart's demo content installed). That
+    # happens in the test_e2e job, via .devtools/.
+    - cd ../nuxt && npm install
+  artifacts:
+    paths:
+      - drupal/vendor
+      - nuxt/node_modules
+
+# No Cypress suite here (none is configured for this starterkit) - the
+# meaningful test is that Commerce Kickstart actually installs with its
+# demo content, druxt/JSON:API serves real commerce_product data, and the
+# Nuxt frontend builds against that live backend.
+
+test_e2e:
+  extends: .php-node-setup
+  stage: test
+  needs:
+    - build
+  script:
+    - cd drupal
+    - .devtools/assemble
+    - .devtools/provision
+    - .devtools/start
+    # BASE_URL comes from the .env that .devtools/start just wrote - drush
+    # has no configured URI here and would answer "http://default".
+    - |
+      . "$CI_PROJECT_DIR/.env"
+      RESPONSE=$(curl -sf "${BASE_URL}/jsonapi/commerce_product/physical") || { echo "curl failed against ${BASE_URL}"; exit 1; }
+      printf '%s' "$RESPONSE" | grep -q '"type":"commerce_product--physical"' || { echo "no physical products in response:"; printf '%.500s\n' "$RESPONSE"; exit 1; }
+    - cd ../nuxt
+    - npm install
+    - npm run build
+
+# Coverage reporting needs Node 20+, and these tests use only node:test
+# and node:assert, so they run on a modern Node with nothing installed.
+test_scripts:
+  stage: test
+  image: node:22
+  needs: []
+  script:
+    - npm run test:scripts:coverage
+  artifacts:
+    paths:
+      - coverage/scripts-lcov.info
+
+# The documented consumer flow (`npx giget@1 gh:druxt/... my-site
+# --install`) consumes a tarball: no .git, no preinstalled dependencies,
+# and the root npm install stands everything up. git archive produces
+# that same artifact from this exact commit - giget itself can only
+# fetch refs already pushed to GitHub.
+test_consumer_install:
+  extends: .php-node-setup
+  # The documented minimum, so a pass means the lock and the provisioning
+  # actually work there - not just on a newer PHP.
+  image: php:8.3
+  stage: test
+  needs: []
+  script:
+    - git archive --prefix=site/ "$CI_COMMIT_SHA" | tar -x -C /tmp
+    # `env -u CI`: postinstall deliberately steps aside on CI machines -
+    # this job's whole point is to behave like a consumer machine.
+    - cd /tmp/site && env -u CI npm install
+    - . /tmp/site/.env && curl -sf "${BASE_URL}/jsonapi" | grep -q '"jsonapi"'
+    - cd /tmp/site/nuxt && npm run build
+
+# What the root install promises on machines without a working PHP: a
+# consumer's `npm install` must never fail, `npm run setup` must
+# fail loudly, and a too-old PHP must be rejected by the preflight.
+test_install_guardrails:
+  stage: test
+  image: node:22
+  needs: []
+  script:
+    # npm install without PHP: exits 0 and points at `npm run setup`.
+    - env -u CI npm install > /tmp/install.log 2>&1
+    - grep -q 'The backend needs PHP' /tmp/install.log
+    # npm run setup without PHP: fails, and says what is missing.
+    - if npm run setup > /tmp/setup.log 2>&1; then echo "setup should have failed"; exit 1; fi
+    - grep -q 'Missing required tools' /tmp/setup.log
+    # Too-old PHP: the version preflight rejects it.
+    - |
+      SHIM=$(mktemp -d)
+      printf '#!/bin/sh\necho 8.2.29\n' > "$SHIM/php"
+      printf '#!/bin/sh\nexit 0\n' > "$SHIM/composer"
+      chmod +x "$SHIM/php" "$SHIM/composer"
+      if PATH="$SHIM:$PATH" npm run setup > /tmp/old-php.log 2>&1; then echo "setup should have failed"; exit 1; fi
+      grep -q 'too old' /tmp/old-php.log
+    # Too-old PHP through npm install: the preflight exits the process, so
+    # without postinstall screening first this would fail the install.
+    - |
+      SHIM=$(mktemp -d)
+      printf '#!/bin/sh\necho 8.2.29\n' > "$SHIM/php"
+      printf '#!/bin/sh\nexit 0\n' > "$SHIM/composer"
+      chmod +x "$SHIM/php" "$SHIM/composer"
+      PATH="$SHIM:$PATH" env -u CI npm install > /tmp/old-php-install.log 2>&1
+      grep -q 'The backend needs PHP' /tmp/old-php-install.log

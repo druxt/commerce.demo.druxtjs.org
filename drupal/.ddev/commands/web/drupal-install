@@ -4,9 +4,35 @@
 ## Usage: drupal-install
 ## Example: "ddev drupal-install"
 
-composer install
-drush -y site:install commerce_kickstart
-drush -y pm:enable commerce_demo druxt
-drush role:perm:add anonymous "access druxt resources"
-drush mailer:import
-drush cache:rebuild
+# Fail fast: a failed step must fail the whole install, not leave a
+# half-provisioned site that later commands "fix" silently.
+set -euo pipefail
+
+# Every path below is absolute and derived here, because this script runs
+# under both DDEV and Lando, which mount the project at different paths
+# and hand the script different working directories.
+if [ -f /var/www/html/composer.json ]; then
+  PROJECT_ROOT=/var/www/html            # DDEV
+  # DDEV writes settings.ddev.php with the database credentials, so
+  # site-install finds them by itself.
+  DB_URL_ARG=""
+elif [ -f /app/composer.json ]; then
+  PROJECT_ROOT=/app                     # Lando
+  # Lando writes no Drupal settings at all - without credentials the
+  # install drops into an interactive database prompt and dies. These
+  # are the drupal11 recipe's documented defaults.
+  DB_URL_ARG="--db-url=mysql://drupal11:drupal11@database/drupal11"
+else
+  PROJECT_ROOT="$(pwd)"
+  DB_URL_ARG=""
+fi
+DRUPAL_ROOT="$PROJECT_ROOT/web"
+
+# Install composer dependencies.
+composer install --working-dir="$PROJECT_ROOT"
+
+drush -r "$DRUPAL_ROOT" -y site:install commerce_kickstart ${DB_URL_ARG:+"$DB_URL_ARG"}
+drush -r "$DRUPAL_ROOT" -y pm:enable commerce_demo druxt
+drush -r "$DRUPAL_ROOT" role:perm:add anonymous "access druxt resources"
+drush -r "$DRUPAL_ROOT" mailer:import
+drush -r "$DRUPAL_ROOT" cache:rebuild

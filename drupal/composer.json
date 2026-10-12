@@ -1,6 +1,6 @@
 {
     "name": "centarro/commerce-kickstart-project",
-    "description": "Centarro Commerce Kickstart 3.x project template",
+    "description": "Centarro Commerce Kickstart 5.x project template, with Druxt",
     "type": "project",
     "license": "GPL-2.0-or-later",
     "authors": [
@@ -10,9 +10,9 @@
         }
     ],
     "repositories": {
-        "commerce_demo": {
+        "block_visibility_conditions": {
             "type": "vcs",
-            "url": "https://git.drupalcode.org/project/commerce_demo.git"
+            "url": "https://git.drupalcode.org/issue/block_visibility_conditions-3450896.git"
         },
         "jquery-ui-touch-punch": {
             "type": "package",
@@ -26,55 +26,48 @@
                 }
             }
         },
-        "select2": {
-            "type": "package",
-            "package": {
-                "name": "select2/select2",
-                "version": "4.1.0-rc.0",
-                "type": "drupal-library",
-                "dist": {
-                    "type": "zip",
-                    "url": "https://github.com/select2/select2/archive/refs/tags/4.1.0-rc.0.zip"
-                }
-            }
-        },
         "drupal": {
             "type": "composer",
             "url": "https://packages.drupal.org/8"
         }
     },
     "config": {
-        "bin-dir": "bin",
         "sort-packages": true,
+        "platform": {
+            "php": "8.3"
+        },
         "allow-plugins": {
             "composer/installers": true,
             "dealerdirect/phpcodesniffer-composer-installer": true,
             "cweagans/composer-patches": true,
             "drupal/core-composer-scaffold": true,
+            "drupal/core-project-message": true,
+            "drupal/core-recipe-unpack": true,
             "oomphinc/composer-installers-extender": true,
-            "zaporylie/composer-drupal-optimizations": true
+            "phpstan/extension-installer": true,
+            "php-http/discovery": true,
+            "symfony/runtime": true,
+            "tbachert/spi": true
         }
     },
     "require": {
-        "php": ">=7.3",
+        "php": ">=8.3",
         "ext-curl": "*",
-        "centarro/certified-projects": "^1.0",
-        "centarro/commerce_kickstart": "^3.0",
+        "centarro/certified-projects": "^3",
+        "centarro/commerce_kickstart": "^5.1",
         "composer/installers": "^2.0",
         "cweagans/composer-patches": "^1.7",
-        "drupal/commerce_demo": "^3.0",
-        "drupal/core-composer-scaffold": "^9.4",
-        "drupal/core-dev": "^9.4",
-        "drupal/default_content": "2.0.0-alpha2",
-        "drupal/druxt": "^1.1",
-        "drush/drush": "^11.1",
-        "vlucas/phpdotenv": "^5.4",
+        "drupal/commerce_kickstart_demo": "^1.2",
+        "drupal/core-composer-scaffold": "^11",
+        "drupal/core-project-message": "^11",
+        "drupal/core-recipe-unpack": "^11",
+        "drupal/core-recommended": "^11",
+        "drupal/decoupled_router": "^2.0",
+        "drupal/druxt": "^1.3.1",
+        "drush/drush": "^13",
+        "vlucas/phpdotenv": "^5.1",
         "webflo/drupal-finder": "^1.2",
         "webmozart/path-util": "^2.3"
-    },
-    "require-dev": {
-        "drupal/core-dev": "^9.4",
-        "zaporylie/composer-drupal-optimizations": "^1.2"
     },
     "conflict": {
         "drupal/drupal": "*"
@@ -82,56 +75,22 @@
     "minimum-stability": "dev",
     "prefer-stable": true,
     "autoload": {
-        "classmap": [
-            "scripts/composer/ScriptHandler.php"
-        ],
-        "files": ["load.environment.php"]
-    },
-    "scripts": {
-        "drupal-scaffold": "DrupalComposer\\DrupalScaffold\\Plugin::scaffold",
-        "pre-install-cmd": [
-            "DrupalProject\\composer\\ScriptHandler::checkComposerVersion"
-        ],
-        "pre-update-cmd": [
-            "DrupalProject\\composer\\ScriptHandler::checkComposerVersion"
-        ],
-        "post-install-cmd": [
-            "DrupalProject\\composer\\ScriptHandler::createRequiredFiles"
-        ],
-        "post-update-cmd": [
-            "DrupalProject\\composer\\ScriptHandler::createRequiredFiles"
+        "files": [
+            "load.environment.php"
         ]
     },
     "extra": {
-        "composer-exit-on-patch-failure": true,
-        "patches": {
-            "drupal/core": {
-                "#2942975 Expose Layout Builder data to REST and JSON:API": "https://www.drupal.org/files/issues/2022-06-24/2942975-199.patch"
-            },
-            "drupal/default_content": {
-                "#3160146 Add a Normalizer and Denormalizer to support Layout Builder": "patches/default_content/3160146-layout-builder.patch"
-            }
-        },
-        "patchLevel": {
-            "drupal/core": "-p2",
-            "drupal/default_content": "-p1"
-        },
         "drupal-scaffold": {
             "locations": {
                 "web-root": "web/"
-            },
-            "overwrite": true,
-            "file-mapping": {
-                "[web-root]/libraries/jquery-ui-touch-punch/jquery.ui.touch-punch.min.js": "libraries/jquery-ui-touch-punch/jquery.ui.touch-punch.min.js",
-                "[web-root]/libraries/select2/dist/js/select2.min.js": "libraries/select2/dist/js/select2.min.js",
-                "[web-root]/libraries/select2/dist/css/select2.min.css": "libraries/select2/dist/css/select2.min.css"
             }
         },
         "installer-paths": {
-            "web/core": ["type:drupal-core"],
+            "web/core": [
+                "type:drupal-core"
+            ],
             "libraries/{$name}": [
-                "furf/jquery-ui-touch-punch",
-                "select2/select2"
+                "furf/jquery-ui-touch-punch"
             ],
             "web/libraries/{$name}": [
                 "type:drupal-library"
@@ -147,6 +106,18 @@
             ],
             "drush/Commands/contrib/{$name}": [
                 "type:drupal-drush"
+            ],
+            "recipes/{$name}": [
+                "type:drupal-recipe"
+            ],
+            "web/modules/custom/{$name}": [
+                "type:drupal-custom-module"
+            ],
+            "web/profiles/custom/{$name}": [
+                "type:drupal-custom-profile"
+            ],
+            "web/themes/custom/{$name}": [
+                "type:drupal-custom-theme"
             ]
         }
     }

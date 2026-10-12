@@ -1,0 +1,104 @@
+#!/usr/bin/env php
+<?php
+
+/**
+ * @file
+ * Provision the site: fresh `commerce_kickstart`-profile `drush
+ * site:install` against a throwaway SQLite database, enable the demo
+ * content and druxt modules, grant anonymous JSON:API access.
+ *
+ * No OAuth here - unlike quickstart, this repo has no simple_oauth/
+ * consumers dependency at all (matches `.ddev/commands/web/drupal-
+ * install`'s own sequence, which never touches OAuth either).
+ *
+ * This repo has nothing to import - this is a fresh `site:install`,
+ * porting the exact sequence from `.ddev/commands/web/drupal-install`
+ * verbatim, just SQLite-backed and Docker-free.
+ *
+ * The SQLite override lives in `web/sites/default/settings.local.php`
+ * (gitignored), not `settings.php`. This repo has no committed
+ * `settings.php` at all — only `default.settings.php` — so this copies it
+ * once and enables its already-present (but commented-out)
+ * `settings.local.php` include; every subsequent `provision` run then only
+ * ever touches the gitignored file.
+ */
+
+declare(strict_types=1);
+
+namespace QuickstartCommerceDevTools;
+
+require_once __DIR__ . '/helpers.php';
+
+// -----------------------------------------------------------------------------
+// Variables.
+// -----------------------------------------------------------------------------
+
+$db_file = resolve_env_value('DB_FILE', '/tmp/quickstart-commerce-drupal-site.sqlite')[0];
+
+// -----------------------------------------------------------------------------
+
+echo '===============================' . PHP_EOL;
+echo '         🚀 PROVISION          ' . PHP_EOL;
+echo '===============================' . PHP_EOL;
+echo PHP_EOL;
+
+TASK('Preparing web/sites/default/settings.php.');
+$settings_php = 'web/sites/default/settings.php';
+if (!file_exists($settings_php)) {
+  if (!copy('web/sites/default/default.settings.php', $settings_php)) {
+    FAIL('Unable to create %s from default.settings.php.', $settings_php);
+  }
+}
+$settings_contents = (string) file_get_contents($settings_php);
+$commented_include = "#\n# if (file_exists(\$app_root . '/' . \$site_path . '/settings.local.php')) {\n#   include \$app_root . '/' . \$site_path . '/settings.local.php';\n# }\n";
+$active_include = "\nif (file_exists(\$app_root . '/' . \$site_path . '/settings.local.php')) {\n  include \$app_root . '/' . \$site_path . '/settings.local.php';\n}\n";
+if (str_contains($settings_contents, $commented_include)) {
+  file_put_contents($settings_php, str_replace($commented_include, $active_include, $settings_contents));
+}
+elseif (!str_contains($settings_contents, $active_include)) {
+  FAIL('Could not find the expected settings.local.php include block (commented or active) in %s. The file may have changed shape - update this script\'s anchor rather than skipping the patch.', $settings_php);
+}
+PASS('settings.php includes settings.local.php.');
+
+TASK('Configuring the SQLite database at %s.', $db_file);
+if (file_exists($db_file)) {
+  unlink($db_file);
+}
+// var_export() so a path containing quotes stays valid PHP.
+$db_file_php = var_export($db_file, TRUE);
+file_put_contents('web/sites/default/settings.local.php', sprintf(
+  "<?php\n\n/**\n * @file\n * Provision-only override, written fresh each run by .devtools/provision.\n * Gitignored - never committed.\n */\n\n\$databases['default']['default'] = [\n  'driver' => 'sqlite',\n  'database' => %s,\n];\n",
+  $db_file_php
+));
+PASS('SQLite database configured.');
+
+// The installer's "Choose demo or add-ons" step (installer_recipes_form,
+// its `demo` checkbox) is how the demo recipe is meant to be selected -
+// applying commerce_kickstart_demo as a separate `recipe:apply` step
+// afterward conflicts with config the base install already wrote (e.g.
+// "image.style.large exists already and does not match the recipe's
+// configuration"). Passing the field as a site:install parameter picks
+// it non-interactively, in the same install flow it was designed for.
+TASK('Running drush site:install commerce_kickstart (with demo content).');
+drush('site:install commerce_kickstart installer_recipes_form.demo=%s', 'drupal/commerce_kickstart_demo');
+PASS('Site installed with demo content.');
+
+TASK('Enabling druxt.');
+drush('pm:enable druxt');
+drush('role:perm:add anonymous %s', 'access druxt resources');
+PASS('druxt enabled; anonymous can access Druxt resources.');
+
+TASK('Enabling authenticated editing via JSON:API.');
+drush('config:set jsonapi.settings read_only %s', '0');
+PASS('jsonapi.settings read_only disabled.');
+
+echo PHP_EOL;
+echo '===============================' . PHP_EOL;
+echo '   🚀 PROVISION COMPLETE  ✅  ' . PHP_EOL;
+echo '===============================' . PHP_EOL;
+echo PHP_EOL;
+echo 'Database: ' . $db_file . PHP_EOL;
+echo PHP_EOL;
+echo '> Next steps:' . PHP_EOL;
+echo '  .devtools/start    # Start the webserver' . PHP_EOL;
+echo PHP_EOL;
