@@ -23,6 +23,7 @@ const termAliases = async (vocabulary, tree = false) => {
   try {
     const url = `${baseUrl}/jsonapi/taxonomy_term/${vocabulary}?fields[taxonomy_term--${vocabulary}]=name,drupal_internal__tid,parent&page[limit]=50`
     const res = await fetch(url, { headers: { Accept: 'application/vnd.api+json' } })
+    if (!res.ok) throw new Error(`${res.status} ${res.statusText}`)
     const { data } = await res.json()
     const tid = (t) => String(t.attributes.drupal_internal__tid)
     const parentOf = (t) => ((t.relationships.parent || {}).data || [])[0] || {}
@@ -33,6 +34,8 @@ const termAliases = async (vocabulary, tree = false) => {
       })
     )
   } catch (e) {
+    // The build goes on, but the shop's slugs for these terms will not resolve.
+    console.warn(`termAliases: no ${vocabulary} aliases from ${baseUrl}: ${e.message}`)
     return {}
   }
 }
