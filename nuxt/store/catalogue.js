@@ -74,6 +74,9 @@ export const mutations = {
     state.items = items
     state.loaded = true
   },
+  unload(state) {
+    state.loaded = false
+  },
 }
 
 // One request in flight per tab, however many components ask for it. Only in
@@ -121,6 +124,14 @@ const fetchAll = async (dispatch) => {
 }
 
 export const actions = {
+  // Read the catalogue again, whatever was read before: a product arrived.
+  // The old items stay on screen until the new ones are in.
+  async reload({ dispatch, commit }) {
+    commit('unload')
+    pending = undefined
+    return dispatch('load')
+  },
+
   async load({ state, commit, dispatch }) {
     if (state.loaded) return state.items
     const request = process.server ? fetchAll(dispatch) : (pending = pending || fetchAll(dispatch))

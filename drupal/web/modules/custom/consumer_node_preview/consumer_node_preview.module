@@ -1,0 +1,90 @@
+<?php
+
+/**
+ * @file
+ * Core hooks for the Consumer Node Preview module.
+ */
+
+declare(strict_types=1);
+
+use Drupal\consumer_node_preview\PreviewTargetsProviderInterface;
+use Drupal\Core\Entity\EntityTypeInterface;
+use Drupal\Core\Field\BaseFieldDefinition;
+use Drupal\Core\Field\FieldStorageDefinitionInterface;
+use Drupal\Core\StringTranslation\TranslatableMarkup;
+
+/**
+ * Implements hook_entity_base_field_info().
+ */
+function consumer_node_preview_entity_base_field_info(EntityTypeInterface $entity_type): array {
+  $fields = [];
+  if ($entity_type->id() === 'consumer') {
+    $fields['preview_targets'] = BaseFieldDefinition::create('consumer_preview_target')
+      ->setLabel(new TranslatableMarkup('Preview targets'))
+      ->setDescription(new TranslatableMarkup('Frontend URLs that render node previews for this consumer. The URL can use the tokens [jsonapi_node_preview], [jsonapi_node_preview_path], [uuid], [view_mode] and [layout].'))
+      ->setCardinality(FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED)
+      ->setTranslatable(FALSE)
+      ->setDisplayOptions('form', [
+        'type' => 'consumer_preview_target_default',
+        'weight' => 10,
+      ])
+      ->setDisplayConfigurable('form', TRUE);
+    $fields['preview_layouts'] = BaseFieldDefinition::create('string')
+      ->setLabel(new TranslatableMarkup('Preview layouts'))
+      ->setDescription(new TranslatableMarkup('Layouts the frontend can render a preview in, such as "default". The preview shows them in a Layout select and puts the chosen one in the [layout] token.'))
+      ->setCardinality(FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED)
+      ->setTranslatable(FALSE)
+      ->setSetting('max_length', 64)
+      ->addPropertyConstraints('value', [
+        'Regex' => [
+          'pattern' => PreviewTargetsProviderInterface::LAYOUT_PATTERN,
+          'message' => 'A layout name may only use letters, numbers, hyphens and underscores.',
+        ],
+      ])
+      ->setDisplayOptions('form', [
+        'type' => 'string_textfield',
+        'weight' => 11,
+      ])
+      ->setDisplayConfigurable('form', TRUE);
+  }
+  return $fields;
+}
+
+/**
+ * Implements hook_theme().
+ */
+function consumer_node_preview_theme(array $existing, string $type, string $theme, string $path): array {
+  return [
+    'consumer_node_preview' => [
+      'variables' => [
+        'drupal' => [],
+        'view_mode' => [],
+        'frontend' => [],
+        'layout' => [],
+        'targets' => [],
+        'active_target' => NULL,
+        'jsonapi_url' => NULL,
+        'no_targets' => [],
+        'no_document' => [],
+      ],
+    ],
+  ];
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for html.
+ *
+ * On the preview page, the View mode select sits with the preview's tabs. So
+ * core's preview bar keeps only its link back to the edit form.
+ */
+function consumer_node_preview_preprocess_html(array &$variables): void {
+  if (\Drupal::routeMatch()->getRouteName() !== 'entity.node.preview' || !isset($variables['page_top']['node_preview']['view_mode'])) {
+    return;
+  }
+  $form = &$variables['page_top']['node_preview']['view_mode'];
+  foreach (['view_mode', 'submit'] as $key) {
+    if (isset($form[$key])) {
+      $form[$key]['#access'] = FALSE;
+    }
+  }
+}

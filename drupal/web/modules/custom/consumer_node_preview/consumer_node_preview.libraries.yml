@@ -1,0 +1,12 @@
+preview:
+  css:
+    component:
+      css/consumer-node-preview.css: {}
+  js:
+    js/consumer-node-preview.js: {}
+  dependencies:
+    - core/drupal
+    - core/drupal.ajax
+    - core/drupal.displace
+    - core/drupalSettings
+    - core/once

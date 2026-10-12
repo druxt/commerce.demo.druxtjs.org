@@ -1,6 +1,6 @@
 <template>
   <!-- The demo's whole argument is which half is which, so it says so. -->
-  <div class="bg-ink text-paper-2 font-mono text-11px tracking-wide min-h-30px px-4 flex flex-wrap items-center justify-center gap-x-3.5 gap-y-1 text-center">
+  <div class="demo-bar bg-ink text-paper-2 font-mono text-11px tracking-wide min-h-30px px-4 flex flex-wrap items-center justify-center gap-x-3.5 gap-y-1 text-center">
     <span class="text-ink-3">commerce.demo.druxtjs.org</span>
     <span class="hidden md:inline text-ink-2" aria-hidden="true">/</span>
     <!-- The full notice wraps to three lines on a phone, so a phone gets the short one. -->
@@ -12,18 +12,23 @@
     <span v-if="session" class="inline-flex items-center gap-1.5 text-mint" :title="`Demo session ${session}: an operator's console sees the orders placed here`">
       <span class="w-1.5 h-1.5 rounded-full bg-mint" aria-hidden="true" />session {{ session }}
     </span>
+    <!-- The browser's own button look is reset: white text on its grey box could not be read. -->
     <button
       type="button"
       role="switch"
       :aria-checked="overlay ? 'true' : 'false'"
-      class="min-h-30px inline-flex items-center gap-1.5 text-paper hover:text-mint"
+      class="min-h-30px inline-flex items-center gap-1.5 p-0 bg-transparent border-0 rounded-sm font-inherit text-paper hover:text-mint cursor-pointer"
       @click="$druxtDemo.toggleOverlay()"
     >
       overlay
-      <span class="relative w-7 h-4 rounded-full border border-current" aria-hidden="true">
+      <span
+        class="relative w-7 h-4 rounded-full border transition-colors duration-150"
+        :class="overlay ? 'bg-mint border-mint' : 'border-current'"
+        aria-hidden="true"
+      >
         <span
-          class="absolute top-0.5 left-0.5 w-2.5 h-2.5 rounded-full bg-current transition-transform duration-150"
-          :class="overlay && 'translate-x-3'"
+          class="absolute top-0.5 left-0.5 w-2.5 h-2.5 rounded-full transition-transform duration-150"
+          :class="overlay ? 'bg-ink translate-x-3' : 'bg-current'"
         />
       </span>
     </button>
@@ -56,3 +61,10 @@ export default {
   },
 }
 </script>
+
+<style>
+/* The page's focus ring is ink; on the ink bar it needs the paper colour. */
+.demo-bar :focus-visible {
+  outline-color: var(--paper);
+}
+</style>

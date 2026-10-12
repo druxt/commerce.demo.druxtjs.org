@@ -43,7 +43,6 @@ jgslf
 kdiff
 knip
 lando
-Lando
 landofile
 langcode
 libasound
@@ -58,6 +57,7 @@ libsqlite
 libxss
 libxtst
 libzip
+linkit
 lndo
 LOCALDEV
 luma
@@ -96,6 +96,7 @@ Segoe
 SESS
 setuptools
 shivammathur
+siroc
 skus
 someenv
 somename
@@ -111,8 +112,10 @@ tbachert
 tokenless
 trixie
 tysc
+udolpho
 uncompiled
 unocss
+unstorable
 updb
 uselagoon
 valeryan

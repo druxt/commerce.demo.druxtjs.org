@@ -1,0 +1,87 @@
+{#
+/**
+ * @file
+ * Core's node preview as tabs: the frontend, Drupal and JSON:API.
+ *
+ * Available variables:
+ * - drupal: Drupal's render of the unsaved node.
+ * - view_mode: Core's View mode form, shown at the end of the tab row.
+ * - frontend: The frontend picker, a select element.
+ * - layout: The layout picker, a select element, or empty when no target has
+ *   layouts.
+ * - targets: Preview targets keyed by target key, each with a label, a
+ *   resolved url and its layouts.
+ * - active_target: The key of the target the frontend tab opens on, or NULL.
+ * - jsonapi_url: The JSON:API preview document's URL, or NULL.
+ * - no_targets: A warning for when there are no targets.
+ * - no_document: A warning for when JSON:API has no preview document.
+ */
+#}
+{%
+  set tabs = {
+    frontend: 'Frontend'|t,
+    drupal: 'Drupal'|t,
+    jsonapi: 'JSON:API'|t,
+  }
+%}
+{% set active = targets ? 'frontend' : 'drupal' %}
+{% set target = targets[active_target]|default(targets|first) %}
+<div class="consumer-node-preview" data-consumer-node-preview>
+  <div class="consumer-node-preview__bar">
+    <div class="tabs-wrapper tabs-wrapper--secondary is-horizontal consumer-node-preview__tabs">
+      <ul class="tabs tabs--secondary" role="tablist" aria-label="{{ 'Preview'|t }}">
+        {% for id, label in tabs %}
+          <li class="tabs__tab{{ id == active ? ' is-active' }}" role="presentation">
+            <a href="#consumer-node-preview-{{ id }}" id="consumer-node-preview-{{ id }}-tab" class="tabs__link{{ id == active ? ' is-active' }}" role="tab" aria-controls="consumer-node-preview-{{ id }}" aria-selected="{{ id == active ? 'true' : 'false' }}" data-consumer-node-preview-tab="{{ id }}">{{ label }}</a>
+          </li>
+        {% endfor %}
+      </ul>
+    </div>
+    <div class="consumer-node-preview__view-mode">
+      {{ view_mode }}
+    </div>
+  </div>
+
+  <section id="consumer-node-preview-frontend" class="consumer-node-preview__panel" role="tabpanel" aria-labelledby="consumer-node-preview-frontend-tab"{{ active != 'frontend' ? ' hidden' }}>
+    {% if targets %}
+      <div class="consumer-node-preview__controls">
+        <div class="consumer-node-preview__pickers">
+          {{ frontend }}
+          {{ layout }}
+        </div>
+        <div class="consumer-node-preview__actions">
+          <div class="consumer-node-preview__widths" role="group" aria-label="{{ 'Preview width'|t }}">
+            {% for width, label in {'390px': 'Phone'|t, '820px': 'Tablet'|t, '100%': 'Full'|t} %}
+              <button type="button" class="button button--small{{ width == '100%' ? ' button--primary' }}" aria-pressed="{{ width == '100%' ? 'true' : 'false' }}" data-consumer-node-preview-width="{{ width }}">{{ label }}</button>
+            {% endfor %}
+          </div>
+          <a href="{{ target.url }}" target="_blank" rel="noopener" class="consumer-node-preview__open" data-consumer-node-preview-open>{{ 'Open in new tab'|t }}</a>
+        </div>
+      </div>
+      <div class="consumer-node-preview__viewport" data-consumer-node-preview-viewport>
+        <iframe src="{{ target.url }}" class="consumer-node-preview__frame" title="{{ 'Frontend preview'|t }}" data-consumer-node-preview-frame></iframe>
+      </div>
+    {% else %}
+      <div class="consumer-node-preview__message" data-consumer-node-preview-unconfigured>
+        {{ no_targets }}
+      </div>
+    {% endif %}
+  </section>
+
+  <section id="consumer-node-preview-drupal" class="consumer-node-preview__panel" role="tabpanel" aria-labelledby="consumer-node-preview-drupal-tab"{{ active != 'drupal' ? ' hidden' }}>
+    <div class="consumer-node-preview__page" data-consumer-node-preview-drupal>
+      {{ drupal }}
+    </div>
+  </section>
+
+  <section id="consumer-node-preview-jsonapi" class="consumer-node-preview__panel" role="tabpanel" aria-labelledby="consumer-node-preview-jsonapi-tab" hidden>
+    {% if jsonapi_url %}
+      <p class="consumer-node-preview__request"><code>GET {{ jsonapi_url }}</code></p>
+      <pre class="consumer-node-preview__document" data-consumer-node-preview-jsonapi="{{ jsonapi_url }}"><code>{{ 'Loading the preview document…'|t }}</code></pre>
+    {% else %}
+      <div class="consumer-node-preview__message">
+        {{ no_document }}
+      </div>
+    {% endif %}
+  </section>
+</div>

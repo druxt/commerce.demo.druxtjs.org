@@ -1,0 +1,3 @@
+register consumer node preview targets:
+  title: 'Register node preview targets for own consumers'
+  description: 'Read and replace the preview target list of consumers the user owns.'
