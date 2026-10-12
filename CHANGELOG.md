@@ -114,8 +114,6 @@ minor is for.
 
 - Nuxt 2 and Node 16 are both end of life. This starterkit is pinned to
   them because Druxt targets Nuxt 2; the Nuxt 3 story is separate work.
-- GitHub Actions workflows are not set up for this repository yet, so CI
-  runs on GitLab only.
 
 ## 0.2.0 (2022-09-16)
 
