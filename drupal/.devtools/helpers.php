@@ -355,13 +355,14 @@ function pid_is_running(int $pid): ?bool {
 function parse_database_url(string $url): array {
   $parts = parse_url($url);
   if ($parts === FALSE || !isset($parts['scheme'])) {
-    FAIL('Could not parse the database URL. Expected driver://user:pass@host:port/name, got %s', $url);
+    // The URL is left out of both messages: it carries the password.
+    FAIL('Could not parse the database URL. Expected driver://user:pass@host:port/name.');
   }
 
   $driver = $parts['scheme'];
   $path = isset($parts['path']) ? ltrim($parts['path'], '/') : '';
   if ($path === '') {
-    FAIL('The database URL has no database name or path: %s', $url);
+    FAIL('The database URL has no database name or path.');
   }
 
   return [
