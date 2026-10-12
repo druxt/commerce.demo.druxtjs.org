@@ -21,7 +21,7 @@
           </p>
         </div>
         <NuxtLink to="/cart" class="h-9 px-2.5 border border-line rounded font-mono text-11px text-ink-2 hover:text-ink inline-flex items-center" @click.native="close">cart page</NuxtLink>
-        <button ref="closeButton" type="button" class="w-11 h-11 -mr-2.5 text-22px text-ink-2 hover:text-ink" aria-label="Close" @click="close">×</button>
+        <button ref="closeButton" type="button" class="w-11 h-11 -mr-2.5 bg-transparent border-0 text-22px text-ink-2 hover:text-ink" aria-label="Close" @click="close">×</button>
       </header>
 
       <div class="flex-1 overflow-auto bg-paper-3" aria-live="polite">
@@ -30,24 +30,26 @@
           <p class="text-15px text-ink-2">Your cart is empty.</p>
           <NuxtLink to="/catalogue" class="btn-primary" @click.native="close">Browse the catalogue</NuxtLink>
         </div>
-        <ul v-else class="divide-y divide-line bg-paper">
-          <li v-for="line in lines" :key="line.id" class="p-4 flex items-center gap-3">
-            <NuxtLink :to="pathOf(line) || '/catalogue'" class="shrink-0 w-12 h-12 bg-paper-3 overflow-hidden" :aria-label="line.title" @click.native="close">
+        <!-- The quantity goes under the title, so a phone-width drawer never
+             squeezes the product's name between its stepper and total. -->
+        <ul v-else class="list-none m-0 p-0 bg-paper">
+          <li v-for="line in lines" :key="line.id" class="border-0 border-t border-solid border-line first:border-t-0 px-4 py-3.5 grid grid-cols-[3.5rem_1fr_auto] gap-x-3 gap-y-2.5 items-start">
+            <NuxtLink :to="pathOf(line) || '/catalogue'" class="row-span-2 w-14 h-14 bg-paper-3 overflow-hidden" :aria-label="line.title" @click.native="close">
               <img v-if="imageOf(line)" :src="imageOf(line)" alt="" class="w-full h-full object-cover">
             </NuxtLink>
-            <div class="flex-1 min-w-0">
-              <p class="text-13px font-600 leading-tight">{{ line.title }}</p>
-              <p class="font-mono text-11px text-ink-2 mt-1">{{ line.unitPrice }} each</p>
+            <div class="min-w-0">
+              <p class="text-14px font-600 leading-snug">{{ line.title }}</p>
+              <p class="font-mono text-11px text-ink-2 mt-0.5">{{ line.unitPrice }} each</p>
               <p v-if="room.added[line.title]" class="font-mono text-11px text-teal mt-0.5">
                 added by {{ room.added[line.title] === room.you ? 'you' : room.names[room.added[line.title]] || 'someone' }}
               </p>
             </div>
-            <div class="flex items-center border border-line rounded" role="group" :aria-label="`Quantity for ${line.title}`">
-              <button type="button" class="w-9 h-9 hover:bg-paper-2 disabled:opacity-40" :disabled="busy" :aria-label="`Decrease quantity of ${line.title}`" @click="change(line, line.quantity - 1)">&minus;</button>
-              <span class="w-7 text-center tabular-nums text-13px">{{ line.quantity }}</span>
-              <button type="button" class="w-9 h-9 hover:bg-paper-2 disabled:opacity-40" :disabled="busy" :aria-label="`Increase quantity of ${line.title}`" @click="change(line, line.quantity + 1)">+</button>
+            <p class="font-600 tabular-nums text-14px text-right">{{ line.total }}</p>
+            <div class="col-span-2 justify-self-start flex items-center border border-solid border-line rounded" role="group" :aria-label="`Quantity for ${line.title}`">
+              <button type="button" class="w-11 h-9 bg-transparent border-0 hover:bg-paper-2 disabled:opacity-40" :disabled="busy" :aria-label="`Decrease quantity of ${line.title}`" @click="change(line, line.quantity - 1)">&minus;</button>
+              <span class="w-8 text-center tabular-nums text-13px">{{ line.quantity }}</span>
+              <button type="button" class="w-11 h-9 bg-transparent border-0 hover:bg-paper-2 disabled:opacity-40" :disabled="busy" :aria-label="`Increase quantity of ${line.title}`" @click="change(line, line.quantity + 1)">+</button>
             </div>
-            <p class="w-16 text-right font-600 tabular-nums text-13px">{{ line.total }}</p>
           </li>
         </ul>
         <!-- The room opens here, link and QR included, with no trip to the cart page. -->
