@@ -6,11 +6,8 @@ const { liveOrigin } = require('./lib/site')
 
 const baseUrl = process.env.BASE_URL || ''
 
-// Which paths are Drupal's: the druxt-admin test, Commerce's own add and
-// edit screens, which it does not know, and Drupal's node preview, whose
-// page frames the storefront's preview.
-const { shouldProxy } = require('./modules/druxt-admin/proxy')
-const DRUPAL_EXTRA_PATH = /^\/((product|store|promotion|order)\/(add(\/|$)|[^/]+\/(edit|delete|variations|layout|translations)(\/|$))|node\/preview\/)/
+// Which paths are Drupal's screens; the production server uses the same test.
+const { isDrupalScreen } = require('./lib/drupal-paths')
 
 
 // Bound to 0.0.0.0, Nuxt reports the container-internal interface IP as
@@ -154,7 +151,7 @@ export default async () => ({
     // host, so a changed one reads an editor as signed out and a preview 404s.
     ...['/jsonapi', '/router/translate-path'].map((context) => [context, { target: baseUrl, changeOrigin: false }]),
     [
-      (pathname) => shouldProxy(pathname) || DRUPAL_EXTRA_PATH.test(pathname),
+      isDrupalScreen,
       {
         target: baseUrl,
         changeOrigin: false,
