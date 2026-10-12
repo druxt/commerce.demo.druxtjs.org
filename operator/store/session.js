@@ -86,6 +86,7 @@ export const actions = {
     const token = bearer(this.$auth)
     return new Promise((resolve, reject) => {
       const done = () => {
+        clearTimeout(timer)
         offSession()
         offError()
         sockets.leave('session:new')
@@ -102,6 +103,11 @@ export const actions = {
         done()
         reject(new Error(m.payload.message))
       })
+      // A message sent while the socket is down is dropped, so stop waiting.
+      const timer = setTimeout(() => {
+        done()
+        reject(new Error('The live hub did not answer. Try again.'))
+      }, 10000)
       sockets.join('session:new')
       sockets.send('open', 'session:new', { token })
     })
