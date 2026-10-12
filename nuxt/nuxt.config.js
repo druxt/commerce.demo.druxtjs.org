@@ -65,7 +65,12 @@ export default async () => ({
       { name: 'format-detection', content: 'telephone=no' }
     ],
     link: [
-      { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' }
+      { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' },
+      // llms.txt discovery (https://llmstxt.org): every page points at the
+      // index and the full text beside it. The server sends the same as a
+      // Link header.
+      { rel: 'describedby', type: 'text/markdown', href: '/llms.txt' },
+      { rel: 'describedby', type: 'text/markdown', href: '/llms-full.txt' },
     ]
   },
 
@@ -124,7 +129,8 @@ export default async () => ({
     '@druxt-contrib/sockets',
     localhostListenURL,
     // Last: it puts the storefront's page on the router's route, which
-    // druxt-site adds.
+    // druxt-site adds. It also writes robots.txt, sitemap.xml, llms.txt and
+    // llms-full.txt into the export.
     '~/modules/seo-files',
   ],
 

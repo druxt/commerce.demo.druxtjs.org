@@ -268,6 +268,11 @@ const regenerate = (req, res) => {
   res.end()
 }
 
+const LLMS_LINK = [
+  '</llms.txt>; rel="describedby"; type="text/markdown"',
+  '</llms-full.txt>; rel="describedby"; type="text/markdown"',
+].join(', ')
+
 const drupal = createDrupalProxy(drupalUrl)
 
 // The live socket on /_live, with the storefront's own channels, and the
@@ -290,6 +295,10 @@ const server = http.createServer((req, res) => {
     res.writeHead(404)
     return res.end()
   }
+  // llms.txt discovery (https://llmstxt.org): every response the storefront
+  // serves points at the index and the full text, for a client that never
+  // reads the page's own <link>.
+  res.setHeader('Link', LLMS_LINK)
   return (distDir ? serveStatic : starting)(req, res)
 })
 
