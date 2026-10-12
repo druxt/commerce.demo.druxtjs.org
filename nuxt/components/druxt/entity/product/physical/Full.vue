@@ -48,7 +48,7 @@
         <div v-if="body" class="prose text-15px leading-relaxed text-ink-2 mb-6.5 max-w-[52ch]" v-html="body" />
 
         <!-- Hidden entirely when there is only one variation. -->
-        <fieldset v-if="variations.length > 1" class="border-0 m-0 p-0 mb-5.5">
+        <fieldset v-if="variations.length > 1" class="border-0 mx-0 mt-0 p-0 mb-5.5">
           <legend class="font-mono text-10px tracking-widest uppercase text-ink-3 mb-2.5">{{ variationLabel }}</legend>
           <div class="flex flex-wrap gap-2">
             <button

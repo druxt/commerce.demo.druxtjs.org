@@ -57,7 +57,7 @@ img {
   display: block;
 }
 
-button { font: inherit; }
+button { font: inherit; color: inherit; }
 
 /* Keyboard users must always be able to see where they are. The whole flow
    from home to a placed order has to be operable without a mouse. */
