@@ -19,9 +19,10 @@ const API = '/jsonapi'
 const JSON_API = 'application/vnd.api+json'
 const TOKEN_KEY = 'commerceCartToken'
 
+// randomUUID needs a secure context, and getRandomValues does not.
 const randomToken = () =>
-  (typeof crypto !== 'undefined' && crypto.randomUUID && crypto.randomUUID()) ||
-  `${Date.now().toString(36)}${Math.random().toString(36).slice(2)}${Math.random().toString(36).slice(2)}`
+  (crypto.randomUUID && crypto.randomUUID()) ||
+  Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => b.toString(16).padStart(2, '0')).join('')
 
 /** The browser's cart token, made on first use. Empty on the server. */
 export const cartToken = () => {
