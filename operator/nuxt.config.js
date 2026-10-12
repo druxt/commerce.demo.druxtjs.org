@@ -57,6 +57,12 @@ export default {
     proxy: { api: true },
   },
 
+  // Every request on the page's own origin. Left alone, the axios module
+  // bakes the build machine's host and port into the browser bundle.
+  axios: {
+    browserBaseURL: '/',
+  },
+
   proxy: {
     '/jsonapi': process.env.BASE_URL || 'http://127.0.0.1:18961',
     '/oauth/debug': process.env.BASE_URL || 'http://127.0.0.1:18961',
@@ -95,6 +101,10 @@ export default {
 
   build: {
     postcss: {
+      // UnoCSS first: in a production build Nuxt's own plugins otherwise
+      // drop the `@unocss` rule before it expands, and the console builds
+      // with no utilities at all.
+      order: (names) => ['@unocss/postcss', ...names.filter((name) => name !== '@unocss/postcss')],
       plugins: {
         '@unocss/postcss': {},
       },
