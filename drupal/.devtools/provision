@@ -140,7 +140,6 @@ PASS('Carts, checkout and the renamed product resources served over JSON:API.');
 // This walks the layouts and registers what the recipe did not, using core's
 // own usage service rather than writing to the table directly.
 TASK('Registering inline block usage, which the demo recipe leaves empty.');
-drush('role:perm:add anonymous %s', 'access block library');
 $register = <<<'PHP'
 $usage = \Drupal::service('inline_block.usage');
 $etm = \Drupal::entityTypeManager();
