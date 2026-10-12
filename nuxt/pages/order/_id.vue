@@ -81,6 +81,8 @@ export default {
     if (!this.$live) return
     this.unfollow = this.$live.follow(this.$route.params.id, ({ state }) => {
       this.live = true
+      // The hub can answer before the read below does, and the read keeps this.
+      this.heard = state
       if (this.order && this.order.state !== state) {
         this.order = { ...this.order, state }
         this.movedAt = Date.now()
@@ -96,6 +98,7 @@ export default {
     try {
       const body = await this.$store.dispatch('cart/order', this.$route.params.id)
       this.order = { id: body.data.id, ...body.data.attributes }
+      if (this.heard) this.order.state = this.heard
       this.error = ''
     } catch (e) {
       this.order = null
