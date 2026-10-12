@@ -31,16 +31,15 @@ export default {
       return Object.keys(this.settings.regions_classes || { blb_region_col_1: '' })
     },
 
-    // Slot names are `component-<index>`, so each region needs the indices of
-    // the components assigned to it, in weight order.
+    // The layout builder names each slot by its component's uuid, so each
+    // region lists the uuids assigned to it, in weight order.
     slotsByRegion() {
-      const components = this.section.components || []
+      const components = Object.values(this.section.components || {})
       return this.regions.reduce((acc, region) => {
         acc[region] = components
-          .map((component, index) => ({ component, index }))
-          .filter(({ component }) => (component.region || this.regions[0]) === region)
-          .sort((a, b) => (a.component.weight || 0) - (b.component.weight || 0))
-          .map(({ index }) => `component-${index}`)
+          .filter((component) => (component.region || this.regions[0]) === region)
+          .sort((a, b) => (a.weight || 0) - (b.weight || 0))
+          .map((component) => component.uuid)
         return acc
       }, {})
     },

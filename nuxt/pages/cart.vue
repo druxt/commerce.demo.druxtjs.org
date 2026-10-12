@@ -24,6 +24,9 @@
           :key="line.id"
           class="p-4 md:p-5 flex flex-wrap items-center gap-4"
         >
+          <NuxtLink :to="pathOf(line) || '/catalogue'" class="shrink-0 w-19 h-19 bg-paper-3 overflow-hidden" :aria-label="line.title">
+            <img v-if="imageOf(line)" :src="imageOf(line)" alt="" class="w-full h-full object-cover">
+          </NuxtLink>
           <div class="flex-1 min-w-40">
             <p class="font-600">{{ line.title }}</p>
             <p class="label-mono mt-1">{{ line.unitPrice }} each</p>
@@ -99,14 +102,15 @@ export default {
   // browser where the session cookie exists rather than during SSR.
   fetchOnServer: false,
   fetch() {
-    return this.$store.dispatch('cart/load')
+    // The catalogue gives the lines their images.
+    return Promise.all([this.$store.dispatch('cart/load'), this.$store.dispatch('catalogue/load')])
   },
 
   head: () => ({ title: 'Your cart' }),
 
   computed: {
     ...mapState('cart', ['lines', 'busy', 'error']),
-    ...mapGetters('cart', ['count', 'total', 'subtotal', 'isEmpty']),
+    ...mapGetters('cart', ['count', 'total', 'subtotal', 'isEmpty', 'imageOf', 'pathOf']),
 
     // The cart room this tab is in, from the live layer; an empty one when
     // the layer is absent, so the template reads the same either way.

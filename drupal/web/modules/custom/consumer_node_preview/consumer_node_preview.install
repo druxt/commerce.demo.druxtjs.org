@@ -1,0 +1,17 @@
+<?php
+
+/**
+ * @file
+ * Install and update hooks for the Consumer Node Preview module.
+ */
+
+declare(strict_types=1);
+
+/**
+ * Adds the preview layouts field to consumers.
+ */
+function consumer_node_preview_update_10001(): void {
+  $entity_type = \Drupal::entityTypeManager()->getDefinition('consumer');
+  $definition = consumer_node_preview_entity_base_field_info($entity_type)['preview_layouts'];
+  \Drupal::entityDefinitionUpdateManager()->installFieldStorageDefinition('preview_layouts', 'consumer', 'consumer_node_preview', $definition);
+}

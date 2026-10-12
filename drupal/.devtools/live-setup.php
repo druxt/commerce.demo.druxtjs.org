@@ -250,7 +250,7 @@ if (!$methods->loadByProperties(['name' => 'Demo courier'])) {
       'target_plugin_id' => 'flat_rate',
       'target_plugin_configuration' => [
         'rate_label' => 'Demo courier',
-        'rate_description' => 'Free, anywhere. Nothing ships: this is a demo.',
+        'rate_description' => 'Free delivery, anywhere.',
         'rate_amount' => ['number' => '0', 'currency_code' => 'USD'],
         'services' => ['default'],
         'default_package_type' => 'custom_box',

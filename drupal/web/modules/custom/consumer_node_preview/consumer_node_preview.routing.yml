@@ -1,0 +1,22 @@
+consumer_node_preview.targets:
+  path: '/api/consumer-node-preview/targets'
+  defaults:
+    _controller: '\Drupal\consumer_node_preview\Controller\PreviewTargetsController::handle'
+  methods: [GET, PUT]
+  requirements:
+    _permission: 'register consumer node preview targets'
+    _csrf_request_header_token: 'TRUE'
+  options:
+    no_cache: TRUE
+
+consumer_node_preview.drupal:
+  path: '/node/preview/{node_preview}/{view_mode_id}/drupal'
+  defaults:
+    _controller: '\Drupal\consumer_node_preview\Controller\NodePreviewController::drupal'
+  requirements:
+    _node_preview_access: '{node_preview}'
+  options:
+    no_cache: TRUE
+    parameters:
+      node_preview:
+        type: 'node_preview'

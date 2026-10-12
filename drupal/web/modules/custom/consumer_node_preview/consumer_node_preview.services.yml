@@ -1,0 +1,11 @@
+services:
+  consumer_node_preview.route_subscriber:
+    class: Drupal\consumer_node_preview\Routing\RouteSubscriber
+    tags:
+      - { name: event_subscriber }
+
+  consumer_node_preview.targets_provider:
+    class: Drupal\consumer_node_preview\PreviewTargetsProvider
+    arguments:
+      - '@entity_type.manager'
+      - '@jsonapi.resource_type.repository'

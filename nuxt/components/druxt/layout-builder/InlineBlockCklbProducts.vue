@@ -1,16 +1,21 @@
 <template>
-  <section class="wrap pt-[clamp(36px,5vw,56px)] pb-12 flex flex-col gap-5">
-    <div class="flex flex-wrap items-baseline justify-between gap-4">
+  <section class="wrap flex flex-col gap-5" :class="rail ? 'pt-5 pb-[clamp(44px,6vw,72px)]' : 'pt-[clamp(36px,5vw,56px)] pb-12'">
+    <!-- In a slideshow the tabs are the heading; the title stays for screen readers. -->
+    <h2 v-if="rail" class="sr-only">{{ title }}</h2>
+    <div v-else class="flex flex-wrap items-baseline justify-between gap-4">
       <h2 v-if="title" class="text-[clamp(21px,3vw,26px)]">{{ title }}</h2>
       <NuxtLink to="/catalogue" class="text-14px font-600 text-accent">
         Browse the catalogue &rarr;
       </NuxtLink>
     </div>
 
-    <div v-if="products.length" class="grid gap-[clamp(12px,1.6vw,20px)] grid-cols-[repeat(auto-fill,minmax(min(100%,210px),1fr))]">
+    <!-- A short rail fills the row instead of leaving half of it empty. -->
+    <div v-if="products.length" class="grid gap-[clamp(12px,1.6vw,20px)]" :class="gridClass">
       <ProductCard
         v-for="p in products"
+        :id="p.id"
         :key="p.id"
+        :variation="p.variation"
         :title="p.title"
         :path="p.path"
         :price="p.price"
@@ -34,6 +39,8 @@ export default {
   name: 'DruxtLayoutBuilderInlineBlockCklbProducts',
 
   mixins: [inlineBlock],
+
+  inject: { rail: { default: null } },
 
   data: () => ({
     products: [],
@@ -86,6 +93,8 @@ export default {
         title: (p.attributes || {}).title,
         path: ((p.attributes || {}).path || {}).alias || `/products/${p.id}`,
         price: (((variation || {}).attributes || {}).price || {}).formatted || '',
+        // The card's Add button posts the variation itself; the stock line reads its sku.
+        variation: variation ? { type: variation.type, id: variation.id, sku: (variation.attributes || {}).sku || '' } : undefined,
         image: (((image || {}).attributes || {}).uri || {}).url || '',
         collection: ((term || {}).attributes || {}).name || '',
       }
@@ -94,6 +103,22 @@ export default {
 
   computed: {
     title: ({ attrs }) => attrs.cklb_title || 'Products',
+
+    gridClass: ({ products }) =>
+      ({
+        2: 'grid-cols-1 sm:grid-cols-2',
+        3: 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3',
+        4: 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4',
+      })[products.length] || 'grid-cols-[repeat(auto-fill,minmax(min(100%,210px),1fr))]',
+  },
+
+  watch: {
+    title: {
+      immediate: true,
+      handler(title) {
+        if (this.rail && title && title !== 'Products') this.rail.setTitle(this.component.uuid, title)
+      },
+    },
   },
 }
 </script>
