@@ -8,13 +8,13 @@
 /**
  * The pages worth listing, with the home ranked first and products and posts
  * above the listings. Anything else the run wrote is one visitor's cart,
- * checkout or order, a preview, a filtered shop or a redirect, and stays out.
+ * checkout or order, a preview or a redirect, and stays out.
  */
 const CONTENT = [
   { test: /^\/$/, priority: 1.0 },
   { test: /^\/products\/[^/]+$/, priority: 0.8 },
   { test: /^\/blog\/.+$/, priority: 0.8 },
-  { test: /^\/(catalogue|shop|blog)$/, priority: 0.6 },
+  { test: /^\/(catalogue|blog)$/, priority: 0.6 },
 ]
 
 const escapeXml = (value) =>
