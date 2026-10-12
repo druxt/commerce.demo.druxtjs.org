@@ -10,13 +10,16 @@ import { DRUPAL_DIR, backendInfo, exitWithError, ddevProjectHost, run } from './
 try {
   const backend = backendInfo()
 
-  if (backend.url && !backend.managed && !backend.ddev) {
+  if (backend.url && !backend.managed && !backend.ddev && !backend.lando) {
     exitWithError(
-      `BASE_URL (${backend.url}) points at a remote backend - a login link can only be generated for the local backend or DDEV. Use that backend's own tooling instead.`
+      `BASE_URL (${backend.url}) points at a remote backend - a login link can only be generated for the local backend, DDEV or Lando. Use that backend's own tooling instead.`
     )
   }
 
-  if (backend.ddev) {
+  if (backend.lando) {
+    // Inside Lando, drush must run in the container.
+    run('lando', ['drush', 'uli', '-l', backend.url], { cwd: DRUPAL_DIR })
+  } else if (backend.ddev) {
     // `ddev drush` always targets the project in drupal/ - reject a
     // BASE_URL naming some OTHER DDEV project before running commands
     // against the wrong site.
