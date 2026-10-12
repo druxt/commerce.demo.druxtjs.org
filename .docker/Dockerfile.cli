@@ -1,15 +1,23 @@
-FROM amazeeio/php:8.3-cli-drupal
+FROM uselagoon/php-8.3-cli-drupal:26.8.1
 
 # composer.json first, so a dependency-only change does not invalidate the
-# layer that copies the rest of the site.
+# layer that copies the rest of the site. The core patch applies during the
+# install, and the scaffold copies assets/all.settings.php, so both are in
+# place before it runs.
 COPY ./drupal/composer.* /app/
+COPY ./drupal/patches /app/patches
+COPY ./drupal/assets /app/assets
 RUN COMPOSER_MEMORY_LIMIT=-1 composer install --no-dev
 COPY ./drupal/ /app
 RUN mkdir -p -v -m775 /app/web/sites/default/files
 
-# No OAuth keys are generated here: unlike the standard quickstart, this
-# project has no simple_oauth or consumers dependency, so there is nothing
-# to sign with.
+# One OAuth key pair for every pod: the nginx and php images copy /app from
+# this one, so a token the console gets from one pod checks on any other.
+# Provision keeps a pair that already exists.
+RUN mkdir -p /app/keys \
+  && openssl genrsa -out /app/keys/private.key 2048 \
+  && openssl rsa -in /app/keys/private.key -pubout > /app/keys/public.key \
+  && chmod 600 /app/keys/*.key
 
 # Define where the Drupal Root is located
 ENV WEBROOT=web

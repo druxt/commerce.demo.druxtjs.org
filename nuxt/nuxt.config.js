@@ -1,4 +1,5 @@
 require('dotenv').config({ path: '../.env' })
+const { liveOrigin } = require('./lib/site')
 
 const baseUrl = process.env.BASE_URL || ''
 
@@ -65,6 +66,12 @@ export default async () => ({
   },
 
   // Global page headers: https://go.nuxtjs.dev/config-head
+  publicRuntimeConfig: {
+    // Where the live socket opens, when not on the page's own host: read when
+    // each page generates, so a reused build still names it.
+    socketsOrigin: liveOrigin(),
+  },
+
   head: {
     titleTemplate: (chunk) => (chunk ? `${chunk} · Druxt Store` : 'Druxt Store'),
     htmlAttrs: {

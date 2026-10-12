@@ -54,8 +54,8 @@ const createHubClient = ({
     return cached.token
   }
 
-  const call = async (method, path, document) => {
-    const res = await request(new URL(path, drupalUrl), {
+  const send = async (method, path, document) =>
+    request(new URL(path, drupalUrl), {
       method,
       headers: {
         Authorization: `Bearer ${await token()}`,
@@ -64,6 +64,14 @@ const createHubClient = ({
       },
       body: document ? JSON.stringify(document) : undefined,
     })
+
+  const call = async (method, path, document) => {
+    let res = await send(method, path, document)
+    // A reset puts back a database without this token: get a new one, once.
+    if (res.status === 401) {
+      cached = { token: '', until: 0 }
+      res = await send(method, path, document)
+    }
     if (!res.ok) throw await failure(res)
     return res.status === 204 ? {} : res.json()
   }

@@ -3,18 +3,18 @@
 
 # Only what the install reads, so a code change reuses the installed
 # dependencies. patch-package runs from postinstall, so the patches come too.
-FROM uselagoon/node-20-builder:latest AS manifests
+FROM uselagoon/node-20-builder:26.8.0 AS manifests
 COPY ./nuxt/ /nuxt/
 RUN mkdir /manifests && cd /nuxt \
   && cp package.json package-lock.json /manifests/ \
   && if [ -d patches ]; then cp -R patches /manifests/patches; fi
 
-FROM uselagoon/node-20-builder:latest AS deps
+FROM uselagoon/node-20-builder:26.8.0 AS deps
 COPY --from=manifests /manifests /app/
 WORKDIR /app
 RUN npm ci
 
-FROM uselagoon/node-20:latest
+FROM uselagoon/node-20:26.8.0
 COPY --from=deps --chown=10000:0 /app /app
 COPY --chown=10000:0 ./nuxt/ /app/
 WORKDIR /app

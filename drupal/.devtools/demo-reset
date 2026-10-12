@@ -25,6 +25,12 @@ if command -v flock >/dev/null && ! flock -n 9; then
   exit 0
 fi
 
+# Web requests answer 503 while the database and files are swapped (see
+# all.settings.php), so nothing caches a half-restored site.
+FLAG="$FILES/.provisioning"
+touch "$FLAG"
+trap 'rm -f "$FLAG"' EXIT
+
 echo "==> Database back to the snapshot of $(cat "$DIR/taken" 2>/dev/null || echo '?')"
 if [ -f "$DIR/database.sqlite" ]; then
   rm -f "$DB" "$DB-wal" "$DB-shm"
@@ -45,11 +51,19 @@ tar -C "$FILES" -xzf "$DIR/files.tgz"
 rm -rf "$FILES/css" "$FILES/js" "$FILES/styles" "$FILES/php"
 
 "$DRUSH" cache:rebuild >/dev/null
+rm -f "$FLAG"
+trap - EXIT
 
 # The storefront builds the fresh store. Not fatal: Drupal is back either
 # way, and the storefront rebuilds on the next deploy.
 HOST="${DRUXT_REGENERATE_HOST:-app}"
 PORT="${DRUXT_REGENERATE_PORT:-3000}"
 curl -fsS -o /dev/null -X POST "http://$HOST:$PORT/_regenerate" || echo "regenerate not accepted" >&2
+
+# The hub's live numbers were the old store's: open pages read the
+# catalogue, its stock and the carts again, as after any purge.
+curl -fsS -o /dev/null -X POST -H "X-Druxt-Sockets-Secret: ${DRUXT_SOCKETS_SECRET:-}" \
+  --data "commerce_product_list,commerce_product_variation_list,commerce_order_list,node_list" \
+  "http://$HOST:$PORT/_live/purge" || echo "the hub did not take the purge" >&2
 
 echo "==> Reset done"
