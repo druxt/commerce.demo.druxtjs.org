@@ -293,6 +293,8 @@ test_install_guardrails:
   image: node:22
   needs: []
   script:
+    # The checks below need a machine without PHP. node:22 has none today.
+    - if command -v php; then echo "the image has PHP, so the no-PHP checks prove nothing"; exit 1; fi
     # npm install without PHP: exits 0 and points at `npm run setup`.
     - env -u CI npm install > /tmp/install.log 2>&1
     - grep -q 'The backend needs PHP' /tmp/install.log
