@@ -343,6 +343,39 @@ function pid_is_running(int $pid): ?bool {
 }
 
 /**
+ * Split a Drupal database URL into the parts settings.php wants.
+ *
+ * Drupal's own db-url shape, so the same string works here and with
+ * `drush site:install --db-url`. SQLite carries its path in the URL path
+ * with a host segment the parser needs ("sqlite://localhost/abs/path"),
+ * which is why the leading slash is put back for that driver only.
+ *
+ * @return array{driver:string,database:string,username:string,password:string,host:string,port:string}
+ */
+function parse_database_url(string $url): array {
+  $parts = parse_url($url);
+  if ($parts === FALSE || !isset($parts['scheme'])) {
+    FAIL('Could not parse the database URL. Expected driver://user:pass@host:port/name, got %s', $url);
+  }
+
+  $driver = $parts['scheme'];
+  $path = isset($parts['path']) ? ltrim($parts['path'], '/') : '';
+  if ($path === '') {
+    FAIL('The database URL has no database name or path: %s', $url);
+  }
+
+  return [
+    'driver' => $driver,
+    // An absolute SQLite path loses its leading slash to ltrim above.
+    'database' => $driver === 'sqlite' ? '/' . $path : $path,
+    'username' => isset($parts['user']) ? rawurldecode($parts['user']) : '',
+    'password' => isset($parts['pass']) ? rawurldecode($parts['pass']) : '',
+    'host' => $parts['host'] ?? '',
+    'port' => isset($parts['port']) ? (string) $parts['port'] : '',
+  ];
+}
+
+/**
  * Stop the dev webserver started by .devtools/start.
  *
  * Prefers the pidfile written at start time, falling back to whatever is

@@ -1,0 +1,15 @@
+FROM amazeeio/php:8.3-cli-drupal
+
+# composer.json first, so a dependency-only change does not invalidate the
+# layer that copies the rest of the site.
+COPY ./drupal/composer.* /app/
+RUN COMPOSER_MEMORY_LIMIT=-1 composer install --no-dev
+COPY ./drupal/ /app
+RUN mkdir -p -v -m775 /app/web/sites/default/files
+
+# No OAuth keys are generated here: unlike the standard quickstart, this
+# project has no simple_oauth or consumers dependency, so there is nothing
+# to sign with.
+
+# Define where the Drupal Root is located
+ENV WEBROOT=web

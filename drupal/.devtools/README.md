@@ -11,6 +11,8 @@ Use this as an alternative to DDEV, not a replacement. Pick whichever fits your 
 | `start` | Start the PHP dev server. Write `BASE_URL` to `../.env`. |
 | `stop` | Stop the dev server. |
 | `info` | Show the current environment: PHP, Drupal, Composer, and Drush versions, webserver, database. |
+| `demo-snapshot` | Bash. Keep the fresh database and files in the private files directory. Lagoon runs it after each deploy. |
+| `demo-reset` | Bash. Put the database and files back to that snapshot, then ask the storefront to rebuild. Lagoon runs it daily. |
 | `helpers.php` | Shared functions the scripts above use. |
 | `etc/php.ini` | Raises `memory_limit`. Drupal installs need more than PHP's 128M default. |
 

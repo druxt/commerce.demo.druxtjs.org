@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "9a39270cbd928b56a314eb4bcf5bf2b0",
+    "content-hash": "0bb639d73593839e12abb06aa85af0d2",
     "packages": [
         {
             "name": "asm89/stack-cors",
@@ -2236,6 +2236,77 @@
             }
         },
         {
+            "name": "drupal/commerce_api",
+            "version": "1.0.0-rc6",
+            "source": {
+                "type": "git",
+                "url": "https://git.drupalcode.org/project/commerce_api.git",
+                "reference": "8.x-1.0-rc6"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://ftp.drupal.org/files/projects/commerce_api-8.x-1.0-rc6.zip",
+                "reference": "8.x-1.0-rc6",
+                "shasum": "594db1db40e7cdd32efd0251b3433036d729b0f6"
+            },
+            "require": {
+                "drupal/commerce": "^2.37 || ^3",
+                "drupal/commerce_cart": "*",
+                "drupal/core": "^9.4 || ^10 || ^11",
+                "drupal/jsonapi_hypermedia": "^1.0",
+                "drupal/jsonapi_resources": "^1.0@beta",
+                "icanboogie/inflector": "^2.0",
+                "php": ">=8"
+            },
+            "require-dev": {
+                "drupal/commerce_shipping": "^2.2 || ^3.0.2",
+                "drupal/commerce_wishlist": "^3.0@beta",
+                "drupal/openapi_jsonapi": "^3.0"
+            },
+            "type": "drupal-module",
+            "extra": {
+                "drupal": {
+                    "version": "8.x-1.0-rc6",
+                    "datestamp": "1788846905",
+                    "security-coverage": {
+                        "status": "not-covered",
+                        "message": "RC releases are not covered by Drupal security advisories."
+                    }
+                }
+            },
+            "notification-url": "https://packages.drupal.org/8/downloads",
+            "license": [
+                "GPL-2.0-or-later"
+            ],
+            "authors": [
+                {
+                    "name": "centarro",
+                    "homepage": "https://www.drupal.org/user/3661446"
+                },
+                {
+                    "name": "jsacksick",
+                    "homepage": "https://www.drupal.org/user/972218"
+                },
+                {
+                    "name": "mglaman",
+                    "homepage": "https://www.drupal.org/user/2416470"
+                },
+                {
+                    "name": "rszrama",
+                    "homepage": "https://www.drupal.org/user/49344"
+                }
+            ],
+            "description": "Provides an HTTP interface to interact with Drupal Commerce.",
+            "homepage": "https://www.drupal.org/project/commerce_api",
+            "keywords": [
+                "Drupal"
+            ],
+            "support": {
+                "source": "https://git.drupalcode.org/project/commerce_api",
+                "issues": "https://www.drupal.org/project/issues/commerce_api"
+            }
+        },
+        {
             "name": "drupal/commerce_authnet",
             "version": "1.14.0",
             "source": {
@@ -3854,6 +3925,58 @@
             }
         },
         {
+            "name": "drupal/consumers",
+            "version": "1.24.0",
+            "source": {
+                "type": "git",
+                "url": "https://git.drupalcode.org/project/consumers.git",
+                "reference": "8.x-1.24"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://ftp.drupal.org/files/projects/consumers-8.x-1.24.zip",
+                "reference": "8.x-1.24",
+                "shasum": "63acc012badaec2dd15cb4dd3e9cab9cb8a83eef"
+            },
+            "require": {
+                "drupal/core": "^10.3 || ^11"
+            },
+            "type": "drupal-module",
+            "extra": {
+                "drupal": {
+                    "version": "8.x-1.24",
+                    "datestamp": "1770824862",
+                    "security-coverage": {
+                        "status": "covered",
+                        "message": "Covered by Drupal's security advisory policy"
+                    }
+                }
+            },
+            "notification-url": "https://packages.drupal.org/8/downloads",
+            "license": [
+                "GPL-2.0+"
+            ],
+            "authors": [
+                {
+                    "name": "bojan_dev",
+                    "homepage": "https://www.drupal.org/user/2801849"
+                },
+                {
+                    "name": "e0ipso",
+                    "homepage": "https://www.drupal.org/user/550110"
+                },
+                {
+                    "name": "eojthebrave",
+                    "homepage": "https://www.drupal.org/user/79230"
+                }
+            ],
+            "description": "Declare all the consumers of your API.",
+            "homepage": "https://www.drupal.org/project/consumers",
+            "support": {
+                "source": "https://git.drupalcode.org/project/consumers"
+            }
+        },
+        {
             "name": "drupal/core",
             "version": "11.4.5",
             "source": {
@@ -4469,6 +4592,60 @@
             }
         },
         {
+            "name": "drupal/decoupled_settings",
+            "version": "1.0.0-beta2",
+            "source": {
+                "type": "git",
+                "url": "https://git.drupalcode.org/project/decoupled_settings.git",
+                "reference": "1.0.0-beta2"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://ftp.drupal.org/files/projects/decoupled_settings-1.0.0-beta2.zip",
+                "reference": "1.0.0-beta2",
+                "shasum": "44709c54a1a381c6bc290f21f509756f2838d3e1"
+            },
+            "require": {
+                "drupal/consumers": "^1.0",
+                "drupal/core": "^10.3 || ^11",
+                "drupal/jsonapi_resources": "^1.0",
+                "php": ">=8.3"
+            },
+            "require-dev": {
+                "drupal/simple_oauth": "^6"
+            },
+            "suggest": {
+                "drupal/simple_oauth": "Identifies a frontend by its OAuth2 token, no header or query parameter needed."
+            },
+            "type": "drupal-module",
+            "extra": {
+                "drupal": {
+                    "version": "1.0.0-beta2",
+                    "datestamp": "1787731560",
+                    "security-coverage": {
+                        "status": "not-covered",
+                        "message": "Project has not opted into security advisory coverage!"
+                    }
+                }
+            },
+            "notification-url": "https://packages.drupal.org/8/downloads",
+            "license": [
+                "GPL-2.0-or-later"
+            ],
+            "authors": [
+                {
+                    "name": "Stuart Clark",
+                    "homepage": "https://www.drupal.org/u/deciphered",
+                    "role": "Maintainer"
+                }
+            ],
+            "description": "Exposes allowlisted simple config over JSON:API, with global values and per-consumer overrides.",
+            "homepage": "https://www.drupal.org/project/decoupled_settings",
+            "support": {
+                "source": "https://git.drupalcode.org/project/decoupled_settings"
+            }
+        },
+        {
             "name": "drupal/druxt",
             "version": "1.3.1",
             "source": {
@@ -4522,17 +4699,17 @@
         },
         {
             "name": "drupal/entity",
-            "version": "1.7.0",
+            "version": "1.8.0",
             "source": {
                 "type": "git",
                 "url": "https://git.drupalcode.org/project/entity.git",
-                "reference": "8.x-1.7"
+                "reference": "8.x-1.8"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://ftp.drupal.org/files/projects/entity-8.x-1.7.zip",
-                "reference": "8.x-1.7",
-                "shasum": "d9c24749beb5bfeb398f503b8a31a676483cd182"
+                "url": "https://ftp.drupal.org/files/projects/entity-8.x-1.8.zip",
+                "reference": "8.x-1.8",
+                "shasum": "61349682d0db8dead9d6b571ac6b4aeae08abb0f"
             },
             "require": {
                 "drupal/core": "^10.1 || ^11"
@@ -4540,8 +4717,8 @@
             "type": "drupal-module",
             "extra": {
                 "drupal": {
-                    "version": "8.x-1.7",
-                    "datestamp": "1786708365",
+                    "version": "8.x-1.8",
+                    "datestamp": "1787858234",
                     "security-coverage": {
                         "status": "covered",
                         "message": "Covered by Drupal's security advisory policy"
@@ -5448,6 +5625,79 @@
             "support": {
                 "source": "https://www.drupal.org/project/jquery_ui_touch_punch",
                 "issues": "https://www.drupal.org/project/issues/jquery_ui_touch_punch"
+            }
+        },
+        {
+            "name": "drupal/jsonapi_hypermedia",
+            "version": "1.10.0",
+            "source": {
+                "type": "git",
+                "url": "https://git.drupalcode.org/project/jsonapi_hypermedia.git",
+                "reference": "8.x-1.10"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://ftp.drupal.org/files/projects/jsonapi_hypermedia-8.x-1.10.zip",
+                "reference": "8.x-1.10",
+                "shasum": "7599a565a6270e2e13ed2ce656bb7b40be26c7f0"
+            },
+            "require": {
+                "drupal/core": "^8.8 || ^9.0 || ^10 || ^11",
+                "php": "^8"
+            },
+            "require-dev": {
+                "drupal/consumer_image_styles": "^4.0"
+            },
+            "type": "drupal-module",
+            "extra": {
+                "drupal": {
+                    "version": "8.x-1.10",
+                    "datestamp": "1722049077",
+                    "security-coverage": {
+                        "status": "covered",
+                        "message": "Covered by Drupal's security advisory policy"
+                    }
+                }
+            },
+            "notification-url": "https://packages.drupal.org/8/downloads",
+            "license": [
+                "GPL-2.0-or-later"
+            ],
+            "authors": [
+                {
+                    "name": "Gabriel SULLICE",
+                    "homepage": "https://www.drupal.org/user/3616626",
+                    "email": "gabriel@sullice.com"
+                },
+                {
+                    "name": "bradjones1",
+                    "homepage": "https://www.drupal.org/user/405824"
+                },
+                {
+                    "name": "e0ipso",
+                    "homepage": "https://www.drupal.org/user/550110"
+                },
+                {
+                    "name": "gabesullice",
+                    "homepage": "https://www.drupal.org/user/2287430"
+                },
+                {
+                    "name": "phenaproxima",
+                    "homepage": "https://www.drupal.org/user/205645"
+                },
+                {
+                    "name": "wim leers",
+                    "homepage": "https://www.drupal.org/user/99777"
+                },
+                {
+                    "name": "zrpnr",
+                    "homepage": "https://www.drupal.org/user/1448368"
+                }
+            ],
+            "description": "Complements the JSON API module with Hypermedia as the Engine of Application State",
+            "homepage": "https://www.drupal.org/project/jsonapi_hypermedia",
+            "support": {
+                "source": "https://git.drupalcode.org/project/jsonapi_hypermedia"
             }
         },
         {
@@ -7578,6 +7828,70 @@
                 "source": "https://github.com/mtibben/html2text/tree/4.3.2"
             },
             "time": "2024-08-20T02:43:29+00:00"
+        },
+        {
+            "name": "icanboogie/inflector",
+            "version": "v2.2.2",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/ICanBoogie/Inflector.git",
+                "reference": "ac253d9c39885b7795daac777ad10faf401a485a"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/ICanBoogie/Inflector/zipball/ac253d9c39885b7795daac777ad10faf401a485a",
+                "reference": "ac253d9c39885b7795daac777ad10faf401a485a",
+                "shasum": ""
+            },
+            "require": {
+                "ext-mbstring": "*",
+                "php": ">=7.1"
+            },
+            "conflict": {
+                "icanboogie/common": "<2.0"
+            },
+            "require-dev": {
+                "icanboogie/common": "^2.1",
+                "phpstan/phpstan": "^0.12.100|^2.0",
+                "phpunit/phpunit": "^7.5.20|^11.4"
+            },
+            "type": "library",
+            "autoload": {
+                "files": [
+                    "lib/helpers.php"
+                ],
+                "psr-4": {
+                    "ICanBoogie\\": "lib/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "BSD-3-Clause"
+            ],
+            "authors": [
+                {
+                    "name": "Olivier Laviale",
+                    "email": "olivier.laviale@gmail.com",
+                    "homepage": "http://www.weirdog.com/",
+                    "role": "Developer"
+                }
+            ],
+            "description": "Multilingual inflector that transforms words from singular to plural, underscore to camel case, and more.",
+            "homepage": "http://icanboogie.org/",
+            "keywords": [
+                "camelize",
+                "hyphenate",
+                "inflect",
+                "multilingual",
+                "pluralize",
+                "singularize",
+                "underscore"
+            ],
+            "support": {
+                "issues": "https://github.com/ICanBoogie/Inflector/issues",
+                "source": "https://github.com/ICanBoogie/Inflector"
+            },
+            "time": "2024-11-16T00:30:56+00:00"
         },
         {
             "name": "justinrainbow/json-schema",
@@ -12857,7 +13171,10 @@
     "packages-dev": [],
     "aliases": [],
     "minimum-stability": "dev",
-    "stability-flags": {},
+    "stability-flags": {
+        "drupal/commerce_api": 5,
+        "drupal/decoupled_settings": 10
+    },
     "prefer-stable": true,
     "prefer-lowest": false,
     "platform": {

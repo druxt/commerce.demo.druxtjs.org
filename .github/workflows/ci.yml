@@ -210,9 +210,9 @@ jobs:
       - name: Commerce products are served over JSON:API
         run: |
           . ./.env
-          RESPONSE=$(curl -sf "${BASE_URL}/jsonapi/commerce_product/physical") \
+          RESPONSE=$(curl -sf "${BASE_URL}/jsonapi/products/physical") \
             || { echo "curl failed against ${BASE_URL}"; exit 1; }
-          printf '%s' "$RESPONSE" | grep -q '"type":"commerce_product--physical"' \
+          printf '%s' "$RESPONSE" | grep -q '"type":"product--physical"' \
             || { echo "no physical products in response:"; printf '%.500s\n' "$RESPONSE"; exit 1; }
 
       - name: Install Nuxt dependencies

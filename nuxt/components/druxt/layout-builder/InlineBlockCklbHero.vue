@@ -1,65 +1,77 @@
 <template>
-  <div v-if="!$fetchState.pending" :style="containerStyles">
-    <DruxtDebug :json="{ component, entity }" />
-  </div>
+  <section class="relative bg-ink text-paper overflow-hidden">
+    <img
+      v-if="backgroundUrl"
+      :src="backgroundUrl"
+      alt=""
+      aria-hidden="true"
+      class="absolute inset-0 w-full h-full object-cover opacity-45"
+    >
+
+    <div class="relative mx-auto max-w-7xl px-5 py-20 sm:py-28 flex flex-col gap-6 items-start">
+      <p v-if="subtitle" class="label-mono text-mint">{{ subtitle }}</p>
+
+      <h1 v-if="title" class="text-4xl sm:text-6xl max-w-3xl">{{ title }}</h1>
+
+      <div v-if="text" class="prose text-paper/80 max-w-2xl" v-html="text" />
+
+      <NuxtLink v-if="ctaPath" :to="ctaPath" class="btn bg-paper text-ink border-paper hover:bg-paper-2 hover:border-paper-2">
+        {{ ctaTitle }}
+      </NuxtLink>
+    </div>
+  </section>
 </template>
 
 <script>
 import { DrupalJsonApiParams } from 'drupal-jsonapi-params'
+import inlineBlock from '~/mixins/inlineBlock'
 
 export default {
-  props: {
-    component: {
-      type: Object,
-      require: true,
-    },
-    entity: {
-      type: Object,
-      require: true,
-    }
-  },
+  name: 'DruxtLayoutBuilderInlineBlockCklbHero',
+
+  mixins: [inlineBlock],
 
   data: () => ({
-    block: undefined,
-    file: undefined,
-    media: undefined,
+    background: undefined,
   }),
 
+  // The hero's background is not on the block. Bootstrap Layout Builder stores
+  // it on the component as a media id, so it is a second lookup: media, then
+  // the file it references.
   async fetch() {
-    // @TODO - Fetch the block (block_content--cklb_hero)
+    await inlineBlock.fetch.call(this)
 
-    if (this.hasBackgroundImage) {
-      const backgroundImage = await this.$store.dispatch('druxt/getCollection', {
-        type: 'media--image',
-        query: new DrupalJsonApiParams()
-          .addFilter('drupal_internal__mid', this.backgroundImageId)
-          .addInclude('field_media_image')
-      })
-      this.media = backgroundImage.data[0]
-      this.file = backgroundImage.included.find((o) => o.id === this.media.relationships.field_media_image.data.id)
-    }
+    const style = this.blockStyle || {}
+    const mediaId = (((style.background_media || {}).image || {}).media_id)
+    if ((style.background || {}).background_type !== 'image' || !mediaId) return
+
+    const collection = await this.$store.dispatch('druxt/getCollection', {
+      type: 'media--image',
+      query: new DrupalJsonApiParams()
+        .addFilter('drupal_internal__mid', mediaId)
+        .addInclude(['field_media_image']),
+    })
+
+    const file = (collection.included || []).find((r) => r.type === 'file--file')
+    this.background = (((file || {}).attributes || {}).uri || {}).url
   },
 
   computed: {
-    blockStyle: ({ component }) => component.additional.bootstrap_styles.block_style,
+    title: ({ attrs }) => attrs.cklb_title,
 
-    // Background image:
-    backgroundImageId: ({ blockStyle }) => blockStyle.background_media.image.media_id,
-    hasBackgroundImage: ({ blockStyle, backgroundImageId }) => blockStyle.background.background_type === 'image' && !!backgroundImageId,
+    subtitle: ({ attrs }) => attrs.cklb_subtitle,
 
-    containerStyles: ({ blockStyle, hasBackgroundImage, file }) => {
-      const styles = {}
-      if (hasBackgroundImage && file) {
-        const options = blockStyle.background_media.background_options
-        styles.backgroundImage = `url(${file.attributes.uri.url})`
-        styles.backgroundPosition = options.background_position
-        styles.backgroundRepeat = options.background_repeat
-        styles.backgroundSize = options.background_size
-        if (options.background_attachement === "fixed") styles.backgroundAttachment = 'fixed'
-      }
+    text: ({ attrs }) => (attrs.cklb_text || {}).processed || '',
 
-      return styles
-    }
-  }
+    cta: ({ attrs }) => attrs.cklb_cta || {},
+
+    ctaPath() {
+      return this.linkPath(this.cta)
+    },
+
+    ctaTitle: ({ cta }) => cta.title || 'Shop the catalogue',
+
+    backgroundUrl: ({ background }) => background,
+  },
 }
 </script>

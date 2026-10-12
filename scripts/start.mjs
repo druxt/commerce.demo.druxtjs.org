@@ -1,27 +1,35 @@
 /**
- * Production mode: ensure the backend, build the frontend if it has not
- * been built yet, then serve it with `nuxt start`.
+ * Production mode, as Lagoon runs it: ensure the backend, then start
+ * nuxt/server/start.js, which shows a starting page, generates the site
+ * against the backend and serves it with the backend's paths proxied.
  */
 
-import fs from 'node:fs'
-import path from 'node:path'
-import { NUXT_DIR, ensureBackend, exitWithError, foregroundNpm, runNpm } from './lib.mjs'
+import {
+  NUXT_DIR,
+  ensureBackend,
+  exitWithError,
+  firstFreePort,
+  foregroundNpm,
+  readEnv,
+} from './lib.mjs'
+
+const HOST = '127.0.0.1'
 
 async function main() {
   await ensureBackend()
+  const backend = readEnv().BASE_URL
+  if (!backend) exitWithError('No BASE_URL in .env - run `npm run setup` first.')
 
-  // `nuxt start` needs the server bundle from a production build; a dev
-  // server's .nuxt/ (no dist/server) must not fool this check.
-  if (!fs.existsSync(path.join(NUXT_DIR, '.nuxt', 'dist', 'server'))) {
-    console.log('No production build found - building the frontend first...')
-    console.log('')
-    runNpm(['run', 'build'], { cwd: NUXT_DIR })
-    console.log('')
-  }
+  const port = await firstFreePort(HOST)
+  if (port === null) exitWithError('Ports 3000-3009 are all in use.')
+  const origin = `http://localhost:${port}`
 
-  console.log('Serving the frontend -> http://localhost:3000')
+  console.log(`Generating and serving the frontend -> ${origin}`)
   console.log('')
-  process.exitCode = await foregroundNpm(['run', 'start'], { cwd: NUXT_DIR })
+  process.exitCode = await foregroundNpm(['run', 'serve'], {
+    cwd: NUXT_DIR,
+    env: { DRUPAL_URL: backend, SITE_ORIGIN: origin, PORT: String(port), HOST },
+  })
 }
 
 main().catch((error) => exitWithError(error.message))

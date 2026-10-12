@@ -247,8 +247,12 @@ test_e2e:
     # has no configured URI here and would answer "http://default".
     - |
       . "$CI_PROJECT_DIR/.env"
-      RESPONSE=$(curl -sf "${BASE_URL}/jsonapi/commerce_product/physical") || { echo "curl failed against ${BASE_URL}"; exit 1; }
-      printf '%s' "$RESPONSE" | grep -q '"type":"commerce_product--physical"' || { echo "no physical products in response:"; printf '%.500s\n' "$RESPONSE"; exit 1; }
+      # The index is what Druxt reads first at build time; show it if it is not
+      # the JSON:API index, rather than leaving the build to say "invalid".
+      INDEX=$(curl -s -w '\n%{http_code}' "${BASE_URL}/jsonapi")
+      printf '%s' "$INDEX" | grep -q '"links":{' || { echo "the JSON:API index is not one:"; printf '%.800s\n' "$INDEX"; exit 1; }
+      RESPONSE=$(curl -sf "${BASE_URL}/jsonapi/products/physical") || { echo "curl failed against ${BASE_URL}"; exit 1; }
+      printf '%s' "$RESPONSE" | grep -q '"type":"product--physical"' || { echo "no physical products in response:"; printf '%.500s\n' "$RESPONSE"; exit 1; }
     - cd ../nuxt
     - npm install
     - npm run build

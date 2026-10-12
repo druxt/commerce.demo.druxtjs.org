@@ -1,0 +1,388 @@
+--- a/core/modules/layout_builder/config/schema/layout_builder.schema.yml
++++ b/core/modules/layout_builder/config/schema/layout_builder.schema.yml
+@@ -83,6 +83,12 @@
+     block_serialized:
+       type: string
+       label: 'Serialized block'
++    type:
++      type: string
++      label: 'Block type'
++    uuid:
++      type: uuid
++      label: 'Block UUID'
+       nullable: true
+       constraints:
+         Serialized: []
+--- a/core/modules/layout_builder/src/Field/LayoutSectionItemList.php
++++ b/core/modules/layout_builder/src/Field/LayoutSectionItemList.php
+@@ -46,8 +46,8 @@
+   protected function setSections(array $sections) {
+     $this->list = [];
+     $sections = array_values($sections);
+-    /** @var \Drupal\layout_builder\Plugin\Field\FieldType\LayoutSectionItem $item */
+     foreach ($sections as $section) {
++      /** @var \Drupal\layout_builder\Plugin\Field\FieldType\LayoutSectionItem $item */
+       $item = $this->appendItem();
+       $item->section = $section;
+     }
+@@ -101,7 +101,9 @@
+    * @ingroup layout_builder_access
+    */
+   public function defaultAccess($operation = 'view', ?AccountInterface $account = NULL) {
+-    // @todo Allow access in https://www.drupal.org/node/2942975.
++    if ($operation === 'view') {
++      return parent::defaultAccess($operation, $account);
++    }
+     return AccessResult::forbidden();
+   }
+ 
+--- a/core/modules/layout_builder/src/LayoutBuilderServiceProvider.php
++++ b/core/modules/layout_builder/src/LayoutBuilderServiceProvider.php
+@@ -6,6 +6,7 @@
+ use Drupal\Core\DependencyInjection\ServiceProviderInterface;
+ use Drupal\layout_builder\EventSubscriber\SetInlineBlockDependency;
+ use Drupal\layout_builder\Normalizer\LayoutEntityDisplayNormalizer;
++use Drupal\layout_builder\Normalizer\SectionDataNormalizer;
+ use Symfony\Component\DependencyInjection\ChildDefinition;
+ use Symfony\Component\DependencyInjection\Definition;
+ use Symfony\Component\DependencyInjection\Reference;
+@@ -47,6 +48,12 @@
+         // over the generic serializer.normalizer.config_entity.
+         ->addTag('normalizer', ['priority' => 5]);
+       $container->setDefinition('layout_builder.normalizer.layout_entity_display', $definition);
++      $section_definition = (new ChildDefinition('serializer.normalizer.typed_data'))
++        ->setClass(SectionDataNormalizer::class)
++        // Ensure that this normalizer takes precedence for Layout Builder data
++        // over the generic serializer.normalizer.typed_data.
++        ->addTag('normalizer', ['priority' => 5]);
++      $container->setDefinition('layout_builder.normalizer.section_data', $section_definition);
+     }
+   }
+ 
+--- a/core/modules/layout_builder/src/Normalizer/LayoutEntityDisplayNormalizer.php
++++ b/core/modules/layout_builder/src/Normalizer/LayoutEntityDisplayNormalizer.php
+@@ -3,6 +3,7 @@
+ namespace Drupal\layout_builder\Normalizer;
+ 
+ use Drupal\layout_builder\Entity\LayoutEntityDisplayInterface;
++use Drupal\layout_builder\Section;
+ use Drupal\serialization\Normalizer\ConfigEntityNormalizer;
+ 
+ /**
+@@ -16,12 +17,14 @@
+   /**
+    * {@inheritdoc}
+    */
+-  protected static function getDataWithoutInternals(array $data) {
+-    $data = parent::getDataWithoutInternals($data);
+-    // Do not expose the actual layout sections in normalization.
+-    // @todo Determine what to expose here in
+-    //   https://www.drupal.org/node/2942975.
+-    unset($data['third_party_settings']['layout_builder']['sections']);
++  public function normalize($object, $format = NULL, array $context = []): array {
++    $data = parent::normalize($object, $format, $context);
++    if (!empty($data['third_party_settings']['layout_builder']['sections'])) {
++      $sections = &$data['third_party_settings']['layout_builder']['sections'];
++      $sections = array_map(static function (Section $section) {
++        return $section->toArray();
++      }, $sections);
++    }
+     return $data;
+   }
+ 
+@@ -34,4 +37,15 @@
+     ];
+   }
+ 
++  /**
++   * {@inheritdoc}
++   */
++  public function denormalize($data, $class, $format = NULL, array $context = []): mixed {
++    if (!empty($data['third_party_settings']['layout_builder']['sections'])) {
++      $sections = &$data['third_party_settings']['layout_builder']['sections'];
++      $sections = array_map([Section::class, 'fromArray'], $sections);
++    }
++    return parent::denormalize($data, $class, $format, $context);
++  }
++
+ }
+--- a/core/modules/layout_builder/src/Plugin/Block/InlineBlock.php
++++ b/core/modules/layout_builder/src/Plugin/Block/InlineBlock.php
+@@ -211,6 +211,9 @@
+    *
+    * @return \Drupal\block_content\BlockContentInterface
+    *   The block content entity.
++   *
++   * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
++   * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
+    */
+   protected function getEntity() {
+     if (!isset($this->blockContent)) {
+@@ -227,6 +230,10 @@
+           'reusable' => FALSE,
+         ]);
+       }
++      if (!isset($this->blockContent) && isset($this->configuration['type']) && isset($this->configuration['uuid'])) {
++        $entity = $this->entityTypeManager->getStorage('block_content')->loadByProperties(['uuid' => $this->configuration['uuid']]);
++        $this->blockContent = is_array($entity) ? array_pop($entity) : $entity;
++      }
+       if ($this->blockContent instanceof RefinableDependentAccessInterface && $dependee = $this->getAccessDependency()) {
+         $this->blockContent->setAccessDependency($dependee);
+       }
+@@ -254,6 +261,10 @@
+    *   Whether to create new revision, if the block was modified.
+    * @param bool $duplicate_block
+    *   Whether to duplicate the "block_content" entity.
++   *
++   * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
++   * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
++   * @throws \Drupal\Core\Entity\EntityStorageException
+    */
+   public function saveBlockContent($new_revision = FALSE, $duplicate_block = FALSE) {
+     /** @var \Drupal\block_content\BlockContentInterface $block */
+@@ -280,6 +291,8 @@
+       $this->configuration['block_id'] = $block->id();
+       $this->configuration['block_revision_id'] = $block->getRevisionId();
+       $this->configuration['block_serialized'] = NULL;
++      $this->configuration['type'] = $block->bundle();
++      $this->configuration['uuid'] = $block->uuid();
+     }
+   }
+ 
+--- a/core/modules/layout_builder/src/Section.php
++++ b/core/modules/layout_builder/src/Section.php
+@@ -2,6 +2,8 @@
+ 
+ namespace Drupal\layout_builder;
+ 
++use Drupal\Component\Plugin\Exception\ContextException;
++use Drupal\Component\Plugin\Exception\MissingValueContextException;
+ use Drupal\Core\Config\Entity\ThirdPartySettingsInterface;
+ use Drupal\Core\Plugin\PreviewAwarePluginInterface;
+ use Drupal\Core\Render\Element;
+@@ -18,7 +20,7 @@
+  * @see \Drupal\Core\Layout\LayoutDefinition
+  * @see \Drupal\layout_builder\SectionComponent
+  */
+-class Section implements ThirdPartySettingsInterface {
++class Section implements ThirdPartySettingsInterface, \JsonSerializable {
+ 
+   /**
+    * The layout plugin ID.
+@@ -37,7 +39,7 @@
+   /**
+    * An array of components, keyed by UUID.
+    *
+-   * @var \Drupal\layout_builder\SectionComponent[]
++   * @var SectionComponent[]
+    */
+   protected $components = [];
+ 
+@@ -57,7 +59,7 @@
+    *   The layout plugin ID.
+    * @param array $layout_settings
+    *   (optional) The layout plugin settings.
+-   * @param \Drupal\layout_builder\SectionComponent[] $components
++   * @param SectionComponent[] $components
+    *   (optional) The components.
+    * @param array[] $third_party_settings
+    *   (optional) Any third party settings.
+@@ -81,6 +83,8 @@
+    *
+    * @return array
+    *   A renderable array representing the content of the section.
++   *
++   * @throws \Drupal\Component\Plugin\Exception\PluginException
+    */
+   public function toRenderArray(array $contexts = [], $in_preview = FALSE) {
+     $regions = [];
+@@ -111,11 +115,21 @@
+    *
+    * @return \Drupal\Core\Layout\LayoutInterface
+    *   The layout plugin.
++   *
++   * @throws \Drupal\Component\Plugin\Exception\PluginException
+    */
+   public function getLayout(array $contexts = []) {
+     $layout = $this->layoutPluginManager()->createInstance($this->getLayoutId(), $this->layoutSettings);
+     if ($contexts) {
+-      $this->contextHandler()->applyContextMapping($layout, $contexts);
++      try {
++        $this->contextHandler()->applyContextMapping($layout, $contexts);
++      }
++      catch (MissingValueContextException $e) {
++
++      }
++      catch (ContextException $e) {
++
++      }
+     }
+     return $layout;
+   }
+@@ -164,6 +178,8 @@
+    *
+    * @return string
+    *   The machine-readable name of the default region.
++   *
++   * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
+    */
+   public function getDefaultRegion() {
+     return $this->layoutPluginManager()->getDefinition($this->getLayoutId())->getDefaultRegion();
+@@ -185,7 +201,7 @@
+    * @param string $uuid
+    *   The UUID of the component to retrieve.
+    *
+-   * @return \Drupal\layout_builder\SectionComponent
++   * @return SectionComponent
+    *   The component.
+    *
+    * @throws \InvalidArgumentException
+@@ -202,7 +218,7 @@
+   /**
+    * Helper method to set a component.
+    *
+-   * @param \Drupal\layout_builder\SectionComponent $component
++   * @param SectionComponent $component
+    *   The component.
+    *
+    * @return $this
+@@ -228,7 +244,7 @@
+   /**
+    * Appends a component to the end of a region.
+    *
+-   * @param \Drupal\layout_builder\SectionComponent $component
++   * @param SectionComponent $component
+    *   The component being appended.
+    *
+    * @return $this
+@@ -262,7 +278,7 @@
+    * @param string $region
+    *   The region name.
+    *
+-   * @return \Drupal\layout_builder\SectionComponent[]
++   * @return SectionComponent[]
+    *   An array of components in the specified region, sorted by weight.
+    */
+   public function getComponentsByRegion($region) {
+@@ -280,7 +296,7 @@
+    *
+    * @param string $preceding_uuid
+    *   The UUID of the existing component to insert after.
+-   * @param \Drupal\layout_builder\SectionComponent $component
++   * @param SectionComponent $component
+    *   The component being inserted.
+    *
+    * @return $this
+@@ -303,7 +319,7 @@
+    *
+    * @param int $delta
+    *   The zero-based delta in which to insert the component.
+-   * @param \Drupal\layout_builder\SectionComponent $new_component
++   * @param SectionComponent $new_component
+    *   The component being inserted.
+    *
+    * @return $this
+@@ -356,9 +372,9 @@
+     return [
+       'layout_id' => $this->getLayoutId(),
+       'layout_settings' => $this->getLayoutSettings(),
+-      'components' => array_map(function (SectionComponent $component) {
++      'components' => array_values(array_map(function (SectionComponent $component) {
+         return $component->toArray();
+-      }, $this->getComponents()),
++      }, $this->getComponents())),
+       'third_party_settings' => $this->thirdPartySettings,
+     ];
+   }
+@@ -451,4 +467,15 @@
+     return \Drupal::service('context.handler');
+   }
+ 
++  /**
++   * Returns a representation of the section for use in JSON serialization.
++   *
++   * @return array
++   *   return array for JSON serialization.
++   */
++  #[\ReturnTypeWillChange]
++  public function jsonSerialize() {
++    return $this->toArray();
++  }
++
+ }
+--- a/core/modules/layout_builder/tests/src/Functional/Rest/LayoutBuilderEntityViewDisplayResourceTestBase.php
++++ b/core/modules/layout_builder/tests/src/Functional/Rest/LayoutBuilderEntityViewDisplayResourceTestBase.php
+@@ -19,6 +19,8 @@
+ 
+   /**
+    * {@inheritdoc}
++   *
++   * @throws \Drupal\Core\Entity\EntityStorageException
+    */
+   protected function createEntity() {
+     /** @var \Drupal\layout_builder\Entity\LayoutBuilderEntityViewDisplay $entity */
+--- a/core/modules/layout_builder/tests/src/Functional/Rest/OverrideSectionsTest.php
++++ b/core/modules/layout_builder/tests/src/Functional/Rest/OverrideSectionsTest.php
+@@ -71,7 +71,7 @@
+     );
+     $get_data = $this->getDecodedContents($response);
+     $this->assertSame('A node at rest will stay at rest.', $get_data['title'][0]['value']);
+-    $this->assertArrayNotHasKey('layout_builder__layout', $get_data);
++    $this->assertArrayHasKey('layout_builder__layout', $get_data);
+ 
+     // Make a POST request without the override field.
+     $new_node = [
+--- /dev/null
++++ b/core/modules/layout_builder/src/Normalizer/SectionDataNormalizer.php
+@@ -0,0 +1,51 @@
++<?php
++
++namespace Drupal\layout_builder\Normalizer;
++
++use Drupal\layout_builder\Plugin\DataType\SectionData;
++use Drupal\layout_builder\Section;
++use Drupal\serialization\Normalizer\TypedDataNormalizer;
++use Symfony\Component\Serializer\Normalizer\DenormalizerInterface;
++
++/**
++ * Normalizes section data.
++ */
++class SectionDataNormalizer extends TypedDataNormalizer implements DenormalizerInterface {
++
++  /**
++   * {@inheritdoc}
++   */
++  protected $supportedInterfaceOrClass = SectionData::class;
++
++  /**
++   * {@inheritdoc}
++   */
++  public function doNormalize($object, $format = NULL, array $context = []): array|string|int|float|bool|\ArrayObject|NULL {
++    $this->addCacheableDependency($context, $object);
++    $value = $object->getValue();
++
++    return $value instanceof Section ? $value->toArray() : $value;
++  }
++
++  /**
++   * {@inheritdoc}
++   */
++  public function denormalize($data, $class, $format = NULL, array $context = []): mixed {
++    return Section::fromArray((array) $data);
++  }
++
++  /**
++   * {@inheritdoc}
++   */
++  public function getSupportedTypes(?string $format): array {
++    // Scoped to SectionData rather than inheriting TypedDataNormalizer's
++    // TypedDataInterface. Registered at a raised priority, the inherited value
++    // made this claim denormalization of every typed-data field on every
++    // content entity, so any JSON:API write returned a Section where a field
++    // value belonged.
++    return [
++      SectionData::class => TRUE,
++    ];
++  }
++
++}

@@ -91,11 +91,18 @@ $cwd = (string) getcwd();
 // blocks forever waiting for a pipe that's still held open, even though
 // the actual PHP server started and is serving requests just fine.
 passthru(sprintf(
-  '(cd %s/web && exec nohup php%s -S %s:%s -t . .ht.router.php </dev/null >/tmp/quickstart-commerce-drupal-php-server.log 2>&1) & echo $! > %s',
+  // Our router, not core's: core's file_exists() check runs against the still
+  // percent-encoded path, so every demo image whose name contains a space or a
+  // parenthesis 404s. It delegates to core's router for everything else.
+  //
+  // The router path is absolute because the router chdirs, and the built-in
+  // server reopens the script on every request.
+  '(cd %s/web && exec nohup php%s -S %s:%s -t . %s </dev/null >/tmp/quickstart-commerce-drupal-php-server.log 2>&1) & echo $! > %s',
   escapeshellarg($cwd),
   $xdebug_flags,
   escapeshellarg($webserver_host),
   escapeshellarg($webserver_port),
+  escapeshellarg($cwd . '/.devtools/router.php'),
   escapeshellarg(server_pid_file())
 ));
 

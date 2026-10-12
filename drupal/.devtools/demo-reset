@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+#
+# Put the demo back to the snapshot `.devtools/demo-snapshot` took: every cart,
+# order and change since is gone. Then the storefront rebuilds from it.
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+
+DRUSH="$PWD/vendor/bin/drush"
+# Drupal can exceed PHP's default memory limit; see .devtools/etc/php.ini.
+export PHPRC="$PWD/.devtools/etc"
+FILES="$PWD/web/sites/default/files"
+DIR="${DRUXT_RESET_DIR:-$FILES/private/druxt-reset}"
+
+DB="${DB_FILE:-/tmp/quickstart-commerce-drupal-site.sqlite}"
+if ! { [ -f "$DIR/database.sql" ] || [ -f "$DIR/database.sqlite" ]; } || [ ! -f "$DIR/files.tgz" ]; then
+  echo "no snapshot in $DIR; run .devtools/demo-snapshot first" >&2
+  exit 1
+fi
+
+# One reset at a time, whoever starts it: the daily cron or a Lagoon task.
+exec 9>"$DIR/reset.running"
+if command -v flock >/dev/null && ! flock -n 9; then
+  echo "a reset is already running" >&2
+  exit 0
+fi
+
+echo "==> Database back to the snapshot of $(cat "$DIR/taken" 2>/dev/null || echo '?')"
+if [ -f "$DIR/database.sqlite" ]; then
+  rm -f "$DB" "$DB-wal" "$DB-shm"
+  cp "$DIR/database.sqlite" "$DB"
+else
+  "$DRUSH" sql:drop --yes >/dev/null
+  "$DRUSH" sql:query --file="$DIR/database.sql"
+fi
+
+echo "==> Files back to the snapshot"
+for name in "$FILES"/*; do
+  case "$(basename "$name")" in private|php|css|js|styles) ;; *) rm -rf "$name" ;; esac
+done
+tar -C "$FILES" -xzf "$DIR/files.tgz"
+rm -rf "$FILES/css" "$FILES/js" "$FILES/styles" "$FILES/php"
+
+"$DRUSH" cache:rebuild >/dev/null
+
+# The storefront builds the fresh store. Not fatal: Drupal is back either
+# way, and the storefront rebuilds on the next deploy.
+HOST="${DRUXT_REGENERATE_HOST:-app}"
+PORT="${DRUXT_REGENERATE_PORT:-3000}"
+curl -fsS -o /dev/null -X POST "http://$HOST:$PORT/_regenerate" || echo "regenerate not accepted" >&2
+
+echo "==> Reset done"
