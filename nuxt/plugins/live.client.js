@@ -28,7 +28,9 @@ export default (context, inject) => {
   let session = storage((s) => s.getItem(SESSION_KEY)) || ''
 
   const setSession = (code) => {
+    const previous = session
     session = CODE.test(code || '') ? code : ''
+    if (previous && previous !== session) $sockets.leave(`session:${previous}`)
     storage((s) => (session ? s.setItem(SESSION_KEY, session) : s.removeItem(SESSION_KEY)))
     if ($druxtDemo && $druxtDemo.setSession) $druxtDemo.setSession(session)
     if (session) $sockets.join(`session:${session}`)
@@ -36,10 +38,7 @@ export default (context, inject) => {
 
   // The session's errors: it has ended, or never was.
   $sockets.on('error', (message) => {
-    if (session && message.channel === `session:${session}`) {
-      $sockets.leave(message.channel)
-      setSession('')
-    }
+    if (session && message.channel === `session:${session}`) setSession('')
   })
 
   const live = {
