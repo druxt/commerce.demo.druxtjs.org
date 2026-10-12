@@ -12,6 +12,8 @@ environments:
           - commerce.demo.druxtjs.org
       - nginx:
           - api.commerce.demo.druxtjs.org
+      - ops:
+          - ops.commerce.demo.druxtjs.org
     cronjobs:
       - name: drush cron
         schedule: '*/15 * * * *'

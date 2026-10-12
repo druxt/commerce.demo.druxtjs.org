@@ -1,0 +1,7 @@
+name: Commerce demo live
+type: module
+description: What the demo's live hub needs of Drupal that commerce_api does not give.
+package: Druxt
+core_version_requirement: ^10.3 || ^11
+dependencies:
+  - commerce_api:commerce_api

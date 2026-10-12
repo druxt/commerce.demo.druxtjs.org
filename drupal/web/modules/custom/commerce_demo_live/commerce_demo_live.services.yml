@@ -1,0 +1,5 @@
+services:
+  commerce_demo_live.order_id_subscriber:
+    class: Drupal\commerce_demo_live\EventSubscriber\OrderIdSubscriber
+    tags:
+      - { name: event_subscriber }
