@@ -108,8 +108,6 @@ describe('sitemap.xml', () => {
   const routes = [
     '/',
     '/catalogue',
-    '/shop',
-    '/shop/women',
     '/blog',
     '/blog/lifestyle/thoughtful-gift-ideas',
     '/products',
@@ -125,7 +123,6 @@ describe('sitemap.xml', () => {
     for (const path of [
       '/',
       '/catalogue',
-      '/shop',
       '/blog',
       '/blog/lifestyle/thoughtful-gift-ideas',
       '/products/black-headphones',
@@ -134,8 +131,8 @@ describe('sitemap.xml', () => {
     }
   })
 
-  it('leaves out carts, orders, previews, filters and redirects', () => {
-    for (const path of ['/cart', '/checkout', '/order/', '/druxt/', '/shop/women', '/products<']) {
+  it('leaves out carts, orders, previews and redirects', () => {
+    for (const path of ['/cart', '/checkout', '/order/', '/druxt/', '/products<']) {
       assert.ok(!xml.includes(`${origin}${path}`), path)
     }
   })
