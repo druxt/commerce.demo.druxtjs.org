@@ -38,6 +38,10 @@ const LIVE_PATH = '/_live'
 const assistUrl = (env.ASSIST_URL || 'http://app:3000').replace(/\/+$/, '')
 const live = httpProxy.createProxyServer({ target: assistUrl, ws: true, changeOrigin: true })
 live.on('error', (error) => log(`live: ${error.message}`))
+// No compression through the console: on Lagoon the hub's deflated frames
+// reached the browser without the agreement that allows them, and it closed
+// the socket on the first one.
+live.on('proxyReqWs', (proxyReq) => proxyReq.removeHeader('sec-websocket-extensions'))
 
 /** Pass a request through to another origin, without this origin's cookies. */
 const proxy = (req, res, origin = drupalUrl) => {
