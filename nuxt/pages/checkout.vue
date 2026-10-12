@@ -92,6 +92,10 @@
             test card. Choose what the gateway should answer.
           </p>
 
+          <p v-if="rate" class="text-sm text-ink-2 border border-line rounded p-3">
+            <span class="font-600 text-ink">Shipping: {{ rate.label }} · {{ rate.amount }}</span>
+            <span v-if="rate.description" class="block mt-0.5">{{ rate.description }}</span>
+          </p>
           <fieldset class="flex flex-col gap-2">
             <legend class="label-mono mb-1">Gateway outcome</legend>
             <label v-for="o in outcomes" :key="o.value" class="flex items-start gap-3 p-3 border border-line rounded cursor-pointer hover:border-line-2">
@@ -218,6 +222,7 @@ export default {
     unknown: false,
     placed: null,
     paidTotal: '',
+    rate: null,
   }),
 
   computed: {
@@ -266,8 +271,18 @@ export default {
       if (await this.patch({ email: this.email })) this.step = 1
     },
 
+    // The one address bills and ships. With it saved, Commerce offers its
+    // rates; the demo courier is free anywhere and nothing ships.
     async saveAddress() {
-      if (await this.patch({ billing_information: { address: { ...this.address } } })) this.step = 2
+      const address = { ...this.address }
+      if (!(await this.patch({ billing_information: { address }, shipping_information: { address } }))) return
+      try {
+        const rates = await this.$store.dispatch('cart/shippingRates')
+        this.rate = rates.find((r) => /demo/i.test(r.label)) || rates[0] || null
+      } catch (e) {
+        this.rate = null
+      }
+      this.step = 2
     },
 
     // The payment instrument is the example gateway's test card. The
@@ -289,7 +304,9 @@ export default {
           security_code: '123',
         },
       }
-      if (!(await this.patch({ billing_information: { address }, payment_instrument: instrument }))) {
+      const fields = { billing_information: { address }, payment_instrument: instrument }
+      if (this.rate) fields.shipping_method = this.rate.id
+      if (!(await this.patch(fields))) {
         this.declined = true
         this.step = 3
         return
@@ -317,8 +334,12 @@ export default {
       // leaves its details out and keeps the confirmation.
       this.placed = { id: this.orderIdPlaced }
       this.done = true
-      // A demo session's console hears the order, proven by the cart token.
-      if (this.$live) this.$live.placed(this.placed.id)
+      // A demo session's console hears the order, proven by the cart token,
+      // and a shop-together room closes on it.
+      if (this.$live) {
+        this.$live.placed(this.placed.id)
+        this.$live.placedInRoom(this.placed.id)
+      }
       try {
         const body = await this.$store.dispatch('cart/order', this.orderIdPlaced)
         this.placed = { id: body.data.id, ...body.data.attributes }

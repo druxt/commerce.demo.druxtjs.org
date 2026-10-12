@@ -9,6 +9,8 @@ const { createHubClient, accountOf, orderForToken } = require('./drupal')
 const { sessionHandler } = require('./sessions')
 const { ordersHandler } = require('./orders')
 const { productHandler } = require('./products')
+const { cartHandler } = require('./carts')
+const { assistHandler } = require('./assist')
 
 module.exports = ({ drupalUrl, log = () => {} } = {}) => {
   const drupal = createHubClient({
@@ -26,7 +28,15 @@ module.exports = ({ drupalUrl, log = () => {} } = {}) => {
     log,
   })
   const product = productHandler({ drupal, log })
-  const handlers = { session, orders, order, product: product.handler }
+  const handlers = {
+    session,
+    orders,
+    order,
+    product: product.handler,
+    catalogue: product.catalogue,
+    cart: cartHandler({ orderForToken, drupalUrl, log }).handler,
+    assist: assistHandler({ drupal, drupalUrl, accountOf, registry: session.registry, log }),
+  }
   // Cart counts start from Drupal's carts as they are now.
   product.refresh()
 

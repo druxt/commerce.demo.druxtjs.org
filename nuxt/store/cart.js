@@ -24,9 +24,39 @@ const randomToken = () =>
   (crypto.randomUUID && crypto.randomUUID()) ||
   Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => b.toString(16).padStart(2, '0')).join('')
 
-/** The browser's cart token, made on first use. Empty on the server. */
+const SHARED_KEY = 'commerceCartShared'
+
+/** A room's token, held by this tab while it shops with someone. */
+const sharedToken = () => {
+  try {
+    return window.sessionStorage.getItem(SHARED_KEY) || ''
+  } catch (e) {
+    return ''
+  }
+}
+
+/** Shop with someone: their cart's token is this tab's until it leaves. */
+export const adoptToken = (token) => {
+  try {
+    window.sessionStorage.setItem(SHARED_KEY, token)
+  } catch (e) {
+    // No storage: the shared cart lasts as long as the page.
+  }
+}
+
+export const dropToken = () => {
+  try {
+    window.sessionStorage.removeItem(SHARED_KEY)
+  } catch (e) {
+    // Nothing held.
+  }
+}
+
+/** The cart token this tab shops with: a room's while in one, else its own, made on first use. Empty on the server. */
 export const cartToken = () => {
   if (typeof window === 'undefined') return ''
+  const shared = sharedToken()
+  if (shared) return shared
   try {
     let token = window.localStorage.getItem(TOKEN_KEY)
     if (!token) {
@@ -72,6 +102,8 @@ export const state = () => ({
   lines: [],
   busy: false,
   error: undefined,
+  // The drawer: the cart in the layout, on every route.
+  drawer: false,
 })
 
 export const getters = {
@@ -81,6 +113,7 @@ export const getters = {
   isEmpty: (state) => !state.lines.length,
   orderId: (state) => (state.order || {}).id,
   token: () => cartToken(),
+  shared: () => typeof window !== 'undefined' && !!sharedToken(),
 }
 
 export const mutations = {
@@ -93,6 +126,9 @@ export const mutations = {
   },
   setError(state, error) {
     state.error = error
+  },
+  setDrawer(state, open) {
+    state.drawer = open
   },
 }
 
@@ -127,6 +163,8 @@ export const actions = {
     }
   },
 
+  // `title` is for whoever watches the store (the live layer names what was
+  // added); Drupal is told the variation.
   async add({ commit, dispatch }, { type, id, quantity = 1 }) {
     commit('setBusy', true)
     commit('setError', undefined)
@@ -136,6 +174,8 @@ export const actions = {
         body: JSON.stringify({ data: [{ type, id, meta: { quantity } }] }),
       })
       await dispatch('load')
+      // The cart shows itself with the new line, wherever the add came from.
+      commit('setDrawer', true)
     } catch (error) {
       commit('setError', error.message)
     } finally {
@@ -181,6 +221,17 @@ export const actions = {
   // A placed order, by id, readable by the browser that placed it.
   async order(context, id) {
     return request(this.$druxt.axios, `${API}/checkout/${id}`)
+  },
+
+  // The shipping rates Commerce offers this order, once it has an address.
+  async shippingRates({ state }) {
+    const body = await request(this.$druxt.axios, `${API}/checkout/${state.order.id}/shipping-methods`)
+    return (body.data || []).map((rate) => ({
+      id: rate.id,
+      label: ((rate.attributes || {}).service || {}).label || rate.id,
+      description: (rate.attributes || {}).description || '',
+      amount: ((rate.attributes || {}).amount || {}).formatted || '',
+    }))
   },
 
   async setQuantity({ state, commit, dispatch }, { line, quantity }) {

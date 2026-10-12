@@ -1,7 +1,7 @@
 <template>
   <div class="min-h-screen flex flex-col bg-paper-2">
     <!-- The demo bar from @druxt/demo, themed by components/druxt/demo/BarDefault.vue. -->
-    <DruxtDemoBar :notice="slogan" />
+    <DruxtDemoBar :notice="liveNotice" />
 
     <header class="sticky top-0 z-40 bg-paper border-b border-line">
       <div class="wrap h-16 flex items-center gap-[clamp(12px,2.4vw,28px)]">
@@ -25,14 +25,31 @@
           <SiteSearch class="hidden md:block max-w-380px" />
         </div>
 
-        <NuxtLink to="/cart" class="shrink-0 h-11 min-w-11 px-3.5 flex items-center justify-center gap-2 text-13px font-600 bg-paper border border-line rounded hover:border-ink" :aria-label="cartLabel">
+        <button
+          type="button"
+          class="shrink-0 h-11 px-3.5 hidden md:inline-flex items-center gap-2 text-13px font-600 bg-paper border border-line rounded hover:border-ink"
+          :aria-expanded="assistOpen ? 'true' : 'false'"
+          @click="$store.dispatch('assist/openPanel')"
+        >
+          <span class="w-1.5 h-1.5 rounded-full bg-teal" aria-hidden="true" />
+          Assist
+        </button>
+
+        <!-- The cart is a drawer on every route; the page stays for the long view. -->
+        <button
+          type="button"
+          class="shrink-0 h-11 min-w-11 px-3.5 flex items-center justify-center gap-2 text-13px font-600 bg-paper border border-line rounded hover:border-ink"
+          :aria-label="cartLabel"
+          :aria-expanded="cartOpen ? 'true' : 'false'"
+          @click="$store.commit('cart/setDrawer', true)"
+        >
           <span class="hidden md:inline">Cart</span>
           <svg class="md:hidden w-4 h-4 shrink-0" viewBox="0 0 20 20" aria-hidden="true">
             <path d="M4 6h12l-1.2 10.5a1 1 0 0 1-1 .9H6.2a1 1 0 0 1-1-.9L4 6z" fill="none" stroke="currentColor" stroke-width="1.6" />
             <path d="M7.2 6a2.8 2.8 0 0 1 5.6 0" fill="none" stroke="currentColor" stroke-width="1.6" />
           </svg>
           <span class="font-mono text-11px bg-ink text-paper min-w-5 h-5 px-1.5 rounded-full inline-flex items-center justify-center">{{ cartCount }}</span>
-        </NuxtLink>
+        </button>
       </div>
 
       <div class="md:hidden px-3.5 pb-2.5">
@@ -43,6 +60,12 @@
     <main class="flex-1 w-full pb-16 md:pb-0">
       <slot name="content" />
     </main>
+
+    <!-- The concierge and the cart, on every route. -->
+    <client-only>
+      <AssistPanel />
+      <CartDrawer />
+    </client-only>
 
     <footer class="bg-ink text-ink-3 mt-auto pb-16 md:pb-0">
       <div class="wrap py-9 flex flex-wrap gap-6 justify-between text-13px">
@@ -64,6 +87,14 @@
         <span>{{ link.label }}</span>
         <span class="tabbar__mark w-4.5 h-0.5" aria-hidden="true" />
       </NuxtLink>
+      <button
+        type="button"
+        class="flex-1 min-w-0 h-14 flex flex-col items-center justify-center gap-0.75 text-13px font-500 text-ink-2 bg-transparent border-0"
+        @click="$store.dispatch('assist/openPanel')"
+      >
+        <span>Assist</span>
+        <span class="tabbar__mark w-4.5 h-0.5" aria-hidden="true" />
+      </button>
     </nav>
   </div>
 </template>
@@ -107,9 +138,17 @@ export default {
 
     slogan: ({ site }) => site.slogan || 'Drupal Commerce Kickstart, served by Nuxt via Druxt',
 
+    // The bar's one line: what is live, that names are the hub's, and that
+    // the daily reset wipes it all.
+    liveNotice: () => 'Live carts, orders and assist. Names are the hub\'s, not yours. The daily reset wipes it all.',
+
     cartCount: ({ $store }) => $store.getters['cart/count'],
 
     cartLabel: ({ cartCount }) => (cartCount === 1 ? 'Cart, 1 item' : `Cart, ${cartCount} items`),
+
+    assistOpen: ({ $store }) => $store.state.assist.open,
+
+    cartOpen: ({ $store }) => $store.state.cart.drawer,
   },
 
   // The cart lives in the Drupal session, which only the browser carries.

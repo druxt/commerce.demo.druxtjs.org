@@ -93,6 +93,11 @@ export default {
   proxy: {
     '/jsonapi': drupalProxy,
     '/oauth/debug': drupalProxy,
+    // The concierge and the live socket live on the storefront. The socket
+    // client only ever opens on the page's own host, so the console carries
+    // the WebSocket through to the storefront's hub.
+    '/_assist': process.env.ASSIST_URL || storefront,
+    '/_live': { target: process.env.ASSIST_URL || storefront, ws: true, changeOrigin: true },
   },
 
   auth: {
@@ -115,7 +120,7 @@ export default {
   },
 
   publicRuntimeConfig: {
-    // Where visitors go, and where the hub answers. Session links point here.
+    // Where visitors go. Session links point here.
     storefront,
     socketsOrigin,
   },

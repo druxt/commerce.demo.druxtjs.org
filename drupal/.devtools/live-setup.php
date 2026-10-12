@@ -56,10 +56,10 @@ foreach (['operator' => 'Operator', 'hub' => 'Hub'] as $id => $label) {
 }
 // The token debug route answers only to a token that holds this, which is
 // how the hub and the console tell an operator from any other account.
-$grant('operator', ['access commerce_order overview', 'view commerce_order', 'view default commerce_order', 'update default commerce_order', 'administer commerce_order', 'access druxt resources', 'debug simple_oauth tokens']);
+$grant('operator', ['access commerce_order overview', 'view commerce_order', 'view default commerce_order', 'update default commerce_order', 'administer commerce_order', 'administer commerce_shipment', 'access druxt resources', 'debug simple_oauth tokens']);
 // Message has no per-template create permission without message_ui; the
 // hub account administers messages and holds nothing else.
-$grant('hub', ['administer messages', 'view commerce_order', 'view default commerce_order', 'update default commerce_order', 'access druxt resources', 'debug simple_oauth tokens']);
+$grant('hub', ['administer messages', 'view commerce_order', 'view default commerce_order', 'update default commerce_order', 'administer commerce_shipment', 'access druxt resources', 'debug simple_oauth tokens']);
 
 // One scope per role, so a token says which it is. Simple OAuth 6 refuses
 // every grant until a scope exists that the request can resolve.
@@ -148,10 +148,34 @@ if (!MessageTemplate::load('demo_session')) {
     'text' => [['value' => 'Demo session', 'format' => 'plain_text']],
   ])->save();
 }
+// Assist: a conversation per visitor thread, a chat message per turn. The
+// hub writes both; the console reads them signed in; the visitor's panel
+// gets its thread from the socket.
+foreach ([
+  'conversation' => ['Conversation', 'A visitor\'s assist thread: its code, its session and whether a person has it.'],
+  'chat' => ['Chat', 'One turn of an assist conversation, by the visitor, the concierge or an operator.'],
+] as $template => [$label, $description]) {
+  if (!MessageTemplate::load($template)) {
+    MessageTemplate::create([
+      'template' => $template,
+      'label' => $label,
+      'description' => $description,
+      'text' => [['value' => $label, 'format' => 'plain_text']],
+    ])->save();
+  }
+}
 $fields = [
   ['message', 'demo_session', 'field_code', 'string', 'Code', []],
   ['message', 'demo_session', 'field_operator', 'entity_reference', 'Operator', ['target_type' => 'user']],
   ['commerce_order', 'default', 'field_demo_session', 'string', 'Demo session', []],
+  ['message', 'conversation', 'field_code', 'string', 'Code', []],
+  ['message', 'conversation', 'field_session', 'string', 'Session', []],
+  ['message', 'conversation', 'field_state', 'list_string', 'State', ['allowed_values' => ['concierge' => 'Concierge', 'waiting' => 'Waiting', 'with_operator' => 'With an operator', 'closed' => 'Closed']]],
+  ['message', 'conversation', 'field_operator', 'entity_reference', 'Operator', ['target_type' => 'user']],
+  ['message', 'chat', 'field_conversation', 'entity_reference', 'Conversation', ['target_type' => 'message']],
+  ['message', 'chat', 'field_author', 'list_string', 'Author', ['allowed_values' => ['visitor' => 'Visitor', 'concierge' => 'Concierge', 'operator' => 'Operator']]],
+  ['message', 'chat', 'field_body', 'string_long', 'Body', []],
+  ['message', 'chat', 'field_picks', 'string_long', 'Picks', []],
 ];
 foreach ($fields as [$entity_type, $bundle, $name, $type, $label, $storage_settings]) {
   if (!FieldStorageConfig::loadByName($entity_type, $name)) {
@@ -209,6 +233,31 @@ if (!user_load_by_name('shopper')) {
     'mail' => 'shopper@example.com',
     'status' => 1,
     'pass' => getenv('SHOPPER_PASSWORD') ?: 'shopper',
+  ])->save();
+}
+
+// A courier for the demo: free, everywhere, and nothing ships. Kickstart's
+// own methods are US only, so a visitor anywhere else had no rate and no
+// shipment, and the board had nothing to ship.
+$methods = \Drupal::entityTypeManager()->getStorage('commerce_shipping_method');
+if (!$methods->loadByProperties(['name' => 'Demo courier'])) {
+  $methods->create([
+    'name' => 'Demo courier',
+    'status' => 1,
+    'weight' => -10,
+    'stores' => [1],
+    'plugin' => [
+      'target_plugin_id' => 'flat_rate',
+      'target_plugin_configuration' => [
+        'rate_label' => 'Demo courier',
+        'rate_description' => 'Free, anywhere. Nothing ships: this is a demo.',
+        'rate_amount' => ['number' => '0', 'currency_code' => 'USD'],
+        'services' => ['default'],
+        'default_package_type' => 'custom_box',
+      ],
+    ],
+    'conditions' => [],
+    'condition_operator' => 'AND',
   ])->save();
 }
 

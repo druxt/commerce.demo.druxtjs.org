@@ -10,9 +10,20 @@
       </div>
       <div class="text-14px min-w-0 truncate">{{ order.email || 'anonymous' }}</div>
       <div class="mono">{{ placedAt }}</div>
-      <div class="hidden md:block"><span class="pill" :class="pillClass">{{ stateLabel }}</span></div>
+      <div class="hidden md:flex flex-col gap-1 items-start">
+        <span class="pill" :class="pillClass">{{ stateLabel }}</span>
+        <span v-if="order.shipment" class="pill" :class="order.shipment === 'shipped' ? 'border-teal-3 bg-teal-2 text-teal-4' : ''">{{ shipmentText }}</span>
+      </div>
       <div class="hidden md:block font-mono text-13px text-ink">{{ order.total }}</div>
       <div class="flex gap-2 md:justify-end">
+        <button
+          v-for="t in shipmentTransitions"
+          :key="t.id"
+          type="button"
+          class="btn-primary btn-sm"
+          :disabled="busy"
+          @click="$emit('transition', { uuid: order.uuid, to: t.to, shipmentId: order.shipmentId })"
+        >{{ t.label }}</button>
         <button
           v-for="t in transitions"
           :key="t.id"
@@ -29,7 +40,7 @@
 </template>
 
 <script>
-import { transitionsFor, label } from '~/lib/transitions'
+import { transitionsFor, label, shipmentTransitionsFor, shipmentLabel } from '~/lib/transitions'
 
 export default {
   name: 'OrderRow',
@@ -42,6 +53,11 @@ export default {
 
   computed: {
     transitions: ({ order }) => transitionsFor(order.state),
+
+    shipmentTransitions: ({ order }) =>
+      order.state === 'fulfillment' && order.shipmentId ? shipmentTransitionsFor(order.shipment) : [],
+
+    shipmentText: ({ order }) => shipmentLabel(order.shipment),
 
     stateLabel: ({ order }) => label(order.state),
 
@@ -58,7 +74,8 @@ export default {
 
     responseText: ({ response, order }) => {
       if (!response) return ''
-      const head = `PATCH /jsonapi/orders/default/${order.uuid.slice(0, 8)}…  { "state": "${response.to}" }`
+      const path = response.path || `/jsonapi/orders/default/${order.uuid}`
+      const head = `PATCH ${path.replace(/([0-9a-f]{8})[0-9a-f-]{28}/, '$1…')}  { "state": "${response.to}" }`
       if (response.error) return `${head}\n${response.status} · ${response.ms} ms · refused: ${response.error}`
       return `${head}\n${response.status} · ${response.ms} ms · state: ${response.state}\nsocket: order:${order.uuid.slice(0, 8)}… · the visitor's order page moved at the same moment`
     },
