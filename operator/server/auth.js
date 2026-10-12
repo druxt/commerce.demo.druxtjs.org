@@ -10,14 +10,21 @@ const GRANTS = new Map([
   ['refresh_token', ['refresh_token']],
 ])
 
+// A body over the limit resolves to null and gets a 413. The rest of it is
+// read and dropped, so the answer still reaches the browser.
 const readJson = (req) =>
   new Promise((resolve) => {
     let body = ''
     req.on('data', (chunk) => {
+      if (body === null) return
       body += chunk
-      if (body.length > 64 * 1024) req.destroy()
+      if (body.length > 64 * 1024) {
+        body = null
+        resolve(null)
+      }
     })
     req.on('end', () => {
+      if (body === null) return
       try {
         resolve(JSON.parse(body || '{}'))
       } catch {
@@ -37,6 +44,7 @@ const createTokenRoute =
     }
     if (req.method !== 'POST') return reply(405, '{"error":"method_not_allowed"}')
     const data = await readJson(req)
+    if (data === null) return reply(413, '{"error":"request_too_large"}')
     const fields = GRANTS.get(data.grant_type)
     if (!fields) return reply(400, '{"error":"unsupported_grant_type"}')
     const form = new URLSearchParams({ grant_type: data.grant_type, client_id: clientId, scope })
