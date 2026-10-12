@@ -30,8 +30,11 @@ if [ -f "$DIR/database.sqlite" ]; then
   rm -f "$DB" "$DB-wal" "$DB-shm"
   cp "$DIR/database.sqlite" "$DB"
 else
+  # Drop only with a dump to put back.
+  [ -s "$DIR/database.sql" ] || { echo "empty database.sql in $DIR; nothing dropped" >&2; exit 1; }
   "$DRUSH" sql:drop --yes >/dev/null
-  "$DRUSH" sql:query --file="$DIR/database.sql"
+  "$DRUSH" sql:query --file="$DIR/database.sql" \
+    || { echo "restore failed; the site has no database until a reset or a deploy succeeds" >&2; exit 1; }
 fi
 
 echo "==> Files back to the snapshot"
