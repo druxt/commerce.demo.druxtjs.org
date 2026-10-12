@@ -116,6 +116,14 @@ PASS('Site name and slogan set.');
 
 TASK('Enabling authenticated editing via JSON:API.');
 drush('config:set jsonapi.settings read_only %s', '0');
+// Orders move through fulfilment, so a placed order has somewhere to go:
+// the storefront's order page and the operator console show it moving.
+drush('config:set -y commerce_order.commerce_order_type.default workflow %s', 'order_fulfillment');
+
+// The storefront's shop view, read through jsonapi_views. Kept as config
+// rather than built by hand, so a fresh install has it. Made by
+// .devtools/views-products.php and exported with `drush config:get`.
+drush('config:import -y --partial --source=%s', __DIR__ . '/config');
 PASS('jsonapi.settings read_only disabled.');
 
 TASK('Enabling decoupled settings.');

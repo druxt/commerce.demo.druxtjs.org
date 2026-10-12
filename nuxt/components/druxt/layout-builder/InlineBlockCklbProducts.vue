@@ -1,13 +1,13 @@
 <template>
-  <section class="mx-auto max-w-7xl px-5 py-12 flex flex-col gap-6">
-    <div class="flex flex-wrap items-baseline justify-between gap-3">
-      <h2 v-if="title" class="text-3xl">{{ title }}</h2>
-      <NuxtLink to="/catalogue" class="text-sm text-accent hover:underline">
+  <section class="wrap pt-[clamp(36px,5vw,56px)] pb-12 flex flex-col gap-5">
+    <div class="flex flex-wrap items-baseline justify-between gap-4">
+      <h2 v-if="title" class="text-[clamp(21px,3vw,26px)]">{{ title }}</h2>
+      <NuxtLink to="/catalogue" class="text-14px font-600 text-accent">
         Browse the catalogue &rarr;
       </NuxtLink>
     </div>
 
-    <div v-if="products.length" class="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
+    <div v-if="products.length" class="grid gap-[clamp(12px,1.6vw,20px)] grid-cols-[repeat(auto-fill,minmax(min(100%,210px),1fr))]">
       <ProductCard
         v-for="p in products"
         :key="p.id"
@@ -15,7 +15,8 @@
         :path="p.path"
         :price="p.price"
         :image="p.image"
-        :collection="p.collection"
+        :category="p.collection"
+        wide
       />
     </div>
 

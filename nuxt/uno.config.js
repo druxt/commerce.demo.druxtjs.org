@@ -16,7 +16,10 @@ export default defineConfig({
       'paper-3': '#fbfaf8', // Sunk panels, summary rows
       line: '#e4e2dd',      // Every border
       'line-2': '#d6d2ca',  // Emphasised border
-      accent: '#0678be',    // Links and text actions (Druxt blue)
+      // Links and text actions. The design's Druxt blue is #0678be, which the
+      // Druxt design system darkened to this so link text clears 4.5:1 on a
+      // tinted ground; on paper-2 the original measures 4.4:1.
+      accent: '#036397',
       mint: '#7fd4c1',      // On-dark accent
       teal: '#108775',      // Success
       warn: '#b45309',      // Low stock
@@ -35,6 +38,9 @@ export default defineConfig({
   },
 
   shortcuts: {
+    // The page measure: 1360px, centred, with a gutter that scales with the
+    // viewport instead of jumping at a breakpoint.
+    'wrap': 'mx-auto w-full max-w-[1360px] px-[clamp(16px,3vw,24px)]',
     // Interactive targets are 44px minimum, so they stay reachable on touch.
     'btn': 'inline-flex items-center justify-center gap-2 h-11 px-5 text-sm font-600 rounded border transition-colors duration-150 no-underline cursor-pointer',
     'btn-primary': 'btn bg-ink text-paper border-ink hover:bg-ink-2 hover:border-ink-2',

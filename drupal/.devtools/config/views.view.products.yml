@@ -1,0 +1,176 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - taxonomy.vocabulary.product_brands
+  module:
+    - commerce_product
+    - taxonomy
+    - user
+id: products
+label: Products
+module: views
+description: 'The storefront shop page, read through jsonapi_views.'
+tag: ''
+base_table: commerce_product_field_data
+base_field: product_id
+display:
+  default:
+    id: default
+    display_title: Default
+    display_plugin: default
+    position: 0
+    display_options:
+      title: Shop
+      fields:
+        title:
+          id: title
+          table: commerce_product_field_data
+          field: title
+          entity_type: commerce_product
+          entity_field: title
+          plugin_id: field
+      pager:
+        type: full
+        options:
+          offset: 0
+          items_per_page: 12
+          total_pages: null
+          id: 0
+          tags:
+            next: Next
+            previous: Previous
+            first: First
+            last: Last
+          expose:
+            items_per_page: false
+          quantity: 9
+      exposed_form:
+        type: basic
+        options:
+          expose_sort_order: true
+          sort_asc_label: Asc
+          sort_desc_label: Desc
+      access:
+        type: perm
+        options:
+          perm: 'view commerce_product'
+      cache:
+        type: tag
+        options: {  }
+      sorts:
+        title:
+          id: title
+          table: commerce_product_field_data
+          field: title
+          entity_type: commerce_product
+          entity_field: title
+          plugin_id: standard
+          order: ASC
+          expose:
+            label: Title
+            field_identifier: title
+          exposed: true
+        created:
+          id: created
+          table: commerce_product_field_data
+          field: created
+          entity_type: commerce_product
+          entity_field: created
+          plugin_id: date
+          order: DESC
+          expose:
+            label: Newest
+            field_identifier: created
+          exposed: true
+          granularity: second
+      arguments:
+        product_collections_target_id:
+          id: product_collections_target_id
+          table: commerce_product__product_collections
+          field: product_collections_target_id
+          plugin_id: numeric
+          default_action: ignore
+          exception:
+            value: all
+            title_enable: false
+            title: All
+          break_phrase: true
+          not: false
+      filters:
+        status:
+          id: status
+          table: commerce_product_field_data
+          field: status
+          entity_type: commerce_product
+          entity_field: status
+          plugin_id: boolean
+          value: '1'
+        product_brand_target_id:
+          id: product_brand_target_id
+          table: commerce_product__product_brand
+          field: product_brand_target_id
+          plugin_id: taxonomy_index_tid
+          operator: or
+          value: {  }
+          exposed: true
+          expose:
+            operator_id: brand_op
+            label: Brand
+            operator: brand_op
+            operator_limit_selection: false
+            operator_list: {  }
+            identifier: brand
+            required: false
+            remember: false
+            multiple: true
+            remember_roles:
+              authenticated: authenticated
+            reduce: false
+          is_grouped: false
+          group_info: {  }
+          vid: product_brands
+          type: select
+          hierarchy: false
+          limit: true
+          error_message: true
+      style:
+        type: default
+      row:
+        type: fields
+      query:
+        type: views_query
+        options:
+          distinct: true
+      display_extenders: {  }
+    cache_metadata:
+      max-age: -1
+      contexts:
+        - 'languages:language_content'
+        - 'languages:language_interface'
+        - url
+        - url.query_args
+        - 'url.query_args:sort_by'
+        - 'url.query_args:sort_order'
+        - user.permissions
+      tags: {  }
+  page_1:
+    id: page_1
+    display_title: Shop
+    display_plugin: page
+    position: 1
+    display_options:
+      display_extenders: {  }
+      path: shop
+    cache_metadata:
+      max-age: -1
+      contexts:
+        - 'languages:language_content'
+        - 'languages:language_interface'
+        - url
+        - url.query_args
+        - 'url.query_args:sort_by'
+        - 'url.query_args:sort_order'
+        - user.permissions
+      tags: {  }
+

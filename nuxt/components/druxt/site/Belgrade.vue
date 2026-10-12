@@ -1,54 +1,70 @@
 <template>
   <div class="min-h-screen flex flex-col bg-paper-2">
-    <!-- The demo's whole argument is which half is which, so it says so. -->
-    <div class="bg-ink text-ink-3 font-mono text-11px">
-      <div class="mx-auto max-w-7xl px-5 py-2 flex flex-wrap gap-x-3 gap-y-1 justify-center text-center">
-        <span>commerce.demo.druxtjs.org</span>
-        <span class="text-ink-2" aria-hidden="true">/</span>
-        <span class="text-paper">{{ slogan }}</span>
-      </div>
-    </div>
+    <!-- The demo bar from @druxt/demo, themed by components/druxt/demo/BarDefault.vue. -->
+    <DruxtDemoBar :notice="slogan" />
 
-    <header class="bg-paper border-b border-line sticky top-0 z-20">
-      <div class="mx-auto max-w-7xl px-5 h-16 flex items-center gap-6">
-        <NuxtLink to="/" class="flex items-center gap-2.5 shrink-0">
-          <img v-if="logo" :src="logo" alt="" class="h-7 w-7" width="28" height="28">
-          <span class="text-lg font-700 tracking-tight">{{ siteName }}</span>
+    <header class="sticky top-0 z-40 bg-paper border-b border-line">
+      <div class="wrap h-16 flex items-center gap-[clamp(12px,2.4vw,28px)]">
+        <NuxtLink to="/" class="flex items-center gap-2.25 shrink-0 min-h-11" :aria-label="`${siteName}, home`">
+          <DruxtMark class="w-6 h-18px" />
+          <span class="text-16px font-700 tracking-tight">{{ siteName }}</span>
         </NuxtLink>
 
-        <nav class="hidden md:flex items-center gap-5 text-sm" aria-label="Main">
+        <nav class="hidden md:flex items-center gap-5.5 text-14px font-500" aria-label="Main">
           <NuxtLink
             v-for="link in nav"
             :key="link.to"
             :to="link.to"
-            class="py-1 border-b-2 border-transparent hover:border-ink"
-            active-class="border-ink font-600"
+            class="py-1 border-b-2 border-transparent text-ink-2 hover:text-ink"
+            :exact="link.exact"
+            active-class="!text-ink !border-ink"
           >{{ link.label }}</NuxtLink>
         </nav>
 
-        <div class="flex-1" />
+        <div class="flex-1 min-w-0 flex justify-center">
+          <SiteSearch class="hidden md:block max-w-380px" />
+        </div>
 
-        <NuxtLink to="/cart" class="btn-secondary shrink-0" :aria-label="cartLabel">
-          Cart
-          <span class="font-mono text-11px bg-paper-2 border border-line rounded px-1.5 py-0.5 tabular-nums">{{ cartCount }}</span>
+        <NuxtLink to="/cart" class="shrink-0 h-11 min-w-11 px-3.5 flex items-center justify-center gap-2 text-13px font-600 bg-paper border border-line rounded hover:border-ink" :aria-label="cartLabel">
+          <span class="hidden md:inline">Cart</span>
+          <svg class="md:hidden w-4 h-4 shrink-0" viewBox="0 0 20 20" aria-hidden="true">
+            <path d="M4 6h12l-1.2 10.5a1 1 0 0 1-1 .9H6.2a1 1 0 0 1-1-.9L4 6z" fill="none" stroke="currentColor" stroke-width="1.6" />
+            <path d="M7.2 6a2.8 2.8 0 0 1 5.6 0" fill="none" stroke="currentColor" stroke-width="1.6" />
+          </svg>
+          <span class="font-mono text-11px bg-ink text-paper min-w-5 h-5 px-1.5 rounded-full inline-flex items-center justify-center">{{ cartCount }}</span>
         </NuxtLink>
       </div>
 
-      <nav class="md:hidden border-t border-line px-5 py-2 flex gap-4 text-sm overflow-x-auto" aria-label="Main, small screen">
-        <NuxtLink v-for="link in nav" :key="link.to" :to="link.to" class="whitespace-nowrap py-1">{{ link.label }}</NuxtLink>
-      </nav>
+      <div class="md:hidden px-3.5 pb-2.5">
+        <SiteSearch id="site-search-small" />
+      </div>
     </header>
 
-    <main class="flex-1">
+    <main class="flex-1 w-full pb-16 md:pb-0">
       <slot name="content" />
     </main>
 
-    <footer class="bg-ink text-ink-3 mt-16">
-      <div class="mx-auto max-w-7xl px-5 py-8 flex flex-wrap gap-4 justify-between items-center text-13px">
+    <footer class="bg-ink text-ink-3 mt-auto pb-16 md:pb-0">
+      <div class="wrap py-9 flex flex-wrap gap-6 justify-between text-13px">
         <p>A DruxtJS demo. Drupal Commerce back end, Nuxt front end.</p>
-        <a href="https://druxtjs.org" class="font-mono text-11px hover:text-paper">druxtjs.org</a>
+        <a href="https://druxtjs.org" class="font-mono text-12px hover:text-paper">druxtjs.org</a>
       </div>
     </footer>
+
+    <!-- Below 768px the navigation moves to the thumb. -->
+    <nav class="tabbar md:hidden fixed inset-x-0 bottom-0 z-50 bg-paper border-t border-line flex" aria-label="Main">
+      <NuxtLink
+        v-for="link in nav"
+        :key="link.to"
+        :to="link.to"
+        :exact="link.exact"
+        class="flex-1 min-w-0 h-14 flex flex-col items-center justify-center gap-0.75 text-13px font-500 text-ink-2"
+        active-class="tabbar__active"
+      >
+        <span>{{ link.label }}</span>
+        <span class="tabbar__mark w-4.5 h-0.5" aria-hidden="true" />
+      </NuxtLink>
+    </nav>
   </div>
 </template>
 
@@ -63,17 +79,18 @@ export default {
   data: () => ({
     settings: undefined,
     nav: [
-      { to: '/', label: 'Home' },
+      { to: '/', label: 'Home', exact: true },
       { to: '/catalogue', label: 'Catalogue' },
+      { to: '/shop', label: 'Shop' },
       { to: '/cart', label: 'Cart' },
     ],
   }),
 
-  // Site name, slogan and theme logo come from Drupal through
-  // decoupled_settings, so editing them in Drupal changes the storefront with
-  // no frontend deploy. Belgrade's own regions are deliberately not rendered:
-  // the chrome is the storefront's, which is what makes it a decoupled build
-  // rather than a copy of the Drupal theme.
+  // Site name and slogan come from Drupal through decoupled_settings, so
+  // editing them in Drupal changes the storefront with no frontend deploy.
+  // Belgrade's own regions are deliberately not rendered: the chrome is the
+  // storefront's, which is what makes it a decoupled build rather than a copy
+  // of the Drupal theme.
   async fetch() {
     try {
       const res = await this.$druxt.axios.get('/jsonapi/decoupled/settings')
@@ -87,24 +104,31 @@ export default {
   computed: {
     site: ({ settings }) => ((settings || {}).settings || {})['system.site'] || {},
 
-    // Named for what it is: the active theme's settings from Drupal. `theme`
-    // itself is a prop on DruxtSiteMixin, carrying the theme id.
-    themeSettings: ({ settings }) => {
-      const all = (settings || {}).settings || {}
-      const key = Object.keys(all).find((k) => k.endsWith('.settings'))
-      return key ? all[key] : {}
-    },
-
     siteName: ({ site }) => site.name || 'Druxt Store',
 
     slogan: ({ site }) => site.slogan || 'Drupal Commerce Kickstart, served by Nuxt via Druxt',
 
-    logo: ({ themeSettings }) => ((themeSettings || {}).logo || {}).url || undefined,
+    cartCount: ({ $store }) => $store.getters['cart/count'],
 
-    cartCount: ({ $store }) => ((($store.state || {}).cart || {}).lines || []).length,
+    cartLabel: ({ cartCount }) => (cartCount === 1 ? 'Cart, 1 item' : `Cart, ${cartCount} items`),
+  },
 
-    cartLabel: ({ cartCount }) =>
-      cartCount === 1 ? 'Cart, 1 item' : `Cart, ${cartCount} items`,
+  // The cart lives in the Drupal session, which only the browser carries.
+  mounted() {
+    this.$store.dispatch('cart/load')
   },
 }
 </script>
+
+<style>
+.tabbar {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.tabbar__active {
+  color: var(--ink);
+  font-weight: 700;
+}
+.tabbar__active .tabbar__mark {
+  background: var(--ink);
+}
+</style>
