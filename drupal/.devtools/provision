@@ -120,6 +120,11 @@ drush('cache:rebuild');
 
 TASK('Enabling druxt.');
 drush('pm:enable druxt');
+// The live layer: Simple OAuth for the console and the hub, Message for the
+// demo sessions, Purge to tell the hub what changed.
+drush('pm:enable simple_oauth simple_oauth_password_grant consumers message purge purge_drush purge_tokens purge_queuer_coretags purge_processor_lateruntime purge_purger_http');
+// The demo's own module: the order id commerce_api hides, for the live hub.
+drush('pm:enable commerce_demo_live');
 drush('role:perm:add anonymous %s', 'access druxt resources');
 PASS('druxt enabled; anonymous can access Druxt resources.');
 
@@ -136,6 +141,11 @@ drush('config:set jsonapi.settings read_only %s', '0');
 // the storefront's order page and the operator console show it moving.
 drush('config:set -y commerce_order.commerce_order_type.default workflow %s', 'order_fulfillment');
 
+// The live layer's accounts, consumers, session message and purger. The
+// OAuth keys sit beside the web root, outside it.
+@mkdir(dirname(__DIR__) . '/keys', 0700, TRUE);
+drush('simple-oauth:generate-keys %s', dirname(__DIR__) . '/keys');
+drush('php:script %s', __DIR__ . '/live-setup.php');
 PASS('jsonapi.settings read_only disabled.');
 
 TASK('Enabling decoupled settings.');

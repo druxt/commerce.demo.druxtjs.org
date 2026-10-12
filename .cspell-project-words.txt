@@ -29,6 +29,7 @@ druxtjs
 endswith
 extensionless
 fatals
+fieldsets
 furf
 gdlib
 giget
@@ -82,9 +83,13 @@ phpstan
 phpunit
 projectname
 projecttype
+qrcode
+refetched
+refetches
 rels
 repository
 scule
+Segoe
 setuptools
 shivammathur
 someenv

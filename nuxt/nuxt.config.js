@@ -75,6 +75,9 @@ export default async () => ({
 
   // Plugins to run before rendering page: https://go.nuxtjs.dev/config-plugins
   plugins: [
+    // The live layer: demo sessions, order rooms and who is looking. Browser
+    // only, since it is all about this visitor's socket.
+    '~/plugins/live.client.js',
   ],
 
   // Auto import components: https://go.nuxtjs.dev/config-components
@@ -92,8 +95,25 @@ export default async () => ({
     // The demo layer: bar, notes, overlay. After druxt-site, so the Druxt
     // client exists when the plugin attaches its request log.
     '@druxt/demo',
+    // The live socket: open pages hear Drupal's purges, and the storefront's
+    // own channels (demo sessions, orders, who is looking) run on it. It
+    // attaches under `nuxt dev`; server/start.js attaches it in production.
+    '@druxt-contrib/sockets',
     localhostListenURL,
   ],
+
+  publicRuntimeConfig: {
+    // Where the live socket opens when not on the page's own host: on Lagoon
+    // the `app.` route, around the CDN, which drops WebSockets.
+    socketsOrigin: process.env.SOCKETS_ORIGIN || '',
+  },
+
+  sockets: {
+    path: '/_live',
+    server: process.env.NODE_ENV !== 'production',
+    handlers: '~/server/live/handlers.js',
+    secret: process.env.DRUXT_SOCKETS_SECRET,
+  },
 
   // The demo layer's links and notice. Styled here by UnoCSS, so the
   // module's own stylesheet stays out.

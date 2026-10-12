@@ -189,11 +189,44 @@ curl http://127.0.0.1:8888/jsonapi/products/physical
 In a Development Container (VS Code, DevPod), forwarded ports are
 accessible via your editor's **Ports** panel.
 
+## Operator console
+
+`operator/` is a second Nuxt app on the same Drupal, for whoever runs a
+demo. It signs in through its own Simple OAuth consumer, `commerce_operator`,
+with the password grant made by its server so the browser never holds the
+consumer's details. An operator starts a demo session and shares its link or
+QR code. Visitors who arrive through that link belong to the session, and
+the console's order board lists their orders as Drupal holds them, moving
+within a second of a checkout or a transition. A console sees only the
+sessions it holds.
+
+The board's transitions are JSON:API PATCHes of the order's state. Commerce's
+workflow decides, and the console shows Drupal's answer under the row, allowed
+or refused. The visitor's order page follows the same order on the live
+socket, so the two move together.
+
+Run it beside the storefront:
+
+```bash
+cd operator
+npm install
+BASE_URL=http://127.0.0.1:8888 STOREFRONT_ORIGIN=http://127.0.0.1:3000 PORT=3001 npm run dev
+```
+
+The local operator account is `operator`. Its password is `OPERATOR_PASSWORD`
+when the backend was provisioned, or `operator`. An account without the role
+signs in and is told it cannot operate the store.
+
+In production the console is the `ops` service on its own route, built by
+`.docker/Dockerfile.ops` and served by `operator/server/start.js`, which also
+proxies Drupal's paths on the console's origin.
+
 ## Services
 
 | Port   | Service                                                                               |
 | ------ | ------------------------------------------------------------------------------------- |
 | `3000` | Nuxt.js                                                                               |
+| `3001` | Operator console                                                                      |
 | `3003` | Storybook                                                                             |
 | `8888` | Drupal (local `.devtools` backend - DDEV serves at its own `*.ddev.site` URL instead) |
 

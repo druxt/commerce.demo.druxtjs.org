@@ -6,14 +6,38 @@
 // totals, tax and promotions server-side and a locally computed total would be
 // a guess.
 //
-// Calls go to `/jsonapi/...` on this origin, which Nuxt proxies to Drupal. That
-// matters for more than tidiness: the anonymous cart is tied to a session
-// cookie, and a same-origin request carries it without any CORS or credentials
-// handling. They go through the Druxt client's axios instance, so the demo
-// layer's request log sees them like every other request.
+// Calls go to `/jsonapi/...` on this origin, which Nuxt proxies to Drupal.
+// They go through the Druxt client's axios instance, so the demo layer's
+// request log sees them like every other request.
+//
+// The cart belongs to a token this browser makes once and keeps, sent as
+// commerce_api's `Commerce-Cart-Token` header. A cookie would do for the cart
+// alone, but the token is also what the browser shows the live hub to prove an
+// order is its own, and a cookie cannot be read for that.
 
 const API = '/jsonapi'
 const JSON_API = 'application/vnd.api+json'
+const TOKEN_KEY = 'commerceCartToken'
+
+const randomToken = () =>
+  (typeof crypto !== 'undefined' && crypto.randomUUID && crypto.randomUUID()) ||
+  `${Date.now().toString(36)}${Math.random().toString(36).slice(2)}${Math.random().toString(36).slice(2)}`
+
+/** The browser's cart token, made on first use. Empty on the server. */
+export const cartToken = () => {
+  if (typeof window === 'undefined') return ''
+  try {
+    let token = window.localStorage.getItem(TOKEN_KEY)
+    if (!token) {
+      token = randomToken()
+      window.localStorage.setItem(TOKEN_KEY, token)
+    }
+    return token
+  } catch (e) {
+    // No storage: the session cookie carries the cart instead.
+    return ''
+  }
+}
 
 // Every response is JSON:API, and its errors are a documented shape. Reading
 // them here means callers get a usable message rather than "request failed".
@@ -22,7 +46,12 @@ const request = async (axios, url, options = {}) => {
     url,
     method: options.method || 'GET',
     data: options.body,
-    headers: { Accept: JSON_API, 'Content-Type': JSON_API, ...(options.headers || {}) },
+    headers: {
+      Accept: JSON_API,
+      'Content-Type': JSON_API,
+      ...(cartToken() ? { 'Commerce-Cart-Token': cartToken() } : {}),
+      ...(options.headers || {}),
+    },
     withCredentials: true,
     validateStatus: () => true,
   })
@@ -50,6 +79,7 @@ export const getters = {
   subtotal: (state) => ((((state.order || {}).order_total || {}).subtotal) || {}).formatted || '',
   isEmpty: (state) => !state.lines.length,
   orderId: (state) => (state.order || {}).id,
+  token: () => cartToken(),
 }
 
 export const mutations = {

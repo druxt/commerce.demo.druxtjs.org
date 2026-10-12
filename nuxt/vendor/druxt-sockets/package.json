@@ -1,0 +1,41 @@
+{
+  "name": "@druxt-contrib/sockets",
+  "version": "0.0.0",
+  "description": "Live updates for Druxt over a WebSocket: Drupal purges reach open pages, presence, and channels a site adds its own handlers to.",
+  "keywords": [
+    "druxt",
+    "module",
+    "websocket",
+    "live"
+  ],
+  "license": "MIT",
+  "exports": {
+    ".": "./dist/index.js",
+    "./server": "./dist/server/index.js",
+    "./runtime/*.js": "./dist/runtime/*.js",
+    "./components/*": "./dist/components/*",
+    "./package.json": "./package.json"
+  },
+  "main": "dist/index.js",
+  "files": [
+    "dist",
+    "templates"
+  ],
+  "dependencies": {
+    "ws": "8.22.0"
+  },
+  "peerDependencies": {
+    "druxt": ">=0.21.0"
+  },
+  "packageManager": "npm@8.19.4",
+  "engines": {
+    "node": ">=16.20.1"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "jest-junit": {
+    "outputDirectory": "reports/junit",
+    "outputName": "junit.xml"
+  }
+}
