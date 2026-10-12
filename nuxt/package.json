@@ -18,6 +18,7 @@
     "bootstrap-vue": "^2.22.0",
     "core-js": "3.25.1",
     "dotenv": "^16.0.3",
+    "@druxt-contrib/node-preview": "file:vendor/druxt-node-preview",
     "druxt-site": "0.15.0-dev.20261011015353",
     "druxt-views": "0.23.0-dev.20261011015353",
     "nuxt": "2.15.8",

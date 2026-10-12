@@ -138,9 +138,8 @@ export default {
 
     slogan: ({ site }) => site.slogan || 'Drupal Commerce Kickstart, served by Nuxt via Druxt',
 
-    // The bar's one line: what is live, that names are the hub's, and that
-    // the daily reset wipes it all.
-    liveNotice: () => 'Live carts, orders and assist. Names are the hub\'s, not yours. The daily reset wipes it all.',
+    // The bar's one line.
+    liveNotice: () => 'Live carts, live orders, a concierge on call. Fresh every day.',
 
     cartCount: ({ $store }) => $store.getters['cart/count'],
 

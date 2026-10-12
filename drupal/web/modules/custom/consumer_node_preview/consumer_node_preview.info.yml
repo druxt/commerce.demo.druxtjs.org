@@ -1,0 +1,10 @@
+name: Consumer Node Preview
+type: module
+description: Lets each consumer register the frontend URLs that render node previews.
+package: Web services
+core_version_requirement: ^10.3 || ^11
+dependencies:
+  - consumers:consumers
+  - drupal:jsonapi
+  - drupal:node
+  - jsonapi_node_preview:jsonapi_node_preview

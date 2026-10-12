@@ -1,0 +1,26 @@
+{
+    "name": "drupal/consumer_node_preview",
+    "description": "Lets each consumer register the frontend URLs that render node previews.",
+    "type": "drupal-module",
+    "license": "GPL-2.0-or-later",
+    "authors": [
+        {
+            "name": "Stuart Clark (Deciphered)",
+            "homepage": "https://www.drupal.org/u/deciphered",
+            "role": "Maintainer"
+        }
+    ],
+    "homepage": "https://www.drupal.org/project/consumer_node_preview",
+    "support": {
+        "issues": "https://www.drupal.org/project/issues/consumer_node_preview",
+        "source": "https://git.drupalcode.org/project/consumer_node_preview"
+    },
+    "require": {
+        "php": ">=8.1",
+        "drupal/consumers": "^1.17",
+        "drupal/jsonapi_node_preview": "^1.0@beta"
+    },
+    "require-dev": {
+        "drupal/entity_reference_revisions": "^1.12"
+    }
+}

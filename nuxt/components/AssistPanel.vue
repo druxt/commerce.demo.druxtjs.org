@@ -39,7 +39,7 @@
                 class="min-h-11 px-3 bg-paper border rounded text-13px inline-flex items-center gap-1.5"
                 :class="chip === 'Talk to a person' ? (canTalk ? 'border-ink font-600' : 'border-line-2 border-dashed text-ink-2 cursor-not-allowed') : 'border-line-2 hover:border-ink'"
                 :disabled="chip === 'Talk to a person' && !canTalk"
-                :title="chip === 'Talk to a person' && !canTalk ? 'No operator session is open right now.' : null"
+                :title="chip === 'Talk to a person' && !canTalk ? 'Our people join during live demos.' : null"
                 @click="chip === 'Talk to a person' ? talk() : ask(chip)"
               >{{ chip }}</button>
             </div>
@@ -84,7 +84,7 @@
       </div>
 
       <p v-if="!canTalk" class="px-4.5 py-2.5 border-t border-line bg-paper text-12px text-ink-2 leading-relaxed shrink-0">
-        No operator session is open right now, so the concierge answers on its own. A demo opens one with its link.
+        Concierge on duty. Our people join during live demos.
       </p>
 
       <form class="border-t border-line p-3 flex gap-2 bg-paper shrink-0" @submit.prevent="send">

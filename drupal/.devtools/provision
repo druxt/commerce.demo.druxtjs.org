@@ -135,6 +135,8 @@ drush('pm:enable commerce_demo_live');
 // visitors use anonymously: sign-in, the API, the token and image styles.
 drush('pm:enable anonymous_redirect');
 drush('php:eval %s', '\\Drupal::configFactory()->getEditable("anonymous_redirect.settings")->set("enable_redirect", TRUE)->set("redirect_url_overrides", implode("\\n", ["/user/login", "/user/password", "/user/reset/*", "/jsonapi", "/jsonapi/*", "/oauth/*", "/router/*", "/session/token", "/sites/default/files/*"]))->save();');
+// Drupal's Preview button renders the unsaved node on the storefront.
+drush('pm:enable jsonapi_node_preview consumer_node_preview');
 drush('role:perm:add anonymous %s', 'access druxt resources');
 PASS('druxt enabled; anonymous can access Druxt resources.');
 
@@ -164,6 +166,9 @@ drush('php:script %s', __DIR__ . '/live-setup.php');
 // show units left and a sale moving them.
 drush('pm:enable commerce_stock commerce_stock_local commerce_stock_field');
 drush('php:script %s', __DIR__ . '/stock-setup.php');
+// The drop: one product held back and scheduled, so cron publishes it later.
+drush('pm:enable scheduler');
+drush('php:script %s', __DIR__ . '/drop-setup.php');
 PASS('jsonapi.settings read_only disabled.');
 
 TASK('Enabling decoupled settings.');
@@ -266,6 +271,12 @@ if ($edited === '' || $edited === '0') {
   FAIL('The landing page copy was not updated. Kickstart block ids may have changed, in which case the ids in this step need revisiting rather than skipping.');
 }
 PASS('Landing page copy set, Centarro credited, gallery section removed.');
+
+// The content section becomes a split, Centarro beside Druxt, and the
+// testimonial a quote band. See the script for the blocks it adds.
+TASK('Splitting the landing page between Centarro and Druxt.');
+drush('php:script %s', __DIR__ . '/brand-split.php');
+PASS('Landing page split set.');
 
 // Installing queued invalidations for content nobody has seen yet. The
 // post-rollout rebuild covers them, and sending them would wake the hub for
