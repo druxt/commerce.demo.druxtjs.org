@@ -54,6 +54,7 @@ export default {
       this.adding = true
       await this.$store.dispatch('cart/add', { type: this.variation.type, id: this.variation.id, quantity: 1 })
       this.adding = false
+      if (this.$store.state.cart.error) return
       this.added = true
       setTimeout(() => { this.added = false }, 1600)
     },
