@@ -80,13 +80,24 @@ export const mutations = {
 // the browser: on the server this module is shared by every request.
 let pending
 
-const fetchAll = async (dispatch) => {
-  const query = new DrupalJsonApiParams()
-    .addInclude(['variations', 'images', 'product_collections', 'product_brand'])
-    .addPageLimit(50)
+// Every page of a bundle, each with its own `included`. JSON:API gives at
+// most 50 resources a page.
+const bundlePages = async (dispatch, type) => {
+  const pages = []
+  for (let offset = 0; ; offset += 50) {
+    const query = new DrupalJsonApiParams()
+      .addInclude(['variations', 'images', 'product_collections', 'product_brand'])
+      .addPageLimit(50)
+      .addPageOffset(offset)
+    const page = await dispatch('druxt/getCollection', { type, query }, { root: true })
+    pages.push(page)
+    if (!(page.links || {}).next) return pages
+  }
+}
 
+const fetchAll = async (dispatch) => {
   const results = await Promise.all([
-    ...BUNDLES.map((type) => dispatch('druxt/getCollection', { type, query }, { root: true })),
+    ...BUNDLES.map((type) => bundlePages(dispatch, type)),
     // Collections are a tree; the parents name the top-level categories.
     dispatch('druxt/getCollection', {
       type: 'taxonomy_term--product_collections',
@@ -102,7 +113,7 @@ const fetchAll = async (dispatch) => {
     return attr(t, 'name')
   }
 
-  return results.flatMap((collection) => {
+  return results.flat().flatMap((collection) => {
     const included = collection.included || []
     const find = (ref) => ref && included.find((r) => r.id === ref.id && r.type === ref.type)
     return (collection.data || []).map((p) => toItem(p, find, rootOf))
