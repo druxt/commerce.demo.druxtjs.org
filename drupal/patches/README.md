@@ -42,6 +42,8 @@ place. This is that patch rerolled against 11.4.5.
   type. It overrides `doNormalize()` instead and converts there.
 - **`layout_builder.schema.yml`** gains `type` and `uuid` on the `inline_block`
   mapping, applied by hand because the surrounding block gained constraints.
+  They go after `block_serialized`, so its `nullable` and `Serialized` stay
+  with it, and neither key is required: blocks saved before the patch lack them.
 
 - **`SectionDataNormalizer::getSupportedTypes()` added, and it is not cosmetic.**
   The 2022 patch registers the normalizer as a child of

@@ -1,18 +1,20 @@
 --- a/core/modules/layout_builder/config/schema/layout_builder.schema.yml
 +++ b/core/modules/layout_builder/config/schema/layout_builder.schema.yml
-@@ -83,6 +83,12 @@
-     block_serialized:
-       type: string
-       label: 'Serialized block'
-+    type:
-+      type: string
-+      label: 'Block type'
-+    uuid:
-+      type: uuid
-+      label: 'Block UUID'
+@@ -86,6 +86,14 @@
        nullable: true
        constraints:
          Serialized: []
++    type:
++      type: string
++      label: 'Block type'
++      requiredKey: false
++    uuid:
++      type: uuid
++      label: 'Block UUID'
++      requiredKey: false
+   constraints:
+     FullyValidatable: ~
+     AtLeastOneOf:
 --- a/core/modules/layout_builder/src/Field/LayoutSectionItemList.php
 +++ b/core/modules/layout_builder/src/Field/LayoutSectionItemList.php
 @@ -46,8 +46,8 @@
