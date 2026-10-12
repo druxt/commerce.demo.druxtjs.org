@@ -76,6 +76,13 @@ export const mutations = {
   },
 }
 
+// The attached room's socket listeners, removed when the console leaves it.
+let listeners = []
+const stopListening = () => {
+  listeners.forEach((off) => off())
+  listeners = []
+}
+
 const bearer = (auth) =>
   String((auth.strategy.token && auth.strategy.token.get()) || '').replace(/^Bearer\s+/i, '')
 
@@ -123,22 +130,26 @@ export const actions = {
     const sockets = this.$sockets
     const channel = `orders:${code}`
     const claim = () => sockets.send('claim', channel, { token: bearer(this.$auth) })
-    const on = (type, fn) => sockets.on(type, (m) => m.channel === channel && fn(m.payload))
+    stopListening()
+    const on = (type, fn) =>
+      listeners.push(sockets.on(type, (m) => m.channel === channel && fn(m.payload)))
     on('orders', (p) => commit('orders', p.orders))
     on('counts', (p) => commit('visitors', p.visitors))
     on('order:placed', (p) => commit('placed', p))
     on('order:state', (p) => commit('moved', p))
     on('ended', () => {
+      stopListening()
       commit('ended')
       stored.set('')
     })
     on('error', (p) => {
       if (/ended/.test(p.message)) {
+        stopListening()
         commit('ended')
         stored.set('')
       }
     })
-    sockets.on('hello', claim)
+    listeners.push(sockets.on('hello', claim))
     sockets.join(channel)
     claim()
   },
@@ -146,6 +157,7 @@ export const actions = {
   // Leave the room without ending the session: a sign-out, or a reload that
   // the next sign-in re-attaches.
   detach({ state, commit }) {
+    stopListening()
     if (state.attached) this.$sockets.leave(`orders:${state.attached}`)
     commit('attached', '')
   },
@@ -154,6 +166,7 @@ export const actions = {
     if (!state.code) return
     this.$sockets.send('end', `orders:${state.code}`, {})
     this.$sockets.leave(`orders:${state.code}`)
+    stopListening()
     commit('ended')
     stored.set('')
   },
