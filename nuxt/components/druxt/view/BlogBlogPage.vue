@@ -56,6 +56,7 @@
 import { DruxtViewsViewMixin } from 'druxt-views'
 import { DrupalJsonApiParams } from 'drupal-jsonapi-params'
 import { postDate } from '~/lib/dates'
+import { seoHead } from '~/utils/seo'
 
 export default {
   name: 'DruxtViewBlogBlogPage',
@@ -64,7 +65,14 @@ export default {
 
   data: () => ({ cards: [] }),
 
-  head: () => ({ title: 'Blog' }),
+  head() {
+    return seoHead({
+      origin: this.$config.siteOrigin,
+      path: this.$route.path,
+      title: 'Blog',
+      description: 'Gift ideas and reading lists from the Commerce Kickstart blog, a Drupal View rendered by Nuxt.',
+    })
+  },
 
   async fetch() {
     const ids = (this.results || []).map((r) => r.id).filter(Boolean)
