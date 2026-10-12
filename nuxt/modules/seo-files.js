@@ -5,11 +5,21 @@ import axios from 'axios'
 /**
  * What search engines, share cards and assistants read. The router's route
  * renders components/DruxtPage.vue, which gives every Drupal path the
- * storefront's head. On `generate:done`, robots.txt, sitemap.xml, llms.txt
- * and llms-full.txt go into the export, built from the routes the run wrote
- * and from Drupal's content.
+ * storefront's head. Every product and article Drupal holds is a route to
+ * generate, so a post no page links to still gets its page. On
+ * `generate:done`, robots.txt, sitemap.xml, llms.txt and llms-full.txt go
+ * into the export, built from the routes the run wrote and from Drupal's
+ * content.
  */
 export default function () {
+  const get = async (url) => (await axios.get(url, { headers: { Accept: 'application/vnd.api+json' } })).data
+  let content = null
+  const readAll = () => {
+    const { readContent } = require('../lib/seo-content')
+    content = content || readContent(this.options.druxt.baseUrl, get)
+    return content
+  }
+
   // Registered after druxt-site, whose router module adds the route.
   this.extendRoutes((routes) => {
     for (const route of routes) {
@@ -19,17 +29,22 @@ export default function () {
     }
   })
 
+  this.nuxt.hook('generate:extendRoutes', async (routes) => {
+    const known = new Set(routes.map(({ route }) => route))
+    for (const { path: route } of await readAll()) {
+      if (!known.has(route)) routes.push({ route, payload: null })
+    }
+  })
+
   this.nuxt.hook('generate:done', async (generator) => {
     const { siteOrigin } = require('../lib/site')
-    const { readContent } = require('../lib/seo-content')
     const { buildLlmsTxt } = require('../lib/llms-txt')
     const { buildLlmsFullTxt } = require('../lib/llms-full-txt')
     const { buildSitemap, buildRobots } = require('../lib/sitemap')
 
     const origin = siteOrigin()
     const dir = generator.nuxt.options.generate.dir
-    const get = async (url) => (await axios.get(url, { headers: { Accept: 'application/vnd.api+json' } })).data
-    const docs = await readContent(this.options.druxt.baseUrl, get)
+    const docs = await readAll()
     const routes = [...(generator.generatedRoutes || [])]
 
     const files = {
@@ -41,6 +56,8 @@ export default function () {
     for (const [name, body] of Object.entries(files)) {
       await fs.promises.writeFile(path.join(dir, name), body)
     }
+    // The next run, after a reset or an edit, reads Drupal afresh.
+    content = null
     console.info(
       `seo-files: wrote ${Object.keys(files).join(', ')} for ${routes.length} routes and ${docs.length} documents at ${origin}`
     )
