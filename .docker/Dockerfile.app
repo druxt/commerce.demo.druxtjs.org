@@ -2,12 +2,15 @@
 # package-lock.json and declares npm in packageManager.
 
 # Only what the install reads, so a code change reuses the installed
-# dependencies. patch-package runs from postinstall, so the patches come too.
+# dependencies. patch-package runs from postinstall, so the patches come too,
+# and the vendored packages the file: dependencies point at.
 FROM uselagoon/node-20-builder:26.8.0 AS manifests
 COPY ./nuxt/ /nuxt/
 RUN mkdir /manifests && cd /nuxt \
   && cp package.json package-lock.json /manifests/ \
-  && if [ -d patches ]; then cp -R patches /manifests/patches; fi
+  && for dir in patches vendor; do \
+    if [ -d "$dir" ]; then cp -R "$dir" "/manifests/$dir"; fi; \
+  done
 
 FROM uselagoon/node-20-builder:26.8.0 AS deps
 COPY --from=manifests /manifests /app/
