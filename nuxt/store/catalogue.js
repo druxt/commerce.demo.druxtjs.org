@@ -30,6 +30,9 @@ export const toItem = (product, find, rootOf) => {
     sku: attr(v, 'sku'),
     price: (attr(v, 'price') || {}).formatted || '',
     amount: Number((attr(v, 'price') || {}).number || 0),
+    currency: (attr(v, 'price') || {}).currency_code || '',
+    // Commerce's stock level, for the product page's structured data.
+    stock: typeof attr(v, 'stock') === 'number' ? attr(v, 'stock') : null,
   }))
   const images = refs(product, 'images').map(find).filter(Boolean)
     .map((f) => (attr(f, 'uri') || {}).url).filter(Boolean)

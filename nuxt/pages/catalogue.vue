@@ -79,6 +79,7 @@
 <script>
 import { mapState } from 'vuex'
 import { PRICE_BANDS } from '~/store/catalogue'
+import { seoHead } from '~/utils/seo'
 
 // Facet state lives in the URL, so a filtered catalogue can be shared and the
 // back button undoes a filter. Changing it is a client-side query change: the
@@ -93,7 +94,15 @@ export default {
     await this.$store.dispatch('catalogue/load')
   },
 
-  head: () => ({ title: 'Catalogue' }),
+  head() {
+    return seoHead({
+      origin: this.$config.siteOrigin,
+      // A filtered catalogue is the same page: its canonical drops the query.
+      path: this.$route.path,
+      title: 'Catalogue',
+      description: 'Every product in the store comes from one JSON:API request and is filtered in the browser by Vue.',
+    })
+  },
 
   computed: {
     ...mapState('catalogue', ['items']),

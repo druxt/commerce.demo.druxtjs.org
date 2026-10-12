@@ -61,6 +61,8 @@
 </template>
 
 <script>
+import { NOINDEX } from '~/utils/seo'
+
 // The order's workflow in plain words. Commerce's fulfilment workflow:
 // draft, fulfillment, completed, with canceled aside.
 const STEPS = [
@@ -114,7 +116,7 @@ export default {
   },
 
   head() {
-    return { title: this.order ? `Order #${this.order.order_number}` : 'Order' }
+    return { title: this.order ? `Order #${this.order.order_number}` : 'Order', meta: [NOINDEX] }
   },
 
   computed: {
