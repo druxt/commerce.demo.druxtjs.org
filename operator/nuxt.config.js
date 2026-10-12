@@ -4,6 +4,33 @@
 // the console needs no CORS of its own.
 const storefront = (process.env.STOREFRONT_ORIGIN || 'http://127.0.0.1:18962').replace(/\/+$/, '')
 
+// The live socket opens on the storefront itself, not through this origin:
+// Lagoon's edge answered a proxied upgrade twice on one connection. In
+// production that is the storefront's `app.` route, beside the CDN, as the
+// storefront's own pages use; elsewhere STOREFRONT_ORIGIN.
+const appRoute = String(process.env.LAGOON_ROUTES || '')
+  .split(',')
+  .map((route) => route.trim())
+  .find((route) => /^https?:\/\/app\./.test(route))
+const socketsOrigin = (
+  process.env.LIVE_ORIGIN ||
+  (process.env.LAGOON_ENVIRONMENT_TYPE === 'production' && appRoute) ||
+  storefront
+).replace(/\/+$/, '')
+const drupal = process.env.BASE_URL || 'http://127.0.0.1:18961'
+
+// Drupal, with no cookies either way: the console speaks with a bearer
+// token, and a session cookie beside it would make Drupal ask for a CSRF
+// token on every write.
+const drupalProxy = {
+  target: drupal,
+  changeOrigin: true,
+  onProxyReq: (proxyReq) => proxyReq.removeHeader('cookie'),
+  onProxyRes: (proxyRes) => {
+    delete proxyRes.headers['set-cookie']
+  },
+}
+
 export default {
   ssr: false,
   target: 'server',
@@ -90,7 +117,7 @@ export default {
   publicRuntimeConfig: {
     // Where visitors go, and where the hub answers. Session links point here.
     storefront,
-    socketsOrigin: process.env.SOCKETS_ORIGIN || storefront,
+    socketsOrigin,
   },
 
   sockets: {
