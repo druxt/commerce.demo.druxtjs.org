@@ -37,6 +37,48 @@ test('the hub client fetches one token and sends it as a bearer', async () => {
   assert.doesNotMatch(JSON.stringify(calls.map((c) => c.url)), /client_secret/)
 })
 
+test('a token Drupal no longer knows is replaced once, after a reset', async () => {
+  let issued = 0
+  const seen = []
+  const fetch = async (url, init = {}) => {
+    if (String(url).endsWith('/oauth/token')) {
+      issued += 1
+      return json(200, { access_token: `t${issued}`, expires_in: 3600 })
+    }
+    seen.push(init.headers.Authorization)
+    // The first token belongs to the database before the reset.
+    return init.headers.Authorization === 'Bearer t1' ? json(401, {}) : json(200, { data: [] })
+  }
+  const hub = createHubClient({
+    drupalUrl: 'http://drupal',
+    clientId: 'c',
+    clientSecret: 's',
+    fetch,
+  })
+  await hub.get('/jsonapi/x')
+  assert.equal(issued, 2)
+  assert.deepEqual(seen, ['Bearer t1', 'Bearer t2'])
+})
+
+test('a 401 with a fresh token is still an error, not a loop', async () => {
+  let issued = 0
+  const fetch = async (url) => {
+    if (String(url).endsWith('/oauth/token')) {
+      issued += 1
+      return json(200, { access_token: `t${issued}`, expires_in: 3600 })
+    }
+    return json(401, { errors: [{ detail: 'Unauthorized' }] })
+  }
+  const hub = createHubClient({
+    drupalUrl: 'http://drupal',
+    clientId: 'c',
+    clientSecret: 's',
+    fetch,
+  })
+  await assert.rejects(() => hub.get('/jsonapi/x'), /Unauthorized/)
+  assert.equal(issued, 2)
+})
+
 test('a Drupal error becomes the first error detail', async () => {
   const fetch = async (url) =>
     String(url).endsWith('/oauth/token')

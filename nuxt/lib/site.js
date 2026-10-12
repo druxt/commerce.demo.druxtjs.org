@@ -14,4 +14,25 @@ const previewRoute = (env = process.env) =>
         .map((r) => r.trim())
         .find((r) => /^https?:\/\/app\./.test(r)) || ''
 
-module.exports = { previewRoute }
+/**
+ * Where browsers open the live socket. Production's domain sits behind a CDN
+ * that does not pass WebSockets, so production uses its own generated `app.`
+ * route, as the Umami demo does; anywhere else the page's own host serves it.
+ * LIVE_ORIGIN names one outright.
+ *
+ * @param {object} [env] - The environment.
+ * @returns {string} The origin, or an empty string for the page's own.
+ */
+const liveOrigin = (env = process.env) =>
+  String(
+    env.LIVE_ORIGIN ||
+      (env.LAGOON_ENVIRONMENT_TYPE === 'production'
+        ? String(env.LAGOON_ROUTES || '')
+            .split(',')
+            .map((r) => r.trim())
+            .find((r) => /^https?:\/\/app\./.test(r))
+        : '') ||
+      ''
+  ).replace(/\/+$/, '')
+
+module.exports = { previewRoute, liveOrigin }

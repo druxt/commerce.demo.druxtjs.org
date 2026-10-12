@@ -2,9 +2,10 @@ docker-compose-yaml: 'docker-compose.yml'
 
 project: druxtjs-org-demo-commerce
 
-# One environment runs the whole demo: Drupal and the storefront that
-# generates from it. Previews build from feature/, fix/ and release/
-# branches on Lagoon's own routes.
+# One environment runs the whole demo: Drupal, the storefront that generates
+# from it and the operator console, as on the Umami demo. Only `main` has
+# routes of its own; a review branch the project lets build runs on Lagoon's
+# generated ones.
 environments:
   main:
     routes:
