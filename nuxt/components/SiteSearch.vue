@@ -49,6 +49,12 @@
 
       <p v-if="query && !matches.length" class="px-3 py-4 text-13px text-ink-2">
         No product matches that.
+        <button
+          type="button"
+          class="block mt-2 min-h-11 text-13px font-600 text-accent"
+          @mousedown.prevent
+          @click="askConcierge"
+        >Ask the concierge →</button>
       </p>
 
       <button
@@ -102,6 +108,14 @@ export default {
   },
 
   methods: {
+    // The query becomes the concierge's first question.
+    askConcierge() {
+      const seed = this.query.trim()
+      this.open = false
+      this.query = ''
+      this.$store.dispatch('assist/openPanel', { seed })
+    },
+
     show() {
       this.open = true
       this.$store.dispatch('catalogue/load')

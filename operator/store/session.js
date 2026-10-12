@@ -55,14 +55,21 @@ export const mutations = {
       state.orders = [{ ...order, isNew: true, placedAt: Date.now() }, ...state.orders]
     }
   },
-  moved(state, { uuid, state: next, number }) {
+  moved(state, { uuid, state: next, number, shipment, shipmentId }) {
     const known = state.orders.find((o) => o.uuid === uuid)
-    if (known) state.orders = state.orders.map((o) => (o.uuid === uuid ? { ...o, state: next } : o))
+    const extra = shipment !== undefined ? { shipment, shipmentId } : {}
+    if (known)
+      state.orders = state.orders.map((o) =>
+        o.uuid === uuid ? { ...o, state: next, ...extra } : o
+      )
     else
       state.orders = [
-        { uuid, number, state: next, isNew: true, placedAt: Date.now() },
+        { uuid, number, state: next, isNew: true, placedAt: Date.now(), ...extra },
         ...state.orders,
       ]
+  },
+  shipped(state, { uuid, shipment }) {
+    state.orders = state.orders.map((o) => (o.uuid === uuid ? { ...o, shipment } : o))
   },
   settle(state, uuid) {
     state.orders = state.orders.map((o) => (o.uuid === uuid ? { ...o, isNew: false } : o))

@@ -167,3 +167,47 @@ test('a console ends its session, and the placed payload carries the total', asy
   assert.equal(s.session.registry.get(code), undefined)
   assert.ok(hub.sent.some((m) => m.to === 'op' && m.type === 'ended'))
 })
+
+test('a shipment purge reaches the order room with the shipment state', async () => {
+  const orderDoc = (shipment) => ({
+    data: [
+      {
+        id: UUID,
+        attributes: { order_number: '12', state: 'fulfillment', field_demo_session: '' },
+        relationships: { shipments: { data: [{ type: 'shipment--default', id: 'ship-1' }] } },
+      },
+    ],
+    included: [{ type: 'shipment--default', id: 'ship-1', attributes: { state: shipment } }],
+  })
+  let shipped = 'ready'
+  const get = async (path) => {
+    if (path.startsWith('/jsonapi/shipments/default?'))
+      return {
+        data: [
+          {
+            id: 'ship-1',
+            relationships: { order_id: { data: { type: 'order--default', id: UUID } } },
+          },
+        ],
+      }
+    if (path.startsWith(`/jsonapi/orders/default/${UUID}`)) {
+      const doc = orderDoc(shipped)
+      return { data: doc.data[0], included: doc.included }
+    }
+    return orderDoc(shipped)
+  }
+  const { hub, order, onTags } = setup(get)
+  const owner = client('v')
+  await hub.enter(order, `order:${UUID}`, owner)
+  await order.message(hub, `order:${UUID}`, owner, 'claim', { token: 'cart-1' })
+  assert.equal(
+    hub.sent.find((m) => m.to === 'v' && m.type === 'order:state').payload.shipment,
+    'ready'
+  )
+  hub.sent.length = 0
+  shipped = 'shipped'
+  await onTags(['commerce_shipment:1'])
+  const moved = hub.sent.find((m) => m.to === 'v' && m.type === 'order:state')
+  assert.equal(moved.payload.shipment, 'shipped')
+  assert.equal(moved.payload.state, 'fulfillment')
+})

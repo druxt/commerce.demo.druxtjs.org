@@ -19,6 +19,8 @@ const { spawn } = require('child_process')
 const { attachSockets, purgeHandler } = require('@druxt-contrib/sockets/server')
 const { previewRoute } = require('../lib/site')
 const liveHandlers = require('./live/handlers')
+const { nameFor } = require('./live/names')
+const { createAssistRoute } = require('./assist')
 const { createDrupalProxy, isDrupalPath, waitForDrupal } = require('./drupal')
 const { createStartingHandler } = require('./starting')
 
@@ -271,12 +273,15 @@ const drupal = createDrupalProxy(drupalUrl)
 // The live socket on /_live, with the storefront's own channels, and the
 // endpoint Drupal's purger posts invalidated tags to. No secret, no endpoint.
 const live = liveHandlers({ drupalUrl, log })
+// The concierge: the model key stays here, the picks are checked here.
+const assist = createAssistRoute({ drupalUrl })
 const liveSecret = env.DRUXT_SOCKETS_SECRET || ''
 let sockets = null
 let purge = null
 
 const server = http.createServer((req, res) => {
   if (purge && req.url.split('?')[0] === '/_live/purge') return purge(req, res)
+  if (req.url.split('?')[0] === '/_assist') return assist(req, res)
   if (isDrupalPath(req.url)) return drupal(req, res)
   if (req.url === '/_regenerate') return regenerate(req, res)
   // Once a build serves, the starting page's status poll must fail, so the
@@ -295,7 +300,7 @@ const main = async () => {
       fs.rmSync(path.join(rootDir, name), { recursive: true, force: true })
     }
   }
-  sockets = attachSockets(server, { path: '/_live', drupalUrl, handlers: live, log })
+  sockets = attachSockets(server, { path: '/_live', drupalUrl, handlers: live, log, name: nameFor })
   live.watch(sockets)
   if (liveSecret) purge = purgeHandler(sockets, { secret: liveSecret })
   else log('live: DRUXT_SOCKETS_SECRET is not set, so Drupal cannot tell the hub what changed')

@@ -1,4 +1,7 @@
 require('dotenv').config({ path: '../.env' })
+// Visitors' names on the live socket, drawn from the shop rather than the
+// sockets package's own pool.
+const { nameFor } = require('./server/live/names.js')
 const { liveOrigin } = require('./lib/site')
 
 const baseUrl = process.env.BASE_URL || ''
@@ -87,6 +90,10 @@ export default async () => ({
     '~/plugins/live.client.js',
   ],
 
+  // The concierge route under `nuxt dev`; server/start.js serves it on the
+  // generated site.
+  serverMiddleware: [{ path: '/_assist', handler: '~/server/assist/middleware.js' }],
+
   // Auto import components: https://go.nuxtjs.dev/config-components
   components: true,
 
@@ -114,6 +121,8 @@ export default async () => ({
     server: process.env.NODE_ENV !== 'production',
     handlers: '~/server/live/handlers.js',
     secret: process.env.DRUXT_SOCKETS_SECRET,
+    // Visitors get shop names, not the package's food ones.
+    name: nameFor,
   },
 
   // The demo layer's links and notice. Styled here by UnoCSS, so the

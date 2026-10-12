@@ -21,6 +21,7 @@
     "druxt-site": "0.15.0-dev.20261011015353",
     "druxt-views": "0.23.0-dev.20261011015353",
     "nuxt": "2.15.8",
+    "qrcode": "^1.5.4",
     "vue-server-renderer": "2.7.14",
     "vue-template-compiler": "2.7.14",
     "ws": "8.22.0"

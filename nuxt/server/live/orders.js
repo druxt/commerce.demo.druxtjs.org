@@ -16,10 +16,31 @@ const { isCode } = require('./code')
 const { UUID } = require('./drupal')
 
 const ORDER_TAG = /^commerce_order:(\d+)$/
+const SHIPMENT_TAG = /^commerce_shipment:(\d+)$/
 // commerce_api hides Drupal's internal ids; commerce_demo_live gives the
-// order's back as `order_id`, which is what the purged tag names.
-const ORDER_PATH = (id) =>
-  `/jsonapi/orders/default?filter[order_id]=${encodeURIComponent(id)}&fields[order--default]=order_number,state,field_demo_session`
+// order's and the shipment's back, which is what the purged tags name. The
+// order comes with its shipments, so the state of the first is the order's
+// shipping state.
+const ORDER_FIELDS =
+  'include=shipments&fields[order--default]=order_number,state,field_demo_session,shipments&fields[shipment--default]=state'
+const ORDER_PATH = (id) => `/jsonapi/orders/default?filter[order_id]=${encodeURIComponent(id)}&${ORDER_FIELDS}`
+const ORDER_BY_UUID = (uuid) => `/jsonapi/orders/default/${uuid}?${ORDER_FIELDS}`
+const SHIPMENT_PATH = (id) =>
+  `/jsonapi/shipments/default?filter[shipment_id]=${encodeURIComponent(id)}&fields[shipment--default]=order_id`
+
+/** The order's state and its first shipment's, from an order document. */
+const stateOf = (found, body = {}) => {
+  const attributes = found.attributes || {}
+  const ref = ((((found.relationships || {}).shipments || {}).data) || [])[0]
+  const shipment = ref && (body.included || []).find((r) => r.id === ref.id)
+  return {
+    uuid: found.id,
+    number: attributes.order_number,
+    state: attributes.state,
+    shipment: shipment ? (shipment.attributes || {}).state : null,
+    shipmentId: ref ? ref.id : null,
+  }
+}
 
 const ordersHandler = ({ registry, drupal, drupalUrl, accountOf, orderForToken, log = () => {} } = {}) => {
   // Order rooms: uuid to the client ids that proved the cart token.
@@ -90,7 +111,15 @@ const ordersHandler = ({ registry, drupal, drupalUrl, accountOf, orderForToken, 
       if (!found) return fail(hub, client, channel, 'That order is not yours to follow.')
       if (!owners.has(uuid)) owners.set(uuid, new Set())
       owners.get(uuid).add(client.id)
-      hub.send(client, 'order:state', channel, { uuid, number: found.number, state: found.state })
+      // The shipment's state comes from the hub's own read of the order.
+      let shipped = {}
+      try {
+        const body = await drupal.get(ORDER_BY_UUID(uuid))
+        if (body.data) shipped = stateOf(body.data, body)
+      } catch (error) {
+        log(`order ${uuid}: shipments not read: ${error.message}`)
+      }
+      hub.send(client, 'order:state', channel, { uuid, number: found.number, state: found.state, shipment: shipped.shipment || null })
     },
   }
 
@@ -100,10 +129,20 @@ const ordersHandler = ({ registry, drupal, drupalUrl, accountOf, orderForToken, 
    *
    * @param {string[]} tags - The purged cache tags.
    */
+  const tell = (found, body) => {
+    const payload = stateOf(found, body)
+    tellRoom(hubApi, found.id, 'order:state', payload)
+    const code = (found.attributes || {}).field_demo_session || registry.sessionOf(found.id)
+    if (code) {
+      registry.remember(found.id, { number: payload.number, state: payload.state, shipment: payload.shipment, shipmentId: payload.shipmentId }, code)
+      registry.tellConsoles(code, 'order:state', payload)
+    }
+  }
+
   const onTags = async (tags = []) => {
-    const ids = tags.map((t) => (ORDER_TAG.exec(t) || [])[1]).filter(Boolean)
-    if (!ids.length || !hubApi) return
-    for (const id of [...new Set(ids)].slice(0, 20)) {
+    if (!hubApi) return
+    const ids = [...new Set(tags.map((t) => (ORDER_TAG.exec(t) || [])[1]).filter(Boolean))].slice(0, 20)
+    for (const id of ids) {
       let body
       try {
         body = await drupal.get(ORDER_PATH(id))
@@ -111,15 +150,19 @@ const ordersHandler = ({ registry, drupal, drupalUrl, accountOf, orderForToken, 
         log(`order ${id}: not read after purge: ${error.message}`)
         continue
       }
-      for (const found of body.data || []) {
-        const attributes = found.attributes || {}
-        const payload = { uuid: found.id, number: attributes.order_number, state: attributes.state }
-        tellRoom(hubApi, found.id, 'order:state', payload)
-        const code = attributes.field_demo_session || registry.sessionOf(found.id)
-        if (code) {
-          registry.remember(found.id, { number: payload.number, state: payload.state }, code)
-          registry.tellConsoles(code, 'order:state', payload)
-        }
+      for (const found of body.data || []) tell(found, body)
+    }
+    // A shipment moved on its own: its order's room and consoles hear it.
+    const shipments = [...new Set(tags.map((t) => (SHIPMENT_TAG.exec(t) || [])[1]).filter(Boolean))].slice(0, 20)
+    for (const id of shipments) {
+      try {
+        const found = await drupal.get(SHIPMENT_PATH(id))
+        const orderRef = ((((found.data || [])[0] || {}).relationships || {}).order_id || {}).data
+        if (!orderRef) continue
+        const body = await drupal.get(ORDER_BY_UUID(orderRef.id))
+        if (body.data) tell(body.data, body)
+      } catch (error) {
+        log(`shipment ${id}: not read after purge: ${error.message}`)
       }
     }
   }
