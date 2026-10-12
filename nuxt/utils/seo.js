@@ -3,6 +3,7 @@ import {
   SITE_TITLE,
   SITE_DESCRIPTION,
   SITE_CARD,
+  SITE_LOGO,
   TWITTER_HANDLE,
   canonicalUrl,
   absolute,
@@ -41,7 +42,7 @@ const organizationGraph = (origin) => ({
   '@type': 'Organization',
   name: SITE_NAME,
   url: origin + '/',
-  logo: origin + SITE_CARD,
+  logo: origin + SITE_LOGO,
 })
 
 const websiteGraph = (origin) => ({
