@@ -13,7 +13,31 @@ const localhostListenURL = function () {
   })
 }
 
-export default {
+// The words the shop URL uses for collection and brand terms, read once at
+// config time: a demo's terms do not change between builds. A parent
+// collection maps to itself and its children joined with `+`, which the
+// view's argument reads as OR.
+const slug = (name) =>
+  name.toLowerCase().replace(/&/g, 'and').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+const termAliases = async (vocabulary, tree = false) => {
+  try {
+    const url = `${baseUrl}/jsonapi/taxonomy_term/${vocabulary}?fields[taxonomy_term--${vocabulary}]=name,drupal_internal__tid,parent&page[limit]=50`
+    const res = await fetch(url, { headers: { Accept: 'application/vnd.api+json' } })
+    const { data } = await res.json()
+    const tid = (t) => String(t.attributes.drupal_internal__tid)
+    const parentOf = (t) => ((t.relationships.parent || {}).data || [])[0] || {}
+    return Object.fromEntries(
+      data.map((t) => {
+        const children = tree ? data.filter((c) => parentOf(c).id === t.id).map(tid) : []
+        return [slug(t.attributes.name), [tid(t), ...children].join('+')]
+      })
+    )
+  } catch (e) {
+    return {}
+  }
+}
+
+export default async () => ({
   // Generated, then served by server/start.js with Drupal's paths proxied on
   // the same origin. The cart, checkout and catalogue filters run in the
   // browser against JSON:API, so a static build loses nothing.
@@ -54,6 +78,14 @@ export default {
     ]
   },
 
+  router: {
+    // Drupal's product listing lives at /products, and Kickstart's own hero
+    // links there. The storefront has one catalogue, so both names reach it.
+    extendRoutes(routes) {
+      routes.unshift({ path: '/products', redirect: '/catalogue' })
+    },
+  },
+
   // Global CSS: https://go.nuxtjs.dev/config-css
   css: [
     // Belgrade-derived structural utilities for the Bootstrap class names
@@ -81,8 +113,20 @@ export default {
   // Modules: https://go.nuxtjs.dev/config-modules
   modules: [
     'druxt-site',
+    // The demo layer: bar, notes, overlay. After druxt-site, so the Druxt
+    // client exists when the plugin attaches its request log.
+    '@druxt/demo',
     localhostListenURL,
   ],
+
+  // The demo layer's links and notice. Styled here by UnoCSS, so the
+  // module's own stylesheet stays out.
+  druxtDemo: {
+    source: 'https://github.com/druxt/commerce.demo.druxtjs.org',
+    docs: 'https://druxtjs.org',
+    notice: 'A demo. Carts and orders are real in Drupal, no money moves, and the daily reset wipes them.',
+    css: false,
+  },
 
   // DruxtJS: https://druxtjs.org
   druxt: {
@@ -95,6 +139,29 @@ export default {
     // The site's actual theme. Asking for one the site does not use returns an
     // empty region set, which renders no header, navigation or footer at all.
     site: { theme: 'belgrade' },
+    // The shop: a Views page whose URL is its state (the views pages
+    // prototype vendored under vendor/druxt-views). The collection is the
+    // view's contextual argument in the path, the brand an exposed filter in
+    // the query, and sort and page follow.
+    views: {
+      pages: {
+        // Filters in the path, not the query: /shop/women/centarro+centorium.
+        // An empty collection before a brand is written as `all`.
+        '/shop/:collection?/:brand?': {
+          viewId: 'products',
+          displayId: 'page_1',
+          arguments: ['collection'],
+          filters: { brand: { param: 'brand', multiple: true } },
+          page: 'page',
+          sort: 'sort',
+          history: 'replace',
+          aliases: {
+            collection: await termAliases('product_collections', true),
+            brand: await termAliases('product_brands'),
+          },
+        },
+      },
+    },
   },
 
   // Build Configuration: https://go.nuxtjs.dev/config-build
@@ -111,4 +178,4 @@ export default {
       },
     },
   }
-}
+})

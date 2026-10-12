@@ -9,22 +9,26 @@
 // Calls go to `/jsonapi/...` on this origin, which Nuxt proxies to Drupal. That
 // matters for more than tidiness: the anonymous cart is tied to a session
 // cookie, and a same-origin request carries it without any CORS or credentials
-// handling.
+// handling. They go through the Druxt client's axios instance, so the demo
+// layer's request log sees them like every other request.
 
 const API = '/jsonapi'
 const JSON_API = 'application/vnd.api+json'
 
 // Every response is JSON:API, and its errors are a documented shape. Reading
 // them here means callers get a usable message rather than "request failed".
-const request = async (url, options = {}) => {
-  const res = await fetch(url, {
-    credentials: 'same-origin',
-    ...options,
+const request = async (axios, url, options = {}) => {
+  const res = await axios.request({
+    url,
+    method: options.method || 'GET',
+    data: options.body,
     headers: { Accept: JSON_API, 'Content-Type': JSON_API, ...(options.headers || {}) },
+    withCredentials: true,
+    validateStatus: () => true,
   })
-  const body = res.status === 204 ? {} : await res.json().catch(() => ({}))
+  const body = res.data && typeof res.data === 'object' ? res.data : {}
   if (body.errors) throw new Error(body.errors[0].detail || body.errors[0].title || 'Request failed')
-  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`)
+  if (res.status >= 400) throw new Error(`${res.status} ${res.statusText}`)
   return body
 }
 
@@ -61,7 +65,7 @@ export const actions = {
   // cart per store; this demo has one store, so the first is the cart.
   async load({ commit }) {
     try {
-      const body = await request(`${API}/carts?include=order_items`)
+      const body = await request(this.$druxt.axios, `${API}/carts?include=order_items`)
       const order = (body.data || [])[0]
       if (!order) return commit('setCart', { order: undefined, lines: [] })
 
@@ -91,7 +95,7 @@ export const actions = {
     commit('setBusy', true)
     commit('setError', undefined)
     try {
-      await request(`${API}/cart/add`, {
+      await request(this.$druxt.axios, `${API}/cart/add`, {
         method: 'POST',
         body: JSON.stringify({ data: [{ type, id, meta: { quantity } }] }),
       })
@@ -106,7 +110,7 @@ export const actions = {
   async remove({ state, commit, dispatch }, line) {
     commit('setBusy', true)
     try {
-      await request(`${API}/carts/${state.order.id}/items`, {
+      await request(this.$druxt.axios, `${API}/carts/${state.order.id}/items`, {
         method: 'DELETE',
         body: JSON.stringify({ data: [{ type: line.type, id: line.id }] }),
       })
@@ -118,11 +122,36 @@ export const actions = {
     }
   },
 
+  // Checkout writes go to commerce_api's checkout resource on the cart's
+  // order: contact and billing first, then the payment instrument, then the
+  // payment itself, which places the order. Each returns Drupal's document.
+  async checkout({ state }, attributes) {
+    return request(this.$druxt.axios, `${API}/checkout/${state.order.id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ data: { type: 'order--default', id: state.order.id, attributes } }),
+    })
+  },
+
+  async pay({ state, dispatch }) {
+    const body = await request(this.$druxt.axios, `${API}/checkout/${state.order.id}/payment`, {
+      method: 'POST',
+      body: JSON.stringify({ data: { type: 'payment--payment-default', attributes: { capture: true } } }),
+    })
+    // The order is no longer a cart; the next read gives an empty one.
+    await dispatch('load')
+    return body
+  },
+
+  // A placed order, by id, readable by the browser that placed it.
+  async order(context, id) {
+    return request(this.$druxt.axios, `${API}/checkout/${id}`)
+  },
+
   async setQuantity({ state, commit, dispatch }, { line, quantity }) {
     if (quantity < 1) return dispatch('remove', line)
     commit('setBusy', true)
     try {
-      await request(`${API}/carts/${state.order.id}/items/${line.id}`, {
+      await request(this.$druxt.axios, `${API}/carts/${state.order.id}/items/${line.id}`, {
         method: 'PATCH',
         body: JSON.stringify({ data: { type: line.type, id: line.id, attributes: { quantity } } }),
       })

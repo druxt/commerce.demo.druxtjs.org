@@ -81,6 +81,7 @@ typings/
 # Nuxt.js build / generate output
 .nuxt
 dist
+!nuxt/vendor/*/dist
 # The start script's builds: nuxt/dist-<time> served, nuxt/dist-next building.
 dist-*
 

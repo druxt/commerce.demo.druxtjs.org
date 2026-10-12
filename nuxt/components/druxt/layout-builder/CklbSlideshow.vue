@@ -44,7 +44,7 @@
     -->
     <div
       v-if="multiple"
-      class="mx-auto max-w-7xl px-5 flex items-center gap-4"
+      class="wrap flex items-center gap-4"
       :class="onDark
         ? 'absolute bottom-0 left-0 right-0 pb-6 text-paper'
         : 'pb-6 text-ink'"

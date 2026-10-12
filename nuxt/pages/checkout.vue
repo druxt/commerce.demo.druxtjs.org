@@ -10,20 +10,19 @@
     </header>
 
     <!--
-      The payment step is simulated, and says so before anything is entered
-      rather than after. Everything up to it is real: the email and the address
-      are PATCHed to Drupal Commerce over commerce_api and the order carries
-      them. Only the gateway is fake, because a demo should not need card
-      credentials to be worth looking at.
+      Said before anything is entered rather than after: the order is real,
+      the money is not. Email and address are PATCHed to the Drupal Commerce
+      order over commerce_api, the payment goes through Commerce's example
+      gateway with its test card, and the order is placed. No card details
+      are asked for.
     -->
     <aside class="card p-4 flex gap-3 items-start bg-paper-3">
-      <span aria-hidden="true" class="text-lg leading-none mt-0.5">🧪</span>
       <div class="text-sm text-ink-2">
-        <p class="font-600 text-ink">This is a demo checkout.</p>
+        <p class="font-600 text-ink">A demo checkout. The order is real, the money is not.</p>
         <p>
-          Your email and address are saved to a real Drupal Commerce order over JSON:API.
-          The payment step is simulated: no gateway is contacted and no card details are
-          collected, stored or sent anywhere.
+          Your email and address are saved to a Drupal Commerce order over JSON:API, the
+          payment goes through Commerce's example gateway with its test card, and the order
+          is placed and numbered. No card details are collected. The daily reset clears it.
         </p>
       </div>
     </aside>
@@ -84,17 +83,17 @@
           </div>
         </form>
 
-        <!-- 3. Payment, simulated -->
+        <!-- 3. Payment, through the example gateway -->
         <form v-else-if="step === 2" class="card p-6 flex flex-col gap-4" @submit.prevent="pay">
           <h2 class="text-xl">Payment</h2>
           <p class="text-sm text-ink-2">
-            A real storefront would mount a gateway's hosted card field here, so card
-            data never touches this application. Choose an outcome instead and the demo
-            will play it out.
+            A real storefront would mount a gateway's hosted card field here, so card data
+            never touches this application. This demo sends Commerce's example gateway its
+            test card. Choose what the gateway should answer.
           </p>
 
           <fieldset class="flex flex-col gap-2">
-            <legend class="label-mono mb-1">Simulated outcome</legend>
+            <legend class="label-mono mb-1">Gateway outcome</legend>
             <label v-for="o in outcomes" :key="o.value" class="flex items-start gap-3 p-3 border border-line rounded cursor-pointer hover:border-line-2">
               <input v-model="outcome" type="radio" :value="o.value" class="mt-1">
               <span>
@@ -117,9 +116,9 @@
           <template v-if="declined">
             <h2 class="text-xl text-warn">Payment declined</h2>
             <p class="text-sm text-ink-2">
-              The simulated gateway refused the payment. Commerce would leave the order in
-              its draft state with the cart intact, so nothing is lost and the shopper can
-              try another method. Your cart is untouched.
+              The example gateway refused the payment, the way it does for its test
+              postcode. Commerce left the order in its draft state with the cart intact, so
+              nothing is lost. Drupal said: {{ error }}
             </p>
             <div class="flex gap-3">
               <button type="button" class="btn-primary" @click="step = 2">Try again</button>
@@ -127,24 +126,32 @@
             </div>
           </template>
           <template v-else>
-            <h2 class="text-xl text-teal">Order placed</h2>
+            <h2 class="text-xl text-teal">Order #{{ placed.order_number }} placed</h2>
             <p class="text-sm text-ink-2">
-              Thank you. A confirmation would be sent to
-              <span class="text-ink">{{ email }}</span>.
+              Drupal Commerce recorded the payment, placed the order and moved it into its
+              fulfilment workflow. A confirmation would go to
+              <span class="text-ink">{{ placed.email || email }}</span>.
             </p>
             <dl class="grid grid-cols-[auto_1fr] gap-x-6 gap-y-1 text-sm">
-              <dt class="label-mono self-center">Reference</dt>
-              <dd class="tabular-nums">{{ reference }}</dd>
+              <dt class="label-mono self-center">Order</dt>
+              <dd class="tabular-nums">#{{ placed.order_number }}</dd>
+              <dt class="label-mono self-center">State</dt>
+              <dd class="font-mono">{{ placed.state }}</dd>
               <dt class="label-mono self-center">Total</dt>
               <dd class="tabular-nums font-600">{{ paidTotal }}</dd>
             </dl>
-            <p class="text-sm text-ink-2 pt-2 border-t border-line">
-              At this point a live site would have Commerce record a payment against the
-              order, move it out of draft into its fulfilment workflow, decrement stock and
-              send the receipt. This demo stops here, and the cart is left as it was so you
-              can walk through it again.
-            </p>
-            <NuxtLink to="/catalogue" class="btn-primary self-start">Continue shopping</NuxtLink>
+            <div class="flex flex-wrap gap-3 pt-2">
+              <NuxtLink :to="`/order/${placed.id}`" class="btn-primary">Follow the order</NuxtLink>
+              <NuxtLink to="/catalogue" class="btn-secondary">Continue shopping</NuxtLink>
+            </div>
+            <client-only>
+              <DruxtDemoNote
+                match="/jsonapi/checkout/"
+                file="nuxt/pages/checkout.vue"
+                body="Three writes to commerce_api's checkout resource: the contact and address, the payment instrument for the example gateway, then the payment, which placed the order. This is Drupal's order, as it answered."
+              />
+              <DruxtDemoDrawer :path="`/jsonapi/checkout/${placed.id}`" />
+            </client-only>
           </template>
         </div>
       </section>
@@ -189,14 +196,14 @@ export default {
     },
     outcome: 'approved',
     outcomes: [
-      { value: 'approved', label: 'Approved', detail: 'The gateway authorises the payment and the order is placed.' },
+      { value: 'approved', label: 'Approved', detail: 'The gateway takes the test card and Commerce places the order.' },
       { value: 'declined', label: 'Declined', detail: 'The gateway refuses it. The order stays a draft and the cart survives.' },
     ],
     busy: false,
     error: undefined,
     done: false,
     declined: false,
-    reference: '',
+    placed: null,
     paidTotal: '',
   }),
 
@@ -205,20 +212,24 @@ export default {
     ...mapGetters('cart', ['total', 'isEmpty', 'orderId']),
   },
 
+  watch: {
+    // The cart empties when the order is placed; the id is kept for the read.
+    orderId(id) {
+      if (id) this.orderIdPlaced = id
+    },
+  },
+
+  created() {
+    this.orderIdPlaced = this.orderId
+  },
+
   methods: {
-    // Both of these are real writes to the Drupal order.
+    // Every step is a real write to the Drupal order.
     async patch(attributes) {
       this.busy = true
       this.error = undefined
       try {
-        const res = await fetch(`/jsonapi/checkout/${this.orderId}`, {
-          method: 'PATCH',
-          credentials: 'same-origin',
-          headers: { Accept: 'application/vnd.api+json', 'Content-Type': 'application/vnd.api+json' },
-          body: JSON.stringify({ data: { type: 'order--default', id: this.orderId, attributes } }),
-        })
-        const body = await res.json().catch(() => ({}))
-        if (body.errors) throw new Error(body.errors[0].detail || 'Could not save')
+        await this.$store.dispatch('cart/checkout', attributes)
         return true
       } catch (error) {
         this.error = error.message
@@ -236,19 +247,42 @@ export default {
       if (await this.patch({ billing_information: { address: { ...this.address } } })) this.step = 2
     },
 
-    // The simulation. No gateway, no card data, and the order is deliberately
-    // left in draft so the demo can be replayed.
+    // The payment instrument is the example gateway's test card. The
+    // gateway declines a billing postcode of 53140, which is how "Declined"
+    // is asked for; the order then stays a draft and the cart survives.
     async pay() {
-      this.busy = true
       this.paidTotal = this.total
-      await new Promise((resolve) => setTimeout(resolve, 900))
-      this.declined = this.outcome === 'declined'
-      if (!this.declined) {
-        this.reference = `DEMO-${String(Date.now()).slice(-6)}`
-        this.done = true
+      this.declined = false
+      const address = { ...this.address }
+      if (this.outcome === 'declined') address.postal_code = '53140'
+      const instrument = {
+        payment_gateway_id: 'example_credit_card',
+        payment_method_type: 'credit_card',
+        payment_details: {
+          type: 'visa',
+          number: '4111111111111111',
+          expiration: { month: '12', year: '2030' },
+          security_code: '123',
+        },
       }
-      this.busy = false
-      this.step = 3
+      if (!(await this.patch({ billing_information: { address }, payment_instrument: instrument }))) {
+        this.declined = true
+        this.step = 3
+        return
+      }
+      this.busy = true
+      try {
+        await this.$store.dispatch('cart/pay')
+        const body = await this.$store.dispatch('cart/order', this.orderIdPlaced)
+        this.placed = { id: body.data.id, ...body.data.attributes }
+        this.done = true
+      } catch (error) {
+        this.error = error.message
+        this.declined = true
+      } finally {
+        this.busy = false
+        this.step = 3
+      }
     },
   },
 }

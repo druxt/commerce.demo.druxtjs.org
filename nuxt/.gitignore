@@ -70,6 +70,8 @@ typings/
 
 # Nuxt generate
 dist
+# A vendored module ships its build: a private package installed as a file: dependency.
+!vendor/*/dist
 
 # Nuxt Storybook
 .nuxt-storybook

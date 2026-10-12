@@ -6,8 +6,10 @@ behaviour
 bmewburn
 bootstrapvue
 Centarro
+centorium
 cklb
 commitlint
+compomnent
 consolas
 cweagans
 davidanson
@@ -17,6 +19,7 @@ dbserver
 dbtype
 ddev
 dealerdirect
+Denormalizer
 devpod
 docroot
 drupalcommerce
@@ -36,9 +39,10 @@ interruptible
 jgslf
 kdiff
 knip
-Lando
 lando
+Lando
 landofile
+langcode
 libasound
 libfreetype
 libgbm
@@ -112,4 +116,3 @@ wicd
 workrounds
 xauth
 xhprof
-Denormalizer
