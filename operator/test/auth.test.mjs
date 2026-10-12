@@ -81,3 +81,13 @@ test('other grants, other methods and a dead Drupal are refused', async () => {
   await route(request({ grant_type: 'password', username: 'a', password: 'b' }), res3)
   assert.equal(res3.statusCode, 502)
 })
+
+test('a body over the limit is answered 413 and never reaches Drupal', async () => {
+  let called = false
+  const fetch = async () => ((called = true), { status: 200, text: async () => '{}' })
+  const route = createTokenRoute({ drupalUrl: 'http://drupal', clientId: 'c', fetch })
+  const res = response()
+  await route(request({ grant_type: 'password', padding: 'x'.repeat(65 * 1024) }), res)
+  assert.equal(res.statusCode, 413)
+  assert.equal(called, false)
+})
