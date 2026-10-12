@@ -17,6 +17,9 @@ const SITE_DESCRIPTION =
 /** The share card for a page without a photograph of its own, 1200 by 630. */
 const SITE_CARD = '/og/site.png'
 
+/** The Druxt mark, square, for the organisation's logo in structured data. */
+const SITE_LOGO = '/og/logo.png'
+
 const TWITTER_HANDLE = '@DruxtJS'
 
 /**
@@ -93,6 +96,7 @@ module.exports = {
   SITE_TITLE,
   SITE_DESCRIPTION,
   SITE_CARD,
+  SITE_LOGO,
   TWITTER_HANDLE,
   previewRoute,
   liveOrigin,
