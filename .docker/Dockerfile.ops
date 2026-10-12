@@ -25,6 +25,9 @@ RUN NODE_OPTIONS=--openssl-legacy-provider npm run build
 FROM uselagoon/node-20:26.8.0
 COPY --from=build --chown=10000:0 /app /app
 COPY --from=build --chown=10000:0 /nuxt/vendor /nuxt/vendor
+# The entrypoint loads .lagoon.env.<branch> from /app: production's
+# STOREFRONT_ORIGIN, which the console's session links are built on.
+COPY --chown=10000:0 .lagoon.env.* /app/
 WORKDIR /app
 
 ENV HOST=0.0.0.0 PORT=3000 DRUPAL_URL=http://nginx:8080
