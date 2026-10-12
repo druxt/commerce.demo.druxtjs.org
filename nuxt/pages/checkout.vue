@@ -126,7 +126,7 @@
             </div>
           </template>
           <template v-else>
-            <h2 class="text-xl text-teal">Order #{{ placed.order_number }} placed</h2>
+            <h2 class="text-xl text-teal">Order<template v-if="placed.order_number"> #{{ placed.order_number }}</template> placed</h2>
             <p class="text-sm text-ink-2">
               Drupal Commerce recorded the payment, placed the order and moved it into its
               fulfilment workflow. A confirmation would go to
@@ -134,9 +134,9 @@
             </p>
             <dl class="grid grid-cols-[auto_1fr] gap-x-6 gap-y-1 text-sm">
               <dt class="label-mono self-center">Order</dt>
-              <dd class="tabular-nums">#{{ placed.order_number }}</dd>
+              <dd class="tabular-nums">{{ placed.order_number ? '#' + placed.order_number : 'unknown' }}</dd>
               <dt class="label-mono self-center">State</dt>
-              <dd class="font-mono">{{ placed.state }}</dd>
+              <dd class="font-mono">{{ placed.state || 'unknown' }}</dd>
               <dt class="label-mono self-center">Total</dt>
               <dd class="tabular-nums font-600">{{ paidTotal }}</dd>
             </dl>
@@ -273,12 +273,22 @@ export default {
       this.busy = true
       try {
         await this.$store.dispatch('cart/pay')
-        const body = await this.$store.dispatch('cart/order', this.orderIdPlaced)
-        this.placed = { id: body.data.id, ...body.data.attributes }
-        this.done = true
       } catch (error) {
         this.error = error.message
         this.declined = true
+        this.busy = false
+        this.step = 3
+        return
+      }
+      // Paid and placed, so the cart is empty. A failed read of the order
+      // leaves its details out and keeps the confirmation.
+      this.placed = { id: this.orderIdPlaced }
+      this.done = true
+      try {
+        const body = await this.$store.dispatch('cart/order', this.orderIdPlaced)
+        this.placed = { id: body.data.id, ...body.data.attributes }
+      } catch (error) {
+        this.error = `The order is placed, but Drupal did not return it: ${error.message}`
       } finally {
         this.busy = false
         this.step = 3
