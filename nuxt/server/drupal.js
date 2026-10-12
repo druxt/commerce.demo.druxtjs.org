@@ -5,6 +5,7 @@
  */
 const http = require('http')
 const https = require('https')
+const { pipeline } = require('stream')
 
 // Paths Drupal answers: JSON:API (carts and checkout included), the router,
 // uploaded files, and the theme and core assets its markup points at.
@@ -134,7 +135,7 @@ const createDrupalProxy = (baseUrl) => {
       },
       (answer) => {
         res.writeHead(answer.statusCode, endToEnd(answer.headers))
-        answer.pipe(res)
+        pipeline(answer, res, () => {})
       }
     )
     upstream.on('timeout', () => upstream.destroy())
@@ -142,7 +143,8 @@ const createDrupalProxy = (baseUrl) => {
       if (!res.headersSent) res.writeHead(502)
       res.end()
     })
-    req.pipe(upstream)
+    // pipeline, not pipe: a visitor who leaves closes the Drupal side too.
+    pipeline(req, upstream, () => {})
   }
 }
 
