@@ -89,9 +89,13 @@ foreach ($connection as $key => $value) {
 // salt written here would reach the cli pod alone.
 if (!$lagoon) {
   file_put_contents('web/sites/default/settings.local.php', sprintf(
-    "<?php\n\n/**\n * @file\n * Provision-only override, written fresh each run by .devtools/provision.\n * Gitignored - never committed.\n */\n\n\$databases['default']['default'] = [\n%s];\n%s",
+    "<?php\n\n/**\n * @file\n * Provision-only override, written fresh each run by .devtools/provision.\n * Gitignored - never committed.\n */\n\n\$databases['default']['default'] = [\n%s];\n%s%s",
     $lines,
-    sprintf("\n\$settings['hash_salt'] = %s;\n", var_export(bin2hex(random_bytes(32)), TRUE))
+    sprintf("\n\$settings['hash_salt'] = %s;\n", var_export(bin2hex(random_bytes(32)), TRUE)),
+    // The storefront proxies Drupal's screens on this machine. Trusting its
+    // forwarded headers lets Drupal build https links behind a tunnel, so a
+    // preview's JSON:API address keeps the scheme the editor's cookie needs.
+    "\n\$settings['reverse_proxy'] = TRUE;\n\$settings['reverse_proxy_addresses'] = ['127.0.0.1', '::1'];\n"
   ));
 }
 PASS('%s database configured.', $db['driver']);
@@ -120,6 +124,11 @@ drush('cache:rebuild');
 
 TASK('Enabling druxt.');
 drush('pm:enable druxt');
+// The live layer: Simple OAuth for the console and the hub, Message for the
+// demo sessions, Purge to tell the hub what changed.
+drush('pm:enable simple_oauth simple_oauth_password_grant consumers message purge purge_drush purge_tokens purge_queuer_coretags purge_processor_lateruntime purge_purger_http');
+// The demo's own module: the order id commerce_api hides, for the live hub.
+drush('pm:enable commerce_demo_live');
 drush('role:perm:add anonymous %s', 'access druxt resources');
 PASS('druxt enabled; anonymous can access Druxt resources.');
 
@@ -136,6 +145,15 @@ drush('config:set jsonapi.settings read_only %s', '0');
 // the storefront's order page and the operator console show it moving.
 drush('config:set -y commerce_order.commerce_order_type.default workflow %s', 'order_fulfillment');
 
+// The live layer's accounts, consumers, session message and purger. The
+// OAuth keys sit beside the web root, outside it.
+// The image already has a pair, which every pod shares: a new one here would
+// sign tokens the web pods cannot check.
+@mkdir(dirname(__DIR__) . '/keys', 0700, TRUE);
+if (!file_exists(dirname(__DIR__) . '/keys/private.key')) {
+  drush('simple-oauth:generate-keys %s', dirname(__DIR__) . '/keys');
+}
+drush('php:script %s', __DIR__ . '/live-setup.php');
 PASS('jsonapi.settings read_only disabled.');
 
 TASK('Enabling decoupled settings.');
@@ -239,7 +257,11 @@ if ($edited === '' || $edited === '0') {
 }
 PASS('Landing page copy set, Centarro credited, gallery section removed.');
 
-TASK('Rebuilding caches.');
+// Installing queued invalidations for content nobody has seen yet. The
+// post-rollout rebuild covers them, and sending them would wake the hub for
+// nothing.
+TASK('Emptying the purge queue and rebuilding caches.');
+drush('p:queue-empty');
 drush('cache:rebuild');
 PASS('Caches rebuilt.');
 

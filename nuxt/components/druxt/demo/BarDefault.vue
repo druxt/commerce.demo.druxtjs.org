@@ -8,6 +8,10 @@
     <span class="hidden md:inline">{{ notice }}</span>
     <span class="hidden md:inline text-ink-2" aria-hidden="true">/</span>
     <a v-if="source" :href="source" rel="noopener" target="_blank" class="text-paper hover:text-mint">source</a>
+    <!-- A demo session this tab joined through its link. -->
+    <span v-if="session" class="inline-flex items-center gap-1.5 text-mint" :title="`Demo session ${session}: an operator's console sees the orders placed here`">
+      <span class="w-1.5 h-1.5 rounded-full bg-mint" aria-hidden="true" />session {{ session }}
+    </span>
     <button
       type="button"
       role="switch"
@@ -36,6 +40,19 @@ export default {
     discord: { type: String, default: '' },
     notice: { type: String, default: '' },
     overlay: { type: Boolean, default: false },
+  },
+
+  // The badge is browser state, read once this theme has hydrated. The bar's
+  // theme resolves after the page is ready, so reading it any earlier puts a
+  // badge in the browser's tree that the server's markup does not have.
+  data: () => ({ ready: false }),
+
+  mounted() {
+    this.ready = true
+  },
+
+  computed: {
+    session: ({ ready, $druxtDemo }) => (ready && ($druxtDemo || {}).session) || '',
   },
 }
 </script>

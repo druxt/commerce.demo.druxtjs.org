@@ -1,4 +1,4 @@
-# Node 20, pinned like the other images. npm, not yarn: this project has a
+# Node 20: the live hub reads Drupal with fetch, which Node 16 lacks. npm, not yarn: this project has a
 # package-lock.json and declares npm in packageManager.
 
 # Only what the install reads, so a code change reuses the installed

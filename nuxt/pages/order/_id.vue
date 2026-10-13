@@ -33,7 +33,13 @@
 
       <dl class="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 text-14px border border-line bg-paper p-5 mb-6">
         <dt class="font-mono text-11px uppercase tracking-wider text-ink-2 self-center">State</dt>
-        <dd class="m-0 font-mono">{{ order.state }}</dd>
+        <dd class="m-0 font-mono flex items-center gap-2">
+          {{ order.state }}
+          <!-- The hub tells this page when Drupal moves the order. -->
+          <span v-if="live" class="inline-flex items-center gap-1 text-11px text-teal" :title="liveTitle">
+            <span class="w-1.5 h-1.5 rounded-full bg-teal" aria-hidden="true" />live
+          </span>
+        </dd>
         <dt class="font-mono text-11px uppercase tracking-wider text-ink-2 self-center">Total</dt>
         <dd class="m-0 font-mono">{{ (order.total_price || {}).formatted }}</dd>
         <dt class="font-mono text-11px uppercase tracking-wider text-ink-2 self-center">Email</dt>
@@ -45,7 +51,7 @@
       <DruxtDemoNote
         match="/jsonapi/checkout/"
         file="nuxt/pages/order/_id.vue"
-        body="Drupal's own order, read through commerce_api's checkout resource. It stays readable by the browser that placed it, and only that browser."
+        body="Drupal's own order, read through commerce_api's checkout resource. It stays readable by the browser that placed it, and only that browser. The page also follows the order on the live socket, proven by the same cart token, so a state change in Drupal shows here without a reload."
       />
       <DruxtDemoDrawer :path="`/jsonapi/checkout/${$route.params.id}`" class="mt-4" />
     </template>
@@ -67,12 +73,32 @@ export default {
   // The read depends on the session the browser holds, so it happens there.
   fetchOnServer: false,
 
-  data: () => ({ order: null, error: '' }),
+  data: () => ({ order: null, error: '', live: false, movedAt: 0 }),
+
+  // Follow the order on the socket: Drupal's purge of the order's tag reaches
+  // the hub, which reads the order as itself and tells this room.
+  mounted() {
+    if (!this.$live) return
+    this.unfollow = this.$live.follow(this.$route.params.id, ({ state }) => {
+      this.live = true
+      // The hub can answer before the read below does, and the read keeps this.
+      this.heard = state
+      if (this.order && this.order.state !== state) {
+        this.order = { ...this.order, state }
+        this.movedAt = Date.now()
+      }
+    })
+  },
+
+  beforeDestroy() {
+    if (this.unfollow) this.unfollow()
+  },
 
   async fetch() {
     try {
       const body = await this.$store.dispatch('cart/order', this.$route.params.id)
       this.order = { id: body.data.id, ...body.data.attributes }
+      if (this.heard) this.order.state = this.heard
       this.error = ''
     } catch (e) {
       this.order = null
@@ -86,6 +112,8 @@ export default {
 
   computed: {
     steps: () => STEPS,
+
+    liveTitle: ({ movedAt }) => (movedAt ? 'Moved by Drupal while this page was open' : 'Following this order on the live socket'),
 
     reached: ({ order }) => {
       if (!order) return -1

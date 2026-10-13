@@ -223,6 +223,10 @@ build:
     # backend (with Commerce Kickstart's demo content installed). That
     # happens in the test_e2e job, via .devtools/.
     - cd ../nuxt && npm install
+
+    # The operator console builds without Drupal, so it builds here, on the
+    # Node its own .nvmrc names: its lock file is npm 10's.
+    - cd ../operator && nvm install && nvm use && npm ci && NODE_OPTIONS=--openssl-legacy-provider npm run build
   artifacts:
     paths:
       - drupal/vendor

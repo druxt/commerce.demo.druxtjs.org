@@ -31,3 +31,19 @@ if (PHP_SAPI !== 'cli' && file_exists(__DIR__ . '/files/.provisioning')) {
 $settings['file_private_path'] = __DIR__ . '/files/private';
 
 $settings['maintenance_theme'] = 'centarro_claro';
+
+// Drupal's Preview button opens the storefront's preview page in a frame.
+// The path is relative: the edit screens are proxied onto the storefront's
+// origin, so the frame and the preview request go with the editor's session.
+$settings['consumer_node_preview'] = [
+  'targets' => [
+    'storefront' => [
+      'label' => 'Storefront',
+      'url' => '/druxt/node/preview?vm=[view_mode]&layout=[layout]#[jsonapi_node_preview_path]',
+      // The Nuxt layouts the preview's Layout select offers, as listed under
+      // druxt.nodePreview.layouts. A preview opens on the first.
+      'layouts' => ['preview', 'default'],
+    ],
+  ],
+  'default' => 'settings:storefront',
+];

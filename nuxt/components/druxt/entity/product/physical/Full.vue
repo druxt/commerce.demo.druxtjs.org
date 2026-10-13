@@ -45,6 +45,10 @@
         <p v-if="item && item.category" class="font-mono text-11px tracking-wider uppercase text-ink-3 mb-2.5">{{ item.category }}</p>
         <h1 class="text-[clamp(26px,4.6vw,38px)] leading-[1.08] tracking-tight mb-3.5">{{ title }}</h1>
         <p v-if="price" class="font-mono text-24px font-500 mb-4.5">{{ price }}</p>
+        <!-- Who else is here, from the live hub: counts and nothing more. -->
+        <p v-if="interest" class="font-mono text-11px text-teal mb-4.5 flex items-center gap-1.5" aria-live="polite">
+          <span class="w-1.5 h-1.5 rounded-full bg-teal" aria-hidden="true" />{{ interest }}
+        </p>
         <div v-if="body" class="prose text-15px leading-relaxed text-ink-2 mb-6.5 max-w-[52ch]" v-html="body" />
 
         <!-- Hidden entirely when there is only one variation. -->
@@ -132,7 +136,18 @@ export default {
     touchX: undefined,
     busy: false,
     added: false,
+    live: { looking: 0, carts: 0 },
   }),
+
+  // The product's room on the live socket: how many have it open, how many
+  // carts hold it. Rejoined when a related product swaps the entity in.
+  mounted() {
+    this.watchLive()
+  },
+
+  beforeDestroy() {
+    if (this.unwatch) this.unwatch()
+  },
 
   // References come from the catalogue the rest of the store already holds,
   // so arriving from the catalogue costs no request for them.
@@ -182,6 +197,13 @@ export default {
     related: ({ items, item }) => (item
       ? items.filter((p) => p.id !== item.id && p.category === item.category).slice(0, 4)
       : []),
+
+    interest: ({ live }) => {
+      const parts = []
+      if (live.looking > 1) parts.push(`${live.looking - 1} ${live.looking === 2 ? 'other is' : 'others are'} looking at this`)
+      if (live.carts > 0) parts.push(`in ${live.carts} ${live.carts === 1 ? 'cart' : 'carts'}`)
+      return parts.join(' · ')
+    },
   },
 
   watch: {
@@ -190,10 +212,17 @@ export default {
       this.activeVariationId = undefined
       this.imageIndex = 0
       this.added = false
+      this.watchLive()
     },
   },
 
   methods: {
+    watchLive() {
+      if (this.unwatch) this.unwatch()
+      this.live = { looking: 0, carts: 0 }
+      if (this.$live) this.unwatch = this.$live.watch(this.entity.id, (counts) => { this.live = counts })
+    },
+
     swipeStart(e) {
       this.touchX = e.changedTouches[0].clientX
     },

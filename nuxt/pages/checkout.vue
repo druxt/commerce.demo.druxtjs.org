@@ -317,6 +317,8 @@ export default {
       // leaves its details out and keeps the confirmation.
       this.placed = { id: this.orderIdPlaced }
       this.done = true
+      // A demo session's console hears the order, proven by the cart token.
+      if (this.$live) this.$live.placed(this.placed.id)
       try {
         const body = await this.$store.dispatch('cart/order', this.orderIdPlaced)
         this.placed = { id: body.data.id, ...body.data.attributes }

@@ -60,4 +60,10 @@ HOST="${DRUXT_REGENERATE_HOST:-app}"
 PORT="${DRUXT_REGENERATE_PORT:-3000}"
 curl -fsS -o /dev/null -X POST "http://$HOST:$PORT/_regenerate" || echo "regenerate not accepted" >&2
 
+# The hub's live numbers were the old store's: open pages read the
+# catalogue, its stock and the carts again, as after any purge.
+curl -fsS -o /dev/null -X POST -H "X-Druxt-Sockets-Secret: ${DRUXT_SOCKETS_SECRET:-}" \
+  --data "commerce_product_list,commerce_product_variation_list,commerce_order_list,node_list" \
+  "http://$HOST:$PORT/_live/purge" || echo "the hub did not take the purge" >&2
+
 echo "==> Reset done"

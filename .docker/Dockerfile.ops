@@ -1,0 +1,40 @@
+# The operator console: a second Nuxt app on the same Drupal, built at image
+# time since it reads nothing from Drupal to build. Node 20, npm, as the
+# storefront's image.
+
+FROM uselagoon/node-20-builder:26.8.0 AS manifests
+COPY ./operator/ /operator/
+COPY ./nuxt/vendor/ /nuxt/vendor/
+RUN mkdir /manifests && cd /operator && cp package.json package-lock.json /manifests/
+
+FROM uselagoon/node-20-builder:26.8.0 AS deps
+COPY --from=manifests /manifests /app/
+# The sockets package is vendored beside the storefront; the file: path
+# resolves to it from /app the way it does from operator/ in the repository.
+COPY --from=manifests /nuxt/vendor /nuxt/vendor
+WORKDIR /app
+RUN npm ci
+
+FROM uselagoon/node-20-builder:26.8.0 AS build
+COPY --from=deps /app /app
+COPY --from=deps /nuxt/vendor /nuxt/vendor
+COPY ./operator/ /app/
+# Node resolves the vendored package's own dependencies (ws) upward from
+# /nuxt/vendor, so /nuxt/node_modules points at the console's.
+RUN ln -s /app/node_modules /nuxt/node_modules
+WORKDIR /app
+RUN NODE_OPTIONS=--openssl-legacy-provider npm run build
+
+FROM uselagoon/node-20:26.8.0
+COPY --from=build --chown=10000:0 /app /app
+# /nuxt whole, so the node_modules link comes with the vendored package.
+COPY --from=build --chown=10000:0 /nuxt /nuxt
+# The entrypoint loads .lagoon.env.<branch> from /app: production's
+# STOREFRONT_ORIGIN, which the console's session links are built on.
+COPY --chown=10000:0 .lagoon.env.* /app/
+WORKDIR /app
+
+ENV HOST=0.0.0.0 PORT=3000 DRUPAL_URL=http://nginx:8080
+EXPOSE 3000
+
+CMD ["node", "server/start.js"]

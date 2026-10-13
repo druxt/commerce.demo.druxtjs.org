@@ -57,7 +57,12 @@ export default {
         if (path === this.path) this.response = data
       } catch (e) {
         if (path === this.path) {
-          this.failure = 'The response could not be loaded.'
+          // A demo answers 503 while it installs or resets. That passes, so
+          // say so, and a second open tries again.
+          this.failure =
+            (e.response || {}).status === 503
+              ? 'Drupal is being reset. Try again in a minute.'
+              : 'The response could not be loaded.'
         }
       } finally {
         if (path === this.path) this.loading = false
