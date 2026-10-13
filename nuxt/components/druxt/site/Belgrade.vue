@@ -81,7 +81,6 @@ export default {
     nav: [
       { to: '/', label: 'Home', exact: true },
       { to: '/catalogue', label: 'Catalogue' },
-      { to: '/shop', label: 'Shop' },
       { to: '/cart', label: 'Cart' },
     ],
   }),

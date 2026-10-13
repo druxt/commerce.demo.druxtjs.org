@@ -31,11 +31,6 @@ export default {
 
   mixins: [DruxtViewsPagerMixin],
 
-  // The Views page this pager sits on builds its links.
-  inject: {
-    druxtViewsPage: { default: null },
-  },
-
   computed: {
     perPage: ({ options }) => Number((options || {}).items_per_page) || 12,
 
@@ -46,7 +41,6 @@ export default {
 
   methods: {
     link(page) {
-      if (this.druxtViewsPage) return this.druxtViewsPage.link({ page: page || null })
       return { query: { ...this.$route.query, page: page || undefined } }
     },
   },

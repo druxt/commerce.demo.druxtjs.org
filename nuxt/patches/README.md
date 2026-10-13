@@ -17,15 +17,3 @@ The 0.15.0 dev build from the npm `dev` channel still imports `fs` at the top,
 so the patch is rerolled against it. **Remove this patch** once the frontend
 moves to a `druxt-site` build that contains that fix. `patch-package` fails loudly when the package version
 changes, so an upgrade will not carry it silently.
-
-## druxt-views+0.23.0-dev.20261011015353.patch
-
-Views pages: the prototype from druxt.js issue #399 ("Add Argument/Filter
-based routes"), which the Shop page runs on. It adds the `druxt.views.pages`
-route patterns, the `DruxtViewsPage` route component, a `value` model prop on
-`DruxtView` and the pager's links for a page that writes the route.
-
-The patch is a build of the prototype branch on the commit the 0.23.0 dev
-build came from, so everything else in the package is the dev build as
-published. **Remove this patch** once a `druxt-views` release carries views
-pages.
