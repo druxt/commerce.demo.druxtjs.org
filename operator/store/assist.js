@@ -118,14 +118,17 @@ export const actions = {
   // The concierge's picks for a question, to forward. Through this origin's
   // proxy to the storefront's route, with the operator's token.
   async askConcierge({ commit, state }, question) {
+    const code = state.selected
     commit('asking', true)
     commit('picks', null)
     try {
       const res = await this.$axios.post(
         '/_assist',
-        { message: question, conversation: `operator:${state.selected}` },
+        { message: question, conversation: `operator:${code}` },
         { headers: { 'Content-Type': 'application/json' }, validateStatus: () => true }
       )
+      // Another thread was opened while it thought: these picks are not for it.
+      if (state.selected !== code) return
       const picks = res.data && res.data.picks ? res.data.picks : []
       commit('picks', {
         question,
