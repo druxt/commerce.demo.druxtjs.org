@@ -150,6 +150,7 @@ export default (context, inject) => {
     thread.state = m.payload.state
     thread.operatorName = m.payload.operatorName || ''
     thread.turns = m.payload.turns || []
+    thread.waitingSince = m.payload.state === 'waiting' ? m.payload.waitingSince || Date.now() : 0
     threadListeners.forEach((fn) => fn('thread', m.payload))
   })
   $sockets.on('turn', (m) => {

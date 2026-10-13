@@ -217,6 +217,8 @@ test('a thread the hub forgot comes back from Drupal', async () => {
   await s.hub.enter(s.handler, 'assist:ABCDEF', v)
   const thread = s.hub.sent.find((m) => m.type === 'thread').payload
   assert.equal(thread.state, 'waiting')
+  // Drupal does not keep when the wait began, so it counts from the recovery.
+  assert.ok(thread.waitingSince > 0)
   assert.equal(thread.turns.length, 3)
   assert.equal(thread.turns[1].picks[0].sku, 'whtsh')
   // Picks that do not parse lose only themselves.
@@ -266,4 +268,18 @@ test('a console that joins a thread with no visitor in it claims it as the opera
   })
   assert.deepEqual(errorsTo(s.hub, 'v2'), [])
   assert.equal(s.handler.threads.get(code).turns.pop().author, 'visitor')
+})
+
+test('a thread replayed while it waits says when the wait began', async () => {
+  const s = setup()
+  const v = client('v')
+  const code = await open(s, v)
+  await s.handler.message(s.hub, `assist:${code}`, v, 'wait', {})
+  const since = s.handler.threads.get(code).waitingSince
+  assert.ok(since > 0)
+  const again = client('v2')
+  await s.hub.enter(s.handler, `assist:${code}`, again)
+  const thread = s.hub.sent.filter((m) => m.to === 'v2' && m.type === 'thread').pop().payload
+  assert.equal(thread.state, 'waiting')
+  assert.equal(thread.waitingSince, since)
 })
