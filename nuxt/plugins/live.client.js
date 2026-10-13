@@ -215,7 +215,10 @@ export default (context, inject) => {
     /** Hear the thread's events: `fn(type, payload)`. Returns the stop. */
     onThread(fn) {
       threadListeners.push(fn)
-      return () => threadListeners.splice(threadListeners.indexOf(fn), 1)
+      return () => {
+        const i = threadListeners.indexOf(fn)
+        if (i !== -1) threadListeners.splice(i, 1)
+      }
     },
 
     /** The conversation for this tab: kept one, or a new one on the hub. */
