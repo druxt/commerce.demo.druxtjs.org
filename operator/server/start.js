@@ -6,6 +6,7 @@
  */
 const http = require('http')
 const https = require('https')
+const { pipeline } = require('stream')
 const { loadNuxt } = require('nuxt')
 const { createTokenRoute } = require('./auth')
 
@@ -37,14 +38,17 @@ const proxy = (req, res) => {
   const client = target.protocol === 'https:' ? https : http
   const upstream = client.request(target, { method: req.method, headers }, (answer) => {
     res.writeHead(answer.statusCode, answer.headers)
-    answer.pipe(res)
+    // pipeline, not pipe: a Drupal body that breaks off ends the browser's
+    // response too, rather than leaving it open.
+    pipeline(answer, res, () => {})
   })
   upstream.on('error', (error) => {
     log(`drupal: ${error.message}`)
-    res.statusCode = 502
+    if (!res.headersSent) res.writeHead(502)
     res.end()
   })
-  req.pipe(upstream)
+  // And a browser that leaves closes the Drupal side.
+  pipeline(req, upstream, () => {})
 }
 
 async function main() {
