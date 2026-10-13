@@ -1,0 +1,67 @@
+import test from 'node:test'
+import assert from 'node:assert/strict'
+
+// A fresh copy of the store for each test: it keeps its request in flight in
+// the module.
+let copies = 0
+const freshStore = () => import(`../../nuxt/store/catalogue.js?copy=${copies++}`)
+
+// A store whose catalogue reads wait until the test answers them. Each read
+// asks for three collections, the two product types and the terms.
+const harness = (store) => {
+  const state = store.state()
+  const reads = []
+  const dispatch = (type, payload) => {
+    if (type === 'druxt/getCollection') {
+      const read = Math.floor(reads.flat().length / 3)
+      return new Promise((resolve) => {
+        reads[read] = reads[read] || []
+        reads[read].push({ payload, resolve })
+      })
+    }
+    return store.actions[type.split('/').pop()](context, payload)
+  }
+  const commit = (type, payload) => store.mutations[type](state, payload)
+  const context = { state, commit, dispatch }
+  const settle = () => new Promise((resolve) => setImmediate(resolve))
+  // Answer one read with one product titled after the read.
+  const answer = async (read, title) => {
+    await settle()
+    for (const { payload, resolve } of reads[read]) {
+      const products = payload.type.startsWith('product--physical')
+        ? [{ id: title, type: payload.type, attributes: { title } }]
+        : []
+      resolve({ data: products, links: {} })
+    }
+    await settle()
+  }
+  return { state, dispatch, reads, answer, settle }
+}
+
+test('an older read answering last does not replace the newer catalogue', async () => {
+  const { state, dispatch, answer } = harness(await freshStore())
+  const load = dispatch('catalogue/load')
+  const reload = dispatch('catalogue/reload')
+  await answer(1, 'new')
+  await reload
+  await answer(0, 'old')
+  await load
+  assert.deepEqual(state.items.map((i) => i.title), ['new'])
+  assert.equal(state.loaded, true)
+})
+
+test('a failed reload keeps the items on screen, and the next load reads again', async () => {
+  const { state, dispatch, reads, answer, settle } = harness(await freshStore())
+  const load = dispatch('catalogue/load')
+  await answer(0, 'first')
+  await load
+  const reload = dispatch('catalogue/reload')
+  await settle()
+  reads[1][0].resolve(Promise.reject(new Error('Drupal is down')))
+  await assert.rejects(reload, /Drupal is down/)
+  assert.deepEqual(state.items.map((i) => i.title), ['first'])
+  const again = dispatch('catalogue/load')
+  await answer(2, 'second')
+  await again
+  assert.deepEqual(state.items.map((i) => i.title), ['second'])
+})

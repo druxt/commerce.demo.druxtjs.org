@@ -135,12 +135,16 @@ export const actions = {
   async load({ state, commit, dispatch }) {
     if (state.loaded) return state.items
     const request = process.server ? fetchAll(dispatch) : (pending = pending || fetchAll(dispatch))
+    // A reload started since this read began reads a newer catalogue, so an
+    // older read that answers last neither replaces its items nor drops its
+    // handle.
+    const current = () => process.server || pending === request
     try {
       const items = await request
-      commit('setItems', items)
+      if (current()) commit('setItems', items)
       return items
     } finally {
-      pending = undefined
+      if (current()) pending = undefined
     }
   },
 }
