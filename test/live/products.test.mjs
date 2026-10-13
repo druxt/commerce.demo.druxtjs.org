@@ -184,17 +184,27 @@ test('a product room and the catalogue room hear the stock move after an order p
 test('the carts and the stock are read past their first page', async () => {
   const next = (href) => ({ links: { next: { href } } })
   const pages = {
-    physical: { ...stockBody([['v1', 2, P1]]), ...next('http://drupal/jsonapi/product-variations/physical?page%5Boffset%5D=50') },
+    physical: {
+      ...stockBody([['v1', 2, P1]]),
+      ...next('http://drupal/jsonapi/product-variations/physical?page%5Boffset%5D=50'),
+    },
     'physical-2': stockBody([['v2', 0, P2]]),
-    carts: { ...carts([['v1']]), ...next('http://drupal/jsonapi/orders/default?page%5Boffset%5D=50') },
+    carts: {
+      ...carts([['v1']]),
+      ...next('http://drupal/jsonapi/orders/default?page%5Boffset%5D=50'),
+    },
     'carts-2': carts([['v1']]),
   }
   const drupal = {
     get: async (path) =>
       path.includes('/orders/')
-        ? path.includes('offset') ? pages['carts-2'] : pages.carts
+        ? path.includes('offset')
+          ? pages['carts-2']
+          : pages.carts
         : path.includes('/physical?')
-          ? path.includes('offset') ? pages['physical-2'] : pages.physical
+          ? path.includes('offset')
+            ? pages['physical-2']
+            : pages.physical
           : { data: [] },
   }
   const { refresh, counts, stock } = productHandler({ drupal })

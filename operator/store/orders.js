@@ -93,7 +93,14 @@ export const actions = {
       // No answer at all, so the board shows this failure, not an older result.
       commit('responded', {
         uuid,
-        response: { status: 0, ms: Date.now() - started, to, path, error: error.message, at: Date.now() },
+        response: {
+          status: 0,
+          ms: Date.now() - started,
+          to,
+          path,
+          error: error.message,
+          at: Date.now(),
+        },
       })
     } finally {
       commit('busy', { uuid, on: false })
