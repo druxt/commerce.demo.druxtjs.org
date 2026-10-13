@@ -66,12 +66,23 @@ $druxt = [
   'text' => $etm->getStorage('block_content')->load(10),
   'button' => $etm->getStorage('block_content')->load(4),
 ];
+// Kickstart's own blocks, by the ids its recipe gives them. A recipe that
+// numbers them differently stops here, saying which, not on a null.
+foreach (['title' => 3, 'text' => 10, 'button' => 4] as $part => $id) {
+  if (!$druxt[$part]) {
+    throw new \RuntimeException(sprintf('Kickstart block %d (the split\'s %s) is missing. Check the ids in brand-split.php.', $id, $part));
+  }
+}
 $druxt['title']->set('cklb_title', 'Decoupled, by Druxt')->save();
 $druxt['text']->set('cklb_text', $text('<p>Druxt turns Drupal entities, views and layouts into Vue components. This whole store is Drupal, rendered by Nuxt.</p>'))->save();
 $druxt['button']->set('cklb_cta', ['uri' => 'https://druxtjs.org', 'title' => 'Explore Druxt', 'options' => []])->save();
 
+$centarro_image = $etm->getStorage('block_content')->load(6);
+if (!$centarro_image) {
+  throw new \RuntimeException('Kickstart block 6 (the split\'s Centarro image) is missing. Check the ids in brand-split.php.');
+}
 $centarro = [
-  'image' => $etm->getStorage('block_content')->load(6),
+  'image' => $centarro_image,
   'title' => $block('cklb_title', 'Split: Centarro title', ['cklb_title' => 'Commerce, by Centarro']),
   'text' => $block('cklb_text', 'Split: Centarro text', ['cklb_text' => $text('<p>Drupal Commerce and Commerce Kickstart come from Centarro. Every product, price and order here runs on them.</p>')]),
   'button' => $block('cklb_button', 'Split: Centarro button', ['cklb_cta' => ['uri' => 'https://www.centarro.io/', 'title' => 'Meet Centarro', 'options' => []]]),
