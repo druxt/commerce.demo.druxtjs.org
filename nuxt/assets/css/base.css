@@ -141,3 +141,14 @@ button { font: inherit; color: inherit; }
 .article-body { font-size: 18px; line-height: 1.7; color: var(--ink); }
 .article-body > * + * { margin-top: 1.1em; }
 .article-body > p:first-child { font-size: 21px; line-height: 1.55; color: var(--ink); }
+
+/* iOS Safari zooms into a field whose text is under 16px, and stays zoomed
+   after it loses focus. Phones get 16px in every text field, whatever its
+   own size class says. */
+@media (max-width: 767px) {
+  input:not([type='checkbox']):not([type='radio']):not([type='range']),
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
