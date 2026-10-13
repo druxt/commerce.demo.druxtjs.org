@@ -16,7 +16,13 @@ export default function () {
   let content = null
   const readAll = () => {
     const { readContent } = require('../lib/seo-content')
-    content = content || readContent(this.options.druxt.baseUrl, get)
+    // A failed read is not kept, so the next one asks Drupal again.
+    content =
+      content ||
+      readContent(this.options.druxt.baseUrl, get).catch((error) => {
+        content = null
+        throw error
+      })
     return content
   }
 
