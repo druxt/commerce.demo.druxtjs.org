@@ -216,7 +216,9 @@ if (!user_load_by_name('shopper')) {
 // own methods are US only, so a visitor anywhere else had no rate and no
 // shipment, and the board had nothing to ship.
 $methods = \Drupal::entityTypeManager()->getStorage('commerce_shipping_method');
-if (!$methods->loadByProperties(['name' => 'Demo courier'])) {
+$courier_description = 'Free delivery, anywhere.';
+$couriers = $methods->loadByProperties(['name' => 'Demo courier']);
+if (!$couriers) {
   $methods->create([
     'name' => 'Demo courier',
     'status' => 1,
@@ -226,7 +228,7 @@ if (!$methods->loadByProperties(['name' => 'Demo courier'])) {
       'target_plugin_id' => 'flat_rate',
       'target_plugin_configuration' => [
         'rate_label' => 'Demo courier',
-        'rate_description' => 'Free delivery, anywhere.',
+        'rate_description' => $courier_description,
         'rate_amount' => ['number' => '0', 'currency_code' => 'USD'],
         'services' => ['default'],
         'default_package_type' => 'custom_box',
@@ -235,6 +237,16 @@ if (!$methods->loadByProperties(['name' => 'Demo courier'])) {
     'conditions' => [],
     'condition_operator' => 'AND',
   ])->save();
+}
+else {
+  // A site set up before has its courier already, with the old description.
+  $plugin = reset($couriers)->get('plugin')->first();
+  $configuration = $plugin->target_plugin_configuration;
+  if (($configuration['rate_description'] ?? '') !== $courier_description) {
+    $configuration['rate_description'] = $courier_description;
+    $plugin->target_plugin_configuration = $configuration;
+    $plugin->getEntity()->save();
+  }
 }
 
 print "live setup done\n";
