@@ -77,7 +77,8 @@ const askModel = async ({
       headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
       body: JSON.stringify({
         model,
-        max_tokens: 300,
+        // Haiku thinks by default and its thinking counts here: room for both.
+        max_tokens: 1024,
         messages: [{ role: 'user', content: prompt(message, catalogue) }],
       }),
       signal: controller.signal,
