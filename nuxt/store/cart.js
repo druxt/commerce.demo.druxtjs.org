@@ -27,7 +27,12 @@ const request = async (axios, url, options = {}) => {
     validateStatus: () => true,
   })
   const body = res.data && typeof res.data === 'object' ? res.data : {}
-  if (body.errors) throw new Error(body.errors[0].detail || body.errors[0].title || 'Request failed')
+  if (body.errors) {
+    const error = new Error(body.errors[0].detail || body.errors[0].title || 'Request failed')
+    // Drupal's own answer: the request reached it and was refused.
+    error.drupal = true
+    throw error
+  }
   if (res.status >= 400) throw new Error(`${res.status} ${res.statusText}`)
   return body
 }

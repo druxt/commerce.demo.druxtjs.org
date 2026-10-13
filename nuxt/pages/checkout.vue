@@ -113,7 +113,19 @@
 
         <!-- 4. Outcome -->
         <div v-else class="card p-8 flex flex-col gap-4">
-          <template v-if="declined">
+          <template v-if="unknown">
+            <h2 class="text-xl text-warn">Payment not confirmed</h2>
+            <p class="text-sm text-ink-2">
+              Drupal didn't answer the payment request, and the order couldn't be read
+              afterwards, so it may or may not have gone through. Check the order before
+              paying again. {{ error }}
+            </p>
+            <div class="flex gap-3">
+              <NuxtLink :to="`/order/${orderIdPlaced}`" class="btn-primary">Check the order</NuxtLink>
+              <NuxtLink to="/cart" class="btn-secondary">Back to cart</NuxtLink>
+            </div>
+          </template>
+          <template v-else-if="declined">
             <h2 class="text-xl text-warn">Payment declined</h2>
             <p class="text-sm text-ink-2">
               The example gateway refused the payment, the way it does for its test
@@ -203,6 +215,7 @@ export default {
     error: undefined,
     done: false,
     declined: false,
+    unknown: false,
     placed: null,
     paidTotal: '',
   }),
@@ -224,6 +237,16 @@ export default {
   },
 
   methods: {
+    // The order's state, or undefined when Drupal cannot be read either.
+    async orderState() {
+      try {
+        const body = await this.$store.dispatch('cart/order', this.orderIdPlaced)
+        return body.data.attributes.state
+      } catch (error) {
+        return undefined
+      }
+    },
+
     // Every step is a real write to the Drupal order.
     async patch(attributes) {
       this.busy = true
@@ -253,6 +276,7 @@ export default {
     async pay() {
       this.paidTotal = this.total
       this.declined = false
+      this.unknown = false
       const address = { ...this.address }
       if (this.outcome === 'declined') address.postal_code = '53140'
       const instrument = {
@@ -274,11 +298,20 @@ export default {
       try {
         await this.$store.dispatch('cart/pay')
       } catch (error) {
-        this.error = error.message
-        this.declined = true
-        this.busy = false
-        this.step = 3
-        return
+        // Drupal refusing the payment is a decline. Anything else, such as a
+        // proxy timeout, may have come after Drupal took it, so the order is
+        // read to tell. A draft was declined. An order that cannot be read is
+        // unknown, with no retry offered. Anything further on was paid.
+        const state = error.drupal ? 'draft' : await this.orderState()
+        if (!state || state === 'draft') {
+          this.error = error.message
+          this.declined = state === 'draft'
+          this.unknown = !state
+          this.busy = false
+          this.step = 3
+          return
+        }
+        await this.$store.dispatch('cart/load')
       }
       // Paid and placed, so the cart is empty. A failed read of the order
       // leaves its details out and keeps the confirmation.
