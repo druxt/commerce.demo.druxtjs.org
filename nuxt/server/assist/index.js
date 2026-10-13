@@ -19,7 +19,9 @@ const readJson = (req, limit = 64 * 1024) =>
     })
     req.on('end', () => {
       try {
-        resolve(JSON.parse(body || '{}'))
+        // JSON that is not an object (`null`, a number) asks nothing, as bad JSON does.
+        const data = JSON.parse(body || '{}')
+        resolve(data && typeof data === 'object' ? data : {})
       } catch {
         resolve({})
       }
