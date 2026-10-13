@@ -74,7 +74,7 @@
       <div class="flex gap-2">
         <input
           v-model="code"
-          class="field flex-1 font-mono uppercase"
+          class="field flex-1 min-w-0 font-mono uppercase"
           placeholder="K7P4QX"
           maxlength="6"
           autocapitalize="characters"
@@ -82,7 +82,7 @@
           spellcheck="false"
           aria-label="Room code"
         >
-        <button type="submit" class="btn-secondary" :disabled="busy || code.length !== 6">Join their cart</button>
+        <button type="submit" class="btn-secondary shrink-0 whitespace-nowrap" :disabled="busy || code.length !== 6">Join their cart</button>
       </div>
       <p v-if="error" class="text-sm text-warn" role="alert">{{ error }}</p>
     </form>
@@ -178,8 +178,11 @@ export default {
       }
     },
 
+    // The room's cart goes with the room, so the page is back to its top, where
+    // the empty cart says what to do next.
     leave() {
       this.$live.leaveRoom()
+      this.$nextTick(() => window.scrollTo({ top: 0 }))
     },
   },
 }
