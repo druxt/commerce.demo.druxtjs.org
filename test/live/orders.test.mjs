@@ -220,7 +220,10 @@ test('a purge of many orders and shipments reads every one of them', async () =>
   })
   await hub.enter(order, `order:${UUID}`, client('v'))
   const ids = Array.from({ length: 25 }, (_, i) => i + 1)
-  await onTags([...ids.map((i) => `commerce_order:${i}`), ...ids.map((i) => `commerce_shipment:${i}`)])
+  await onTags([
+    ...ids.map((i) => `commerce_order:${i}`),
+    ...ids.map((i) => `commerce_shipment:${i}`),
+  ])
   assert.equal(read.filter((p) => p.includes('/orders/')).length, 25)
   assert.equal(read.filter((p) => p.includes('/shipments/')).length, 25)
 })
