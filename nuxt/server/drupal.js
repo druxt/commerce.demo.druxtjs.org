@@ -6,7 +6,7 @@
 const http = require('http')
 const https = require('https')
 const { pipeline } = require('stream')
-const { isDrupalScreen } = require('../lib/drupal-paths')
+const { isDrupalScreen, isSafePath } = require('../lib/drupal-paths')
 
 // Paths Drupal answers: JSON:API (carts and checkout included), the router,
 // uploaded files, and the theme and core assets its markup points at.
@@ -19,7 +19,10 @@ const DRUPAL_PATH =
  * @param {string} url - The request URL.
  * @returns {boolean} True for a Drupal path.
  */
-const isDrupalPath = (url) => DRUPAL_PATH.test(url) || isDrupalScreen(url.split('?')[0])
+const isDrupalPath = (url) => {
+  const pathname = url.split('?')[0]
+  return isSafePath(pathname) && (DRUPAL_PATH.test(url) || isDrupalScreen(pathname))
+}
 
 /**
  * GET a URL and parse a 200 response's JSON body.
