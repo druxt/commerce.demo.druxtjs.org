@@ -21,7 +21,7 @@ use Drupal\user\Entity\User;
 // A hosted environment must not fall back to the local-only secrets below,
 // which anyone can read in this repository.
 if (getenv('LAGOON')) {
-  $missing = array_filter(['OPERATOR_PASSWORD', 'DRUXT_HUB_SECRET'], fn ($name) => !getenv($name));
+  $missing = array_filter(['OPERATOR_PASSWORD', 'DRUXT_HUB_SECRET', 'DRUXT_SOCKETS_SECRET'], fn ($name) => !getenv($name));
   if ($missing) {
     throw new \RuntimeException(sprintf('Set %s on this environment. The local-only defaults are public.', implode(' and ', $missing)));
   }
