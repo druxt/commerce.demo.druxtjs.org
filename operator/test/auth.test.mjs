@@ -82,6 +82,23 @@ test('other grants, other methods and a dead Drupal are refused', async () => {
   assert.equal(res3.statusCode, 502)
 })
 
+test('a response that breaks off after its headers is answered 502', async () => {
+  const route = createTokenRoute({
+    drupalUrl: 'http://drupal',
+    clientId: 'c',
+    fetch: async () => ({
+      status: 200,
+      text: async () => {
+        throw new Error('socket hang up')
+      },
+    }),
+  })
+  const res = response()
+  await route(request({ grant_type: 'password', username: 'a', password: 'b' }), res)
+  assert.equal(res.statusCode, 502)
+  assert.equal(res.body, '{"error":"drupal_unreachable"}')
+})
+
 test('a body over the limit is answered 413 and never reaches Drupal', async () => {
   let called = false
   const fetch = async () => ((called = true), { status: 200, text: async () => '{}' })

@@ -55,7 +55,11 @@ const createTokenRoute =
       body: form.toString(),
     }).catch(() => null)
     if (!upstream) return reply(502, '{"error":"drupal_unreachable"}')
-    reply(upstream.status, await upstream.text())
+    // The body can fail after the headers arrive, and nothing above this
+    // route catches a rejection.
+    const body = await upstream.text().catch(() => null)
+    if (body === null) return reply(502, '{"error":"drupal_unreachable"}')
+    reply(upstream.status, body)
   }
 
 module.exports = { createTokenRoute, GRANTS }
