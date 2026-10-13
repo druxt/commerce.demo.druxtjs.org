@@ -55,6 +55,9 @@ const stopListening = () => {
 const bearer = (auth) =>
   String((auth.strategy.token && auth.strategy.token.get()) || '').replace(/^Bearer\s+/i, '')
 
+// Questions put to the concierge, so an answer can tell whether it is the latest.
+let asks = 0
+
 export const actions = {
   // Follow a session's threads. Called when the session attaches.
   follow({ state, commit }, code) {
@@ -116,9 +119,12 @@ export const actions = {
   },
 
   // The concierge's picks for a question, to forward. Through this origin's
-  // proxy to the storefront's route, with the operator's token.
+  // proxy to the storefront's route, with the operator's token. Only the
+  // answer to the latest question is applied, and an older one that
+  // finishes first changes nothing.
   async askConcierge({ commit, state }, question) {
     const code = state.selected
+    const ask = ++asks
     commit('asking', true)
     commit('picks', null)
     try {
@@ -127,8 +133,9 @@ export const actions = {
         { message: question, conversation: `operator:${code}` },
         { headers: { 'Content-Type': 'application/json' }, validateStatus: () => true }
       )
-      // Another thread was opened while it thought: these picks are not for it.
-      if (state.selected !== code) return
+      // A newer question was asked, or another thread opened, while it thought:
+      // these picks are not for it.
+      if (ask !== asks || state.selected !== code) return
       const picks = res.data && res.data.picks ? res.data.picks : []
       commit('picks', {
         question,
@@ -136,9 +143,9 @@ export const actions = {
         picks: picks.map((p) => ({ ...p, on: true })),
       })
     } catch (e) {
-      commit('error', 'The concierge did not answer.')
+      if (ask === asks) commit('error', 'The concierge did not answer.')
     } finally {
-      commit('asking', false)
+      if (ask === asks) commit('asking', false)
     }
   },
 }
