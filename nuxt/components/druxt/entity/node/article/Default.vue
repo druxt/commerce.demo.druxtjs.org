@@ -17,25 +17,23 @@
       </p>
     </div></header>
 
-    <div v-if="image" class="wrap mt-[clamp(24px,4vw,40px)]">
-      <figure class="mx-auto max-w-[1040px] m-0">
-        <img :src="image" :alt="imageAlt" class="block w-full aspect-[16/9] object-cover bg-paper-3">
-      </figure>
+    <!-- The fields are Drupal's display, each placed by its slot and drawn by
+         the field component Druxt resolves for its formatter or name. -->
+    <div v-if="$scopedSlots.field_image" class="wrap mt-[clamp(24px,4vw,40px)]">
+      <slot name="field_image" />
     </div>
 
     <div class="wrap"><div class="mx-auto max-w-[760px] mt-[clamp(24px,4vw,40px)] flex flex-col gap-8">
-      <!-- Drupal's processed body, styled by the prose rules. -->
-      <div class="prose article-body" v-html="body" />
+      <!-- The field's own wrapper takes the post's measure. -->
+      <slot name="body" :wrapper="{ class: 'article-body' }" />
 
-      <ul v-if="tags.length" class="flex flex-wrap gap-2 p-0 m-0 list-none" aria-label="Tags">
-        <li v-for="tag in tags" :key="tag" class="font-mono text-11px tracking-wide uppercase border border-solid border-line-2 rounded-full px-3 py-1 text-ink-2">{{ tag }}</li>
-      </ul>
+      <slot name="field_tags" />
 
       <client-only>
         <DruxtDemoNote
           match="/jsonapi/node/article"
           file="nuxt/components/druxt/entity/node/article/Default.vue"
-          body="A Drupal article, found by its path through Decoupled Router and rendered by a Vue component chosen for its bundle."
+          body="A Drupal article, found by its path through Decoupled Router and laid out by a Vue component chosen for its bundle. Its fields render through components chosen for their formatters."
         />
       </client-only>
     </div></div>
@@ -75,13 +73,15 @@ import { seoHead, articleGraph, breadcrumbGraph, clampDescription } from '~/util
 
 const formatDate = (iso) => postDate(iso, 'long')
 
-// A blog post: Kickstart's article bundle with its image and tags.
+// A blog post, Kickstart's article bundle with its image and tags. The
+// image and tags it reads here are for the breadcrumb and the share tags, and
+// the fetch leaves them in the store for the field components.
 export default {
   name: 'DruxtEntityNodeArticleDefault',
 
   mixins: [DruxtEntityMixin],
 
-  data: () => ({ image: '', imageAlt: '', tags: [], more: [] }),
+  data: () => ({ image: '', tags: [], more: [] }),
 
   async fetch() {
     // A preview's image and tags are the unsaved ones the preview seeded into
@@ -114,7 +114,6 @@ export default {
     const rels = node.relationships || {}
     const file = find((rels.field_image || {}).data)
     this.image = (((file || {}).attributes || {}).uri || {}).url || ''
-    this.imageAlt = ((rels.field_image || {}).data || {}).meta?.alt || ''
     this.tags = ((rels.field_tags || {}).data || []).map((ref) => ((find(ref) || {}).attributes || {}).name).filter(Boolean)
 
     const findLatest = resolve(latest)

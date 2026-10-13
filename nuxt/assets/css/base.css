@@ -139,5 +139,6 @@ button { font: inherit; color: inherit; }
 
 /* A blog post reads at a book's measure and size. */
 .article-body { font-size: 18px; line-height: 1.7; color: var(--ink); }
-.article-body > * + * { margin-top: 1.1em; }
-.article-body > p:first-child { font-size: 21px; line-height: 1.55; color: var(--ink); }
+/* The body field draws its own prose element inside the post's wrapper. */
+.article-body .prose > * + * { margin-top: 1.1em; }
+.article-body .prose > p:first-child { font-size: 21px; line-height: 1.55; color: var(--ink); }
