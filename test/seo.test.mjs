@@ -176,6 +176,13 @@ describe('readContent', () => {
       { title: 'Black Headphones', sku: 'level-headphones', price: '$49.99' },
     ])
   })
+  it('gives a product with no alias its UUID, which Commerce API sends in place of a serial id', () => {
+    const doc = content.documentOf(
+      { id: 'a1b2-uuid', attributes: { title: 'No alias' } },
+      'product'
+    )
+    assert.equal(doc.path, '/product/a1b2-uuid')
+  })
 })
 
 describe('llms.txt', () => {

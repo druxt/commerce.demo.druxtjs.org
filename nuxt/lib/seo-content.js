@@ -45,8 +45,9 @@ const documentOf = (resource, kind, included = []) => {
   const a = resource.attributes || {}
   const body = a.body || {}
   const alias = (a.path || {}).alias
-  const fallback =
-    kind === 'product' ? `/product/${a.drupal_internal__product_id}` : `/node/${a.drupal_internal__nid}`
+  // Commerce API leaves out a product's serial id, so a product with no alias
+  // falls back to its UUID, as the catalogue's links do.
+  const fallback = kind === 'product' ? `/product/${resource.id}` : `/node/${a.drupal_internal__nid}`
   const brand = related(resource, 'product_brand', included)[0]
   return {
     path: alias || fallback,
