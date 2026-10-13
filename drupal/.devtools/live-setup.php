@@ -18,6 +18,15 @@ use Drupal\simple_oauth\Entity\Oauth2Scope;
 use Drupal\user\Entity\Role;
 use Drupal\user\Entity\User;
 
+// A hosted environment must not fall back to the local-only secrets below,
+// which anyone can read in this repository.
+if (getenv('LAGOON')) {
+  $missing = array_filter(['OPERATOR_PASSWORD', 'DRUXT_HUB_SECRET'], fn ($name) => !getenv($name));
+  if ($missing) {
+    throw new \RuntimeException(sprintf('Set %s on this environment. The local-only defaults are public.', implode(' and ', $missing)));
+  }
+}
+
 $config = \Drupal::configFactory();
 $entities = \Drupal::entityTypeManager();
 $entities->clearCachedDefinitions();
