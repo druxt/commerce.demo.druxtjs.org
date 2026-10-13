@@ -1,6 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { createAssistRoute, createCaps } from '../../nuxt/server/assist/index.js'
+import { compactCatalogue } from '../../nuxt/server/assist/catalogue.js'
 import { CATALOGUE } from './catalogue.fixture.mjs'
 
 // Drupal, as the catalogue reads it: products with their variations included.
@@ -159,4 +160,28 @@ test('a conversation has twelve model turns and a day has its cap; a GET is refu
     log: () => {},
   })
   assert.equal((await call(route, {}, { method: 'GET' })).statusCode, 405)
+})
+
+test('the catalogue follows every page drupal gives it', async () => {
+  const half = Math.ceil(CATALOGUE.length / 2)
+  const seen = []
+  const fetch = async (url) => {
+    const u = String(url)
+    seen.push(u)
+    if (u.startsWith('http://drupal/page-2'))
+      return { ok: true, status: 200, json: async () => drupalBody(CATALOGUE.slice(half)) }
+    if (u.includes('/jsonapi/products/physical'))
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          ...drupalBody(CATALOGUE.slice(0, half)),
+          links: { next: { href: 'http://drupal/page-2' } },
+        }),
+      }
+    return { ok: true, status: 200, json: async () => ({ data: [], included: [] }) }
+  }
+  const lines = await compactCatalogue('http://drupal', { fetch })
+  assert.equal(lines.length, CATALOGUE.length)
+  assert.equal(seen.length, 3)
 })

@@ -42,9 +42,15 @@ const linesOf = (body = {}) => {
 const compactCatalogue = async (drupalUrl, { fetch: request = globalThis.fetch } = {}) => {
   const lines = []
   for (const path of PATHS) {
-    const res = await request(new URL(path, drupalUrl), { headers: { Accept: JSON_API } })
-    if (!res.ok) throw new Error(`Drupal answered ${res.status} for ${path.split('?')[0]}`)
-    lines.push(...linesOf(await res.json()))
+    // JSON:API gives at most 50 products a page, so follow next to the last.
+    for (let url = new URL(path, drupalUrl); url; ) {
+      const res = await request(url, { headers: { Accept: JSON_API } })
+      if (!res.ok) throw new Error(`Drupal answered ${res.status} for ${path.split('?')[0]}`)
+      const body = await res.json()
+      lines.push(...linesOf(body))
+      const next = ((body.links || {}).next || {}).href
+      url = next ? new URL(next) : null
+    }
   }
   return lines
 }
