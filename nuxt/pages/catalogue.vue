@@ -68,7 +68,7 @@
             :price="p.price"
             :image="p.image"
             :category="p.category"
-            :variation="p.variations[0]"
+            :variation="(picks.length && p.variations.find((v) => picks.includes(v.sku))) || p.variations[0]"
           />
         </div>
 
