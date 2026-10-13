@@ -20,7 +20,7 @@ const AUTHORS = ['visitor', 'concierge', 'operator']
 const BODY_MAX = 2000
 const TURNS_MAX = 200
 
-const assistHandler = ({ drupal, drupalUrl, accountOf, registry, rand = Math.random, log = () => {} } = {}) => {
+const assistHandler = ({ drupal, drupalUrl, accountOf, registry, rand, log = () => {} } = {}) => {
   const threads = new Map()
   const codes = new Set()
   // Console client ids watching a session's threads.

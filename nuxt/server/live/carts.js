@@ -8,7 +8,7 @@
 const { roomCode, isCode } = require('./code')
 const { UUID } = require('./drupal')
 
-const cartHandler = ({ orderForToken, drupalUrl, rand = Math.random, log = () => {} } = {}) => {
+const cartHandler = ({ orderForToken, drupalUrl, rand, log = () => {} } = {}) => {
   const rooms = new Map()
   const codes = new Set()
 
