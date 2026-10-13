@@ -18,7 +18,7 @@
     "core-js": "3.25.1",
     "dotenv": "^16.0.3",
     "druxt-site": "0.15.0-dev.20261011015353",
-    "druxt-views": "file:vendor/druxt-views",
+    "druxt-views": "0.23.0-dev.20261011015353",
     "nuxt": "2.15.8",
     "vue-server-renderer": "2.7.14",
     "vue-template-compiler": "2.7.14"
@@ -41,7 +41,7 @@
     "druxt-menu": "0.22.0-dev.20261011015353",
     "druxt-router": "0.32.0-dev.20261011015353",
     "druxt-schema": "0.12.0-dev.20261011015353",
-    "druxt-views": "file:vendor/druxt-views",
+    "druxt-views": "0.23.0-dev.20261011015353",
     "axios": "^0.34.0",
     "vue": "2.7.14",
     "vue-server-renderer": "2.7.14",
