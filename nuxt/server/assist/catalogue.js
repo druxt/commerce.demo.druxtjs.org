@@ -39,12 +39,13 @@ const linesOf = (body = {}) => {
   return lines
 }
 
-const compactCatalogue = async (drupalUrl, { fetch: request = globalThis.fetch } = {}) => {
+const compactCatalogue = async (drupalUrl, { fetch: request = globalThis.fetch, timeoutMs = 10000 } = {}) => {
   const lines = []
   for (const path of PATHS) {
     // JSON:API gives at most 50 products a page, so follow next to the last.
     for (let url = new URL(path, drupalUrl); url; ) {
-      const res = await request(url, { headers: { Accept: JSON_API } })
+      // A stalled Drupal times out, and the last catalogue answers instead.
+      const res = await request(url, { headers: { Accept: JSON_API }, signal: AbortSignal.timeout(timeoutMs) })
       if (!res.ok) throw new Error(`Drupal answered ${res.status} for ${path.split('?')[0]}`)
       const body = await res.json()
       lines.push(...linesOf(body))
