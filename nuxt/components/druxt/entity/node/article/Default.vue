@@ -69,9 +69,9 @@
 <script>
 import { DruxtEntityMixin } from 'druxt-entity'
 import { DrupalJsonApiParams } from 'drupal-jsonapi-params'
+import { postDate } from '~/lib/dates'
 
-const formatDate = (iso) =>
-  iso ? new Date(iso).toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' }) : ''
+const formatDate = (iso) => postDate(iso, 'long')
 
 // A blog post: Kickstart's article bundle with its image and tags.
 export default {
