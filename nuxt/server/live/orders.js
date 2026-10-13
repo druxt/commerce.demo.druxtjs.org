@@ -141,7 +141,9 @@ const ordersHandler = ({ registry, drupal, drupalUrl, accountOf, orderForToken, 
 
   const onTags = async (tags = []) => {
     if (!hubApi) return
-    const ids = [...new Set(tags.map((t) => (ORDER_TAG.exec(t) || [])[1]).filter(Boolean))].slice(0, 20)
+    // Read one at a time, however many there are: a bulk change purges many
+    // orders at once, and a cut-off would leave some rooms on the old state.
+    const ids = [...new Set(tags.map((t) => (ORDER_TAG.exec(t) || [])[1]).filter(Boolean))]
     for (const id of ids) {
       let body
       try {
@@ -153,7 +155,7 @@ const ordersHandler = ({ registry, drupal, drupalUrl, accountOf, orderForToken, 
       for (const found of body.data || []) tell(found, body)
     }
     // A shipment moved on its own: its order's room and consoles hear it.
-    const shipments = [...new Set(tags.map((t) => (SHIPMENT_TAG.exec(t) || [])[1]).filter(Boolean))].slice(0, 20)
+    const shipments = [...new Set(tags.map((t) => (SHIPMENT_TAG.exec(t) || [])[1]).filter(Boolean))]
     for (const id of shipments) {
       try {
         const found = await drupal.get(SHIPMENT_PATH(id))
