@@ -9,8 +9,9 @@
     </nav>
 
     <div class="grid items-start gap-[clamp(24px,4vw,48px)] grid-cols-[repeat(auto-fit,minmax(min(100%,340px),1fr))]">
-      <!-- Gallery. Swipes on touch; the thumbnails are the same choice for a
-           pointer or a keyboard. -->
+      <!-- Gallery. Swipes on touch, and the thumbnails are the same choice for
+           a pointer or a keyboard. Drawn from the catalogue rather than the
+           images field, which Kickstart's book display leaves out. -->
       <div class="flex flex-col gap-3">
         <div
           class="relative aspect-square bg-paper-3 border border-line overflow-hidden touch-pan-y"
@@ -43,13 +44,15 @@
       <!-- Detail. Sticky beside the gallery only where there is room for it. -->
       <div class="md:sticky md:top-24">
         <p v-if="item && item.category" class="font-mono text-11px tracking-wider uppercase text-ink-3 mb-2.5">{{ item.category }}</p>
-        <h1 class="text-[clamp(26px,4.6vw,38px)] leading-[1.08] tracking-tight mb-3.5">{{ title }}</h1>
+        <!-- The product's own fields come from its Drupal display, each in
+             the element its slot asks the field to wrap itself in. -->
+        <slot name="title" :wrapper="{ component: 'h1', class: 'text-[clamp(26px,4.6vw,38px)] leading-[1.08] tracking-tight mb-3.5' }" />
         <p v-if="price" class="font-mono text-24px font-500 mb-4.5">{{ price }}</p>
         <!-- Who else is here, from the live hub: counts and nothing more. -->
         <p v-if="interest" class="font-mono text-11px text-teal mb-4.5 flex items-center gap-1.5" aria-live="polite">
           <span class="w-1.5 h-1.5 rounded-full bg-teal" aria-hidden="true" />{{ interest }}
         </p>
-        <div v-if="body" class="prose text-15px leading-relaxed text-ink-2 mb-6.5 max-w-[52ch]" v-html="body" />
+        <slot v-if="body" name="body" :wrapper="{ class: 'text-15px leading-relaxed text-ink-2 mb-6.5 max-w-[52ch]' }" />
 
         <!-- Hidden entirely when there is only one variation. -->
         <fieldset v-if="variations.length > 1" class="border-0 mx-0 mt-0 p-0 mb-5.5">
@@ -96,7 +99,7 @@
           <DruxtDemoNote
             class="mt-6"
             match="/jsonapi/products/"
-            file="nuxt/components/druxt/entity/product/physical/Full.vue"
+            file="nuxt/components/druxt/entity/commerce-product/physical/Default.vue"
             body="The route resolved through decoupled_router to this product, which the catalogue already held. The page made no request of its own."
           />
         </client-only>
@@ -128,15 +131,14 @@
 
 <script>
 import { mapState } from 'vuex'
+import { DruxtEntityMixin } from 'druxt-entity'
 import { canonicalUrl } from '~/lib/site'
 import { seoHead, productGraph, breadcrumbGraph, clampDescription } from '~/utils/seo'
 
 export default {
-  name: 'DruxtEntityProductPhysicalFull',
+  name: 'DruxtEntityCommerceProductPhysicalDefault',
 
-  props: {
-    entity: { type: Object, required: true },
-  },
+  mixins: [DruxtEntityMixin],
 
   data: () => ({
     activeVariationId: undefined,
@@ -213,6 +215,7 @@ export default {
 
     activeImage: ({ images, imageIndex }) => images[imageIndex] || images[0],
 
+    // The brand from the catalogue too: only the book display has its field.
     meta: ({ activeVariation, entity, variations, item }) => [
       { label: 'SKU', value: (activeVariation || {}).sku || '–', mono: true },
       { label: 'Entity', value: entity.type, mono: true },
