@@ -66,8 +66,10 @@ const decodeEntities = (text) =>
     if (name.startsWith('#')) {
       const hex = name[1] === 'x' || name[1] === 'X'
       const point = Number.parseInt(name.slice(hex ? 2 : 1), hex ? 16 : 10)
-      // An invalid reference is left as written, so the build goes on.
-      return point <= 0x10ffff ? String.fromCodePoint(point) : entity
+      // An invalid reference (zero, an unpaired surrogate, past Unicode) is left as
+      // written, so the build goes on.
+      const valid = point > 0 && point <= 0x10ffff && (point < 0xd800 || point > 0xdfff)
+      return valid ? String.fromCodePoint(point) : entity
     }
     return NAMED_ENTITIES[name.toLowerCase()] || entity
   })
