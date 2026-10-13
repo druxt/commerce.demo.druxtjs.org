@@ -129,6 +129,12 @@ drush('pm:enable druxt');
 drush('pm:enable simple_oauth simple_oauth_password_grant consumers message purge purge_drush purge_tokens purge_queuer_coretags purge_processor_lateruntime purge_purger_http');
 // The demo's own module: the order id commerce_api hides, for the live hub.
 drush('pm:enable commerce_demo_live');
+// Drupal's own pages closed to anonymous visitors, as on the Umami demo:
+// anything off the list goes to the login form, which the storefront proxies
+// with the rest of the admin. The list is what the storefront and its
+// visitors use anonymously: sign-in, the API, the token and image styles.
+drush('pm:enable anonymous_redirect');
+drush('php:eval %s', '\\Drupal::configFactory()->getEditable("anonymous_redirect.settings")->set("enable_redirect", TRUE)->set("redirect_url_overrides", implode("\\n", ["/user/*", "/jsonapi", "/jsonapi/*", "/oauth/*", "/router/*", "/session/token", "/sites/default/files/*"]))->save();');
 drush('role:perm:add anonymous %s', 'access druxt resources');
 PASS('druxt enabled; anonymous can access Druxt resources.');
 

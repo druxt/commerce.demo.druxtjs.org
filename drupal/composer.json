@@ -58,6 +58,7 @@
         "centarro/commerce_kickstart": "^5.1",
         "composer/installers": "^2.0",
         "cweagans/composer-patches": "^1.7",
+        "drupal/anonymous_redirect": "^2.5",
         "drupal/commerce_api": "^1.0@rc",
         "drupal/commerce_kickstart_demo": "^1.2",
         "drupal/core-composer-scaffold": "^11",

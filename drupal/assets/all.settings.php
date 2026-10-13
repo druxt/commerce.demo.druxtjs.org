@@ -47,3 +47,4 @@ $settings['consumer_node_preview'] = [
   ],
   'default' => 'settings:storefront',
 ];
+
