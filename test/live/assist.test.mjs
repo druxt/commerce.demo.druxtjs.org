@@ -50,9 +50,9 @@ const fetchFor =
     throw new Error('unexpected ' + u)
   }
 
-const request = (body, { method = 'POST', address = '1.1.1.1' } = {}) => ({
+const request = (body, { method = 'POST', address = '1.1.1.1', forwarded = address } = {}) => ({
   method,
-  headers: { 'x-forwarded-for': address },
+  headers: forwarded ? { 'x-forwarded-for': forwarded } : {},
   socket: { remoteAddress: address },
   on(event, fn) {
     if (event === 'data') fn(JSON.stringify(body))
@@ -141,6 +141,40 @@ test('the eleventh request in a minute from one address is scripted, and a long 
   assert.equal((await call(route, { message: 'x' }, { address: '2.2.2.2' })).json().source, 'model')
   t += 61000
   assert.equal((await call(route, { message: 'x' })).json().source, 'model')
+})
+
+test('the address a request is counted by is the one the router saw, not one the client wrote', async () => {
+  const fetch = fetchFor('{"note":"ok","picks":[{"sku":"whtsh","why":"soft"}]}')
+  const route = createAssistRoute({
+    drupalUrl: 'http://drupal',
+    apiKey: 'k',
+    fetch,
+    now: () => 1000,
+    limits: { perMinute: 1 },
+    log: () => {},
+  })
+  const router = '10.0.0.9'
+  const ask = (forwarded) => call(route, { message: 'x' }, { address: router, forwarded })
+  assert.equal((await ask('9.9.9.1, 3.3.3.3')).json().source, 'model')
+  assert.equal((await ask('9.9.9.2, 3.3.3.3')).json().source, 'scripted')
+  assert.equal((await ask('4.4.4.4')).json().source, 'model')
+  // With no proxy in front, the socket's own address.
+  const direct = createAssistRoute({
+    drupalUrl: 'http://drupal',
+    apiKey: 'k',
+    fetch,
+    now: () => 1000,
+    limits: { perMinute: 1 },
+    log: () => {},
+  })
+  assert.equal(
+    (await call(direct, { message: 'x' }, { address: '5.5.5.5', forwarded: '' })).json().source,
+    'model'
+  )
+  assert.equal(
+    (await call(direct, { message: 'x' }, { address: '5.5.5.5', forwarded: '' })).json().source,
+    'scripted'
+  )
 })
 
 test('a conversation has twelve model turns and a day has its cap; a GET is refused', async () => {

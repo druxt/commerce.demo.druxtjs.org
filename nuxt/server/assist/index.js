@@ -84,9 +84,14 @@ const createAssistRoute = ({
     const data = await readJson(req)
     const message = String(data.message || '').slice(0, MESSAGE_MAX)
     const conversation = String(data.conversation || '').slice(0, 64)
-    const address = String((req.headers || {})['x-forwarded-for'] || req.socket?.remoteAddress || '')
-      .split(',')[0]
-      .trim()
+    // Lagoon's router adds the address it saw at the end of X-Forwarded-For,
+    // and anything before that is the client's to write. The console passes
+    // the header on as it came. With no proxy in front, the socket's address.
+    const forwarded = String((req.headers || {})['x-forwarded-for'] || '')
+      .split(',')
+      .map((a) => a.trim())
+      .filter(Boolean)
+    const address = forwarded.length ? forwarded[forwarded.length - 1] : String(req.socket?.remoteAddress || '')
     const lines = await catalogue()
 
     let answer = null
