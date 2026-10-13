@@ -180,3 +180,25 @@ test('a product room and the catalogue room hear the stock move after an order p
   assert.deepEqual(listStock.payload.levels, { v1: 0 })
   assert.equal(hub.sent.filter((m) => m.type === 'carts').length, 0)
 })
+
+test('the carts and the stock are read past their first page', async () => {
+  const next = (href) => ({ links: { next: { href } } })
+  const pages = {
+    physical: { ...stockBody([['v1', 2, P1]]), ...next('http://drupal/jsonapi/product-variations/physical?page%5Boffset%5D=50') },
+    'physical-2': stockBody([['v2', 0, P2]]),
+    carts: { ...carts([['v1']]), ...next('http://drupal/jsonapi/orders/default?page%5Boffset%5D=50') },
+    'carts-2': carts([['v1']]),
+  }
+  const drupal = {
+    get: async (path) =>
+      path.includes('/orders/')
+        ? path.includes('offset') ? pages['carts-2'] : pages.carts
+        : path.includes('/physical?')
+          ? path.includes('offset') ? pages['physical-2'] : pages.physical
+          : { data: [] },
+  }
+  const { refresh, counts, stock } = productHandler({ drupal })
+  await refresh()
+  assert.deepEqual(Object.fromEntries(stock().levels), { v1: 2, v2: 0 })
+  assert.equal(counts().get(P1), 2)
+})

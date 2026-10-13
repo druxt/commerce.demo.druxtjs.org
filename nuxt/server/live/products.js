@@ -18,6 +18,21 @@ const STOCK_PATHS = [
   '/jsonapi/product-variations/media-physical?fields[product-variation--media-physical]=sku,stock,product_id&page[limit]=50',
 ]
 
+/**
+ * Every page of a collection, up to twenty, as one document. A page holds 50,
+ * and a SKU or a cart past the first would read as gone.
+ */
+const readAll = async (drupal, path, pages = 20) => {
+  const all = { data: [], included: [] }
+  for (let next = path; next && pages--; ) {
+    const body = await drupal.get(next)
+    all.data.push(...(body.data || []))
+    all.included.push(...(body.included || []))
+    next = ((body.links || {}).next || {}).href
+  }
+  return all
+}
+
 /** Distinct carts per product uuid, from Drupal's carts with their items. */
 const countCarts = (body = {}) => {
   const included = new Map((body.included || []).map((r) => [`${r.type}:${r.id}`, r]))
@@ -78,8 +93,8 @@ const productHandler = ({ drupal, log = () => {}, debounceMs = 400, setTimer = s
     let cartsBody
     let stockBodies
     try {
-      cartsBody = await drupal.get(CARTS_PATH)
-      stockBodies = await Promise.all(STOCK_PATHS.map((p) => drupal.get(p).catch(() => ({ data: [] }))))
+      cartsBody = await readAll(drupal, CARTS_PATH)
+      stockBodies = await Promise.all(STOCK_PATHS.map((p) => readAll(drupal, p).catch(() => ({ data: [] }))))
     } catch (error) {
       return log(`carts: not read: ${error.message}`)
     }
