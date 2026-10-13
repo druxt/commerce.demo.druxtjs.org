@@ -8,7 +8,10 @@
 const { roomCode, isCode } = require('./code')
 const { UUID } = require('./drupal')
 
-const cartHandler = ({ orderForToken, drupalUrl, rand, log = () => {} } = {}) => {
+// How long a room waits for its owner to join before it is forgotten.
+const UNJOINED_MS = 60000
+
+const cartHandler = ({ orderForToken, drupalUrl, rand, log = () => {}, setTimer = setTimeout } = {}) => {
   const rooms = new Map()
   const codes = new Set()
 
@@ -51,7 +54,14 @@ const cartHandler = ({ orderForToken, drupalUrl, rand, log = () => {} } = {}) =>
         if (!token) return fail(hub, client, channel, 'No cart to share.')
         const next = roomCode(codes, rand)
         codes.add(next)
-        rooms.set(next, { code: next, token, owner: client.id, opened: Date.now() })
+        const room = { code: next, token, owner: client.id, opened: Date.now() }
+        rooms.set(next, room)
+        // Only a leave ends a room, so one whose owner closed the tab before
+        // joining would stay open for good. The process may still exit while
+        // this timer is pending.
+        setTimer(() => {
+          if (rooms.get(next) === room && !hub.members(`cart:${next}`).length) end(next)
+        }, UNJOINED_MS).unref?.()
         log(`cart room ${next} opened`)
         return hub.send(client, 'room', channel, { code: next })
       }
