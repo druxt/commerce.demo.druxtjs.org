@@ -45,6 +45,13 @@ export const mutations = {
   },
 }
 
+// The followed session's socket listeners, removed when the console unfollows it.
+let listeners = []
+const stopListening = () => {
+  listeners.forEach((off) => off())
+  listeners = []
+}
+
 const bearer = (auth) =>
   String((auth.strategy.token && auth.strategy.token.get()) || '').replace(/^Bearer\s+/i, '')
 
@@ -54,18 +61,21 @@ export const actions = {
     if (!code || state.following === code) return
     commit('following', code)
     const sockets = this.$sockets
-    const on = (type, fn) => sockets.on(type, (m) => m.channel === 'assist:new' && fn(m.payload))
+    stopListening()
+    const on = (type, fn) =>
+      listeners.push(sockets.on(type, (m) => m.channel === 'assist:new' && fn(m.payload)))
     on('threads', (p) => p.session === code && commit('threads', p.threads))
     on('assist:waiting', (t) => t.session === code && commit('thread', t))
     on('assist:thread', (t) => t.session === code && commit('thread', t))
     const list = () =>
       sockets.send('list', 'assist:new', { token: bearer(this.$auth), session: code })
-    sockets.on('hello', list)
+    listeners.push(sockets.on('hello', list))
     sockets.join('assist:new')
     list()
   },
 
   unfollow({ commit }) {
+    stopListening()
     this.$sockets.leave('assist:new')
     commit('following', '')
     commit('threads', [])
