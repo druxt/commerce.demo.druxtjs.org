@@ -201,6 +201,14 @@ test('a thread the hub forgot comes back from Drupal', async () => {
             created: '2026-10-12T00:00:01+00:00',
           },
         },
+        {
+          attributes: {
+            field_author: 'concierge',
+            field_body: 'these',
+            field_picks: '[{"sku":',
+            created: '2026-10-12T00:00:02+00:00',
+          },
+        },
       ],
     },
   })
@@ -209,12 +217,15 @@ test('a thread the hub forgot comes back from Drupal', async () => {
   await s.hub.enter(s.handler, 'assist:ABCDEF', v)
   const thread = s.hub.sent.find((m) => m.type === 'thread').payload
   assert.equal(thread.state, 'waiting')
-  assert.equal(thread.turns.length, 2)
+  assert.equal(thread.turns.length, 3)
   assert.equal(thread.turns[1].picks[0].sku, 'whtsh')
+  // Picks that do not parse lose only themselves.
+  assert.equal(thread.turns[2].body, 'these')
+  assert.equal(thread.turns[2].picks, undefined)
   // The recovered thread is the visitor's to continue.
   await s.handler.message(s.hub, 'assist:ABCDEF', v, 'turn', {
     author: 'visitor',
     text: 'still here',
   })
-  assert.equal(s.handler.threads.get('ABCDEF').turns.length, 3)
+  assert.equal(s.handler.threads.get('ABCDEF').turns.length, 4)
 })
