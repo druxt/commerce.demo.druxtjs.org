@@ -135,3 +135,17 @@ test('leaving updates the members and an empty room is forgotten', async () => {
   await s.hub.exit(s.handler, `cart:${code}`, guest)
   assert.equal(s.rooms.get(code), undefined)
 })
+
+test('an order placed from two phones at once closes the room once', async () => {
+  const s = setup()
+  const owner = client('o')
+  const code = await open(s, owner)
+  await s.hub.enter(s.handler, `cart:${code}`, owner)
+  const guest = client('g')
+  await s.hub.enter(s.handler, `cart:${code}`, guest)
+  await Promise.all([
+    s.handler.message(s.hub, `cart:${code}`, owner, 'placed', { uuid: UUID }),
+    s.handler.message(s.hub, `cart:${code}`, guest, 'placed', { uuid: UUID }),
+  ])
+  assert.equal(s.hub.sent.filter((m) => m.type === 'closed').length, 1)
+})

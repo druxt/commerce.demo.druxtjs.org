@@ -74,6 +74,8 @@ const cartHandler = ({ orderForToken, drupalUrl, rand = Math.random, log = () =>
         // Checked against the room's token, never the sender's.
         const order = await orderForToken(drupalUrl, payload.uuid, room.token)
         if (!order) return fail(hub, client, channel, 'That order is not this cart.')
+        // Another member's order closed the room while this one was checked.
+        if (rooms.get(code) !== room) return
         end(code)
         log(`cart room ${code} closed by order ${order.number}`)
         return hub.broadcast(channel, 'closed', { number: order.number, ...who })
