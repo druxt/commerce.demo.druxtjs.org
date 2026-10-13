@@ -149,3 +149,17 @@ test('an order placed from two phones at once closes the room once', async () =>
   ])
   assert.equal(s.hub.sent.filter((m) => m.type === 'closed').length, 1)
 })
+
+test('with no source given, a room code does not come from Math.random', async () => {
+  const random = Math.random
+  Math.random = () => {
+    throw new Error('Math.random')
+  }
+  try {
+    const hub = fakeHub()
+    const { handler } = cartHandler({ orderForToken, drupalUrl: 'http://drupal' })
+    assert.equal((await open({ hub, handler }, client('o'))).length, 6)
+  } finally {
+    Math.random = random
+  }
+})
