@@ -111,7 +111,7 @@ export default {
   data: () => ({ draft: '', added: '', busy: false, now: Date.now(), ticker: null }),
 
   computed: {
-    ...mapState('assist', ['open', 'pending', 'messages', 'seed', 'picksShown', 'threadState', 'operatorName', 'waitingSince']),
+    ...mapState('assist', ['open', 'pending', 'messages', 'picksShown', 'threadState', 'operatorName', 'waitingSince']),
     ...mapGetters('assist', ['productCount', 'withOperator']),
     ...mapState('catalogue', ['items']),
 
@@ -142,7 +142,6 @@ export default {
         this.$refs.input && this.$refs.input.focus()
         document.addEventListener('focusin', this.trap)
         document.addEventListener('keydown', this.onKey)
-        if (this.seed) this.ask(this.seed)
       } else {
         document.removeEventListener('focusin', this.trap)
         document.removeEventListener('keydown', this.onKey)
