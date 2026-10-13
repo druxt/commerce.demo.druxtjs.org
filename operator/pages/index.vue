@@ -26,13 +26,14 @@
       </h1>
       <p class="lead">Visitors open the link or scan the code. Everything they do lands here.</p>
       <div class="card p-5 flex flex-col gap-3.5 max-w-180">
+        <p v-if="error" class="bg-err-1 border border-err-2 text-err-3 rounded px-3.5 py-3 text-14px" role="alert">{{ error }}</p>
         <div class="flex gap-6 flex-wrap items-start">
           <div class="flex-[1_1_260px] flex flex-col gap-3">
             <span class="font-mono text-44px font-600 tracking-[0.14em] leading-none">{{ code }}</span>
             <input class="field font-mono text-13px" :value="link" readonly aria-label="Session link" @focus="$event.target.select()">
             <div class="flex gap-2 flex-wrap">
               <button type="button" class="btn-ghost" @click="copy">{{ copied ? 'Copied' : 'Copy link' }}</button>
-              <button type="button" class="btn-ghost" @click="big = true">Show on the big screen</button>
+              <button ref="bigTrigger" type="button" class="btn-ghost" @click="big = true">Show on the big screen</button>
               <button type="button" class="btn-ghost" @click="end">End session</button>
             </div>
           </div>
@@ -50,7 +51,8 @@
         </dl>
       </div>
 
-      <!-- The big screen: the QR and the code, nothing else, until Escape. -->
+      <!-- The big screen: the QR and the code, nothing else, until Escape. Close
+           is its only control, so Tab stays on it. -->
       <div
         v-if="big"
         class="fixed inset-0 z-50 bg-paper flex flex-col items-center justify-center gap-6 p-6"
@@ -59,6 +61,7 @@
         aria-label="Session code on the big screen"
         @click="big = false"
         @keydown.esc="big = false"
+        @keydown.tab.prevent
       >
         <QrCode :value="link" alt="QR code for the session link" :size="320" />
         <span class="font-mono text-[clamp(44px,10vw,96px)] font-600 tracking-[0.14em] leading-none">{{ code }}</span>
@@ -94,7 +97,10 @@ export default {
 
   watch: {
     big(on) {
-      if (on) this.$nextTick(() => this.$el.querySelector('[role=dialog] button').focus())
+      this.$nextTick(() => {
+        if (on) this.$el.querySelector('[role=dialog] button').focus()
+        else if (this.$refs.bigTrigger) this.$refs.bigTrigger.focus()
+      })
     },
   },
 
@@ -131,9 +137,13 @@ export default {
       }
     },
 
-    end() {
-      if (window.confirm(`End session ${this.code}? Its visitors become strangers to this console.`)) {
-        this.$store.dispatch('session/end')
+    async end() {
+      if (!window.confirm(`End session ${this.code}? Its visitors become strangers to this console.`)) return
+      this.error = ''
+      try {
+        await this.$store.dispatch('session/end')
+      } catch (error) {
+        this.error = error.message
       }
     },
 

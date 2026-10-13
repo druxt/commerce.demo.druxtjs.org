@@ -162,12 +162,28 @@ export const actions = {
     commit('attached', '')
   },
 
+  // Ended when the hub says so. A message sent while the socket is down is
+  // dropped, so without that answer the code stays and End can be tried again.
   end({ state, commit }) {
     if (!state.code) return
-    this.$sockets.send('end', `orders:${state.code}`, {})
-    this.$sockets.leave(`orders:${state.code}`)
-    stopListening()
-    commit('ended')
-    stored.set('')
+    const sockets = this.$sockets
+    const channel = `orders:${state.code}`
+    return new Promise((resolve, reject) => {
+      const off = sockets.on('ended', (m) => {
+        if (m.channel !== channel) return
+        clearTimeout(timer)
+        off()
+        sockets.leave(channel)
+        stopListening()
+        commit('ended')
+        stored.set('')
+        resolve()
+      })
+      const timer = setTimeout(() => {
+        off()
+        reject(new Error('The live hub did not answer, so the session is still open. Try again.'))
+      }, 10000)
+      sockets.send('end', channel, {})
+    })
   },
 }
