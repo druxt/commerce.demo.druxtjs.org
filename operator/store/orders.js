@@ -24,11 +24,10 @@ export const actions = {
     if (!code) return
     const url =
       `/jsonapi/orders/default?filter[field_demo_session]=${encodeURIComponent(code)}` +
-      '&sort=-changed&fields[order--default]=order_number,state,total_price,email,placed'
-    const res = await this.$axios.get(url, {
-      headers: { Accept: JSON_API },
-      validateStatus: () => true,
-    })
+      '&sort=-changed&fields[order--default]=order_number,state,total_price,mail,placed'
+    const res = await this.$axios
+      .get(url, { headers: { Accept: JSON_API }, validateStatus: () => true })
+      .catch((error) => ({ status: error.message }))
     if (res.status !== 200) return commit('error', `Drupal answered ${res.status}`)
     commit('error', '')
     commit(
@@ -38,7 +37,8 @@ export const actions = {
         number: o.attributes.order_number,
         state: o.attributes.state,
         total: (o.attributes.total_price || {}).formatted || '',
-        email: o.attributes.email || '',
+        // Commerce names the customer's address `mail`.
+        email: o.attributes.mail || '',
         placed: o.attributes.placed,
       })),
       { root: true }
@@ -74,6 +74,12 @@ export const actions = {
         },
       })
       if (ok) commit('session/moved', { uuid, state: body.data.attributes.state }, { root: true })
+    } catch (error) {
+      // No answer at all, so the board shows this failure, not an older result.
+      commit('responded', {
+        uuid,
+        response: { status: 0, ms: Date.now() - started, to, error: error.message, at: Date.now() },
+      })
     } finally {
       commit('busy', { uuid, on: false })
     }
