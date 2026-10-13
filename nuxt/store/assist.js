@@ -112,10 +112,11 @@ export const actions = {
         state.listening = true
         live.onThread((type, payload) => {
           if (type === 'thread') commit('thread', { turns: payload.turns || [], threadState: payload.state, operatorName: payload.operatorName, waitingSince: payload.waitingSince })
-          if (type === 'turn') {
-            // A visitor's own turns are shown as they are sent; the rest arrive here.
-            if (payload.author !== 'visitor') commit('push', fromTurn(payload))
-            if (payload.author === 'operator') commit('pending', false)
+          // This tab shows the visitor's and the concierge's turns as it sends
+          // them, and the hub echoes them back. Only the operator's are new here.
+          if (type === 'turn' && payload.author === 'operator') {
+            commit('push', fromTurn(payload))
+            commit('pending', false)
           }
           if (type === 'operator') {
             commit('push', { role: 'sys', text: `${payload.name} joined · ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` })
