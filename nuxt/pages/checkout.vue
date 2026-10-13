@@ -276,11 +276,19 @@ export default {
     async saveAddress() {
       const address = { ...this.address }
       if (!(await this.patch({ billing_information: { address }, shipping_information: { address } }))) return
+      // A cart of downloads has no rates and goes on without one. Rates that
+      // could not be read stop here, so that a parcel is never paid for
+      // unshipped. Continue asks again.
+      this.busy = true
       try {
         const rates = await this.$store.dispatch('cart/shippingRates')
         this.rate = rates.find((r) => /demo/i.test(r.label)) || rates[0] || null
       } catch (e) {
         this.rate = null
+        this.error = `The courier's rates could not be read: ${e.message}`
+        return
+      } finally {
+        this.busy = false
       }
       this.step = 2
     },
