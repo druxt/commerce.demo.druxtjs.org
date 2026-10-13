@@ -70,10 +70,11 @@ export const mutations = {
   push(state, message) {
     state.messages = [...state.messages, { at: Date.now(), ...message }]
   },
-  thread(state, { turns, threadState, operatorName }) {
+  thread(state, { turns, threadState, operatorName, waitingSince }) {
     state.messages = [greeting(), ...turns.map(fromTurn)]
     state.threadState = threadState
     state.operatorName = operatorName || ''
+    state.waitingSince = threadState === 'waiting' ? waitingSince || Date.now() : 0
   },
   threadState(state, { threadState, operatorName }) {
     state.threadState = threadState
@@ -110,7 +111,7 @@ export const actions = {
       if (!state.listening) {
         state.listening = true
         live.onThread((type, payload) => {
-          if (type === 'thread') commit('thread', { turns: payload.turns || [], threadState: payload.state, operatorName: payload.operatorName })
+          if (type === 'thread') commit('thread', { turns: payload.turns || [], threadState: payload.state, operatorName: payload.operatorName, waitingSince: payload.waitingSince })
           if (type === 'turn') {
             // A visitor's own turns are shown as they are sent; the rest arrive here.
             if (payload.author !== 'visitor') commit('push', fromTurn(payload))

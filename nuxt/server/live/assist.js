@@ -101,11 +101,14 @@ const assistHandler = ({ drupal, drupalUrl, accountOf, registry, rand = Math.ran
         picks: picksOf(c.attributes.field_picks),
         at: Date.parse(c.attributes.created) || Date.now(),
       }))
+      const state = row.attributes.field_state
       const t = {
         id: row.id,
         code,
         session: row.attributes.field_session || '',
-        state: STATES.includes(row.attributes.field_state) && row.attributes.field_state !== 'with_operator' ? row.attributes.field_state : 'concierge',
+        state: STATES.includes(state) && state !== 'with_operator' ? state : 'concierge',
+        // Drupal does not keep when the wait began, so it counts from the recovery.
+        waitingSince: state === 'waiting' ? Date.now() : 0,
         turns,
         visitor: null,
         operator: null,
@@ -134,7 +137,7 @@ const assistHandler = ({ drupal, drupalUrl, accountOf, registry, rand = Math.ran
       // An empty slot is the visitor's, back after a reload even while an
       // operator has the thread.
       if (!t.visitor && t.operator !== client.id) t.visitor = client.id
-      hub.send(client, 'thread', channel, { code, state: t.state, operatorName: t.operatorName, turns: t.turns, session: t.session })
+      hub.send(client, 'thread', channel, { code, state: t.state, operatorName: t.operatorName, turns: t.turns, session: t.session, waitingSince: t.waitingSince || 0 })
     },
 
     leave(hub, channel, client) {
@@ -227,7 +230,7 @@ const assistHandler = ({ drupal, drupalUrl, accountOf, registry, rand = Math.ran
         log(`conversation ${code}: claimed by ${account.name}`)
         hub.broadcast(channel, 'operator', { code, name: account.name })
         tellWatchers(hub, t.session, 'assist:thread', summary(t))
-        return hub.send(client, 'thread', channel, { code, state: t.state, operatorName: t.operatorName, turns: t.turns, session: t.session })
+        return hub.send(client, 'thread', channel, { code, state: t.state, operatorName: t.operatorName, turns: t.turns, session: t.session, waitingSince: t.waitingSince || 0 })
       }
 
       if (!isVisitor && !isOperator) return fail(hub, client, channel, 'This is not your conversation.')
