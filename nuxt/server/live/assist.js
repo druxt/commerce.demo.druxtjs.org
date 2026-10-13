@@ -131,7 +131,9 @@ const assistHandler = ({ drupal, drupalUrl, accountOf, registry, rand = Math.ran
       if (code === 'new') return
       const t = await threadOf(code)
       if (!t) return fail(hub, client, channel, 'That conversation has ended.')
-      if (!t.visitor && t.state !== 'with_operator') t.visitor = client.id
+      // An empty slot is the visitor's, back after a reload even while an
+      // operator has the thread.
+      if (!t.visitor && t.operator !== client.id) t.visitor = client.id
       hub.send(client, 'thread', channel, { code, state: t.state, operatorName: t.operatorName, turns: t.turns, session: t.session })
     },
 
@@ -206,8 +208,8 @@ const assistHandler = ({ drupal, drupalUrl, accountOf, registry, rand = Math.ran
 
       const t = await threadOf(code)
       if (!t) return fail(hub, client, channel, 'That conversation has ended.')
-      const isVisitor = t.visitor === client.id
       const isOperator = t.operator === client.id
+      const isVisitor = !isOperator && t.visitor === client.id
 
       if (type === 'claim') {
         const account = await accountOf(drupalUrl, payload.token)
@@ -215,6 +217,9 @@ const assistHandler = ({ drupal, drupalUrl, accountOf, registry, rand = Math.ran
         if (!t.session || !registry.get(t.session)) return fail(hub, client, channel, 'Only an operator on the session can claim its threads.')
         if (!hub.members(channel).some((m) => m.id === client.id)) return fail(hub, client, channel, 'Join the thread first.')
         t.operator = client.id
+        // A console that joined a thread with no visitor in it took the slot.
+        // It gives it back, so the visitor can return.
+        if (t.visitor === client.id) t.visitor = null
         t.operatorName = account.name
         t.state = 'with_operator'
         t.waitingSince = 0

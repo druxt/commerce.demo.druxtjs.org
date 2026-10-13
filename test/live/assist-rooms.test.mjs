@@ -240,3 +240,30 @@ test('an operator claims only a thread on a session that is open', async () => {
   assert.ok(errorsTo(s.hub, 'c').includes('Only an operator on the session can claim its threads.'))
   assert.equal(s.handler.threads.get(code).operator, null)
 })
+
+test('a console that joins a thread with no visitor in it claims it as the operator, and the visitor comes back', async () => {
+  const s = setup()
+  const v = client('v')
+  const code = await open(s, v)
+  await s.handler.message(s.hub, `assist:${code}`, v, 'wait', {})
+  // The visitor's tab goes, so the thread has nobody in its visitor slot.
+  await s.hub.exit(s.handler, `assist:${code}`, v)
+  const c = client('c')
+  await s.hub.enter(s.handler, `assist:${code}`, c)
+  await s.handler.message(s.hub, `assist:${code}`, c, 'claim', { token: operatorToken })
+  await s.handler.message(s.hub, `assist:${code}`, c, 'turn', {
+    author: 'operator',
+    text: 'Sam here.',
+  })
+  assert.deepEqual(errorsTo(s.hub, 'c'), [])
+  assert.equal(s.handler.threads.get(code).turns.pop().author, 'operator')
+  // The visitor reloads and can answer.
+  const back = client('v2')
+  await s.hub.enter(s.handler, `assist:${code}`, back)
+  await s.handler.message(s.hub, `assist:${code}`, back, 'turn', {
+    author: 'visitor',
+    text: 'Thanks.',
+  })
+  assert.deepEqual(errorsTo(s.hub, 'v2'), [])
+  assert.equal(s.handler.threads.get(code).turns.pop().author, 'visitor')
+})
