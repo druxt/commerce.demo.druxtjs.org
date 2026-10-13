@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "3926dea251e04408d611fbbe7bf4bc82",
+    "content-hash": "ba2638039ae9643c6e1f1fb4ed478bca",
     "packages": [
         {
             "name": "amazeeio/drupal_integrations",
@@ -1923,6 +1923,61 @@
             "homepage": "https://www.drupal.org/project/advancedqueue",
             "support": {
                 "source": "https://git.drupalcode.org/project/advancedqueue"
+            }
+        },
+        {
+            "name": "drupal/anonymous_redirect",
+            "version": "2.5.0",
+            "source": {
+                "type": "git",
+                "url": "https://git.drupalcode.org/project/anonymous_redirect.git",
+                "reference": "8.x-2.5"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://ftp.drupal.org/files/projects/anonymous_redirect-8.x-2.5.zip",
+                "reference": "8.x-2.5",
+                "shasum": "df8eeb5c20f4a625c96bc69d8061d25fe7ef2384"
+            },
+            "require": {
+                "drupal/core": "^10.1 || ^11 || ^12"
+            },
+            "type": "drupal-module",
+            "extra": {
+                "drupal": {
+                    "version": "8.x-2.5",
+                    "datestamp": "1782430849",
+                    "security-coverage": {
+                        "status": "covered",
+                        "message": "Covered by Drupal's security advisory policy"
+                    }
+                }
+            },
+            "notification-url": "https://packages.drupal.org/8/downloads",
+            "license": [
+                "GPL-2.0-or-later"
+            ],
+            "authors": [
+                {
+                    "name": "adrian1231",
+                    "homepage": "https://www.drupal.org/user/3258656"
+                },
+                {
+                    "name": "hexblot",
+                    "homepage": "https://www.drupal.org/user/233388"
+                },
+                {
+                    "name": "mstrelan",
+                    "homepage": "https://www.drupal.org/user/314289"
+                }
+            ],
+            "description": "Redirects anonymous users to a pre-defined route or another domain",
+            "homepage": "https://www.drupal.org/project/anonymous_redirect",
+            "keywords": [
+                "Drupal"
+            ],
+            "support": {
+                "source": "https://git.drupalcode.org/project/anonymous_redirect"
             }
         },
         {
