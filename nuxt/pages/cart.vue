@@ -66,6 +66,14 @@
         </div>
       </div>
     </template>
+
+    <client-only>
+      <DruxtDemoNote
+        match="/jsonapi/carts"
+        file="nuxt/store/cart.js"
+        body="The cart is Drupal's order, read through commerce_api with the cart token this browser holds."
+      />
+    </client-only>
   </div>
 </template>
 

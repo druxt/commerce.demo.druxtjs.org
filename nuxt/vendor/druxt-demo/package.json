@@ -1,0 +1,39 @@
+{
+  "name": "@druxt/demo",
+  "version": "0.0.0-dev.20261011234811",
+  "private": true,
+  "description": "The demo layer every Druxt demo installs: a demo bar, how-this-page-works notes, a JSON:API drawer, view modes and a reset.",
+  "keywords": [
+    "druxt",
+    "module",
+    "demo"
+  ],
+  "license": "MIT",
+  "exports": {
+    ".": {
+      "require": "./dist/index.ssr.js",
+      "import": "./dist/index.esm.js"
+    },
+    "./components/*": "./dist/components/*",
+    "./runtime/*.js": "./dist/runtime/*.js",
+    "./package.json": "./package.json"
+  },
+  "main": "dist/index.ssr.js",
+  "module": "dist/index.esm.js",
+  "files": [
+    "dist",
+    "templates"
+  ],
+  "peerDependencies": {
+    "druxt": "*",
+    "vue": "^2.7.0"
+  },
+  "packageManager": "npm@8.19.4",
+  "engines": {
+    "node": ">=16.20.1"
+  },
+  "jest-junit": {
+    "outputDirectory": "reports/junit",
+    "outputName": "junit.xml"
+  }
+}

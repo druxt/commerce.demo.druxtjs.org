@@ -10,7 +10,7 @@
   --paper-3: #fbfaf8;
   --line: #e4e2dd;
   --line-2: #d6d2ca;
-  --accent: #0678be;
+  --accent: #036397;
   --mint: #7fd4c1;
   --teal: #108775;
   --warn: #b45309;
@@ -57,7 +57,7 @@ img {
   display: block;
 }
 
-button { font: inherit; }
+button { font: inherit; color: inherit; }
 
 /* Keyboard users must always be able to see where they are. The whole flow
    from home to a placed order has to be operable without a mouse. */
@@ -83,3 +83,15 @@ button { font: inherit; }
 .prose ul, .prose ol { padding-left: 1.25em; }
 .prose h2 { font-size: 1.35rem; margin-top: 1.6em; }
 .prose h3 { font-size: 1.1rem; margin-top: 1.4em; }
+
+/* The demo overlay from @druxt/demo: every Druxt module component outlined
+   and named, while the bar's switch is on. */
+.druxt-demo-overlay [data-druxt] { position: relative; outline: 1px dashed var(--accent); outline-offset: -1px; }
+.druxt-demo-overlay [data-druxt]::before {
+  content: attr(data-druxt);
+  position: absolute; top: 0; left: 0; z-index: 60;
+  padding: 2px 4px;
+  background: var(--accent); color: var(--paper);
+  font: 600 10px/1 'IBM Plex Mono', ui-monospace, monospace;
+  pointer-events: none;
+}

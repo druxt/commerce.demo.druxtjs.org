@@ -1,5 +1,5 @@
 <template>
-  <section class="mx-auto max-w-7xl px-5 py-12 flex flex-col gap-6">
+  <section class="wrap py-12 flex flex-col gap-6">
     <div class="flex flex-wrap items-baseline justify-between gap-3">
       <h2 class="text-3xl">Latest from our blog</h2>
       <NuxtLink to="/blog" class="text-sm text-accent hover:underline">Go to blog &rarr;</NuxtLink>

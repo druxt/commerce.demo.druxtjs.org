@@ -7,20 +7,11 @@
  * site:install` against a throwaway SQLite database, enable the demo
  * content and druxt modules, grant anonymous JSON:API access.
  *
- * No OAuth here - unlike quickstart, this repo has no simple_oauth/
- * consumers dependency at all (matches `.ddev/commands/web/drupal-
- * install`'s own sequence, which never touches OAuth either).
- *
- * This repo has nothing to import - this is a fresh `site:install`,
- * porting the exact sequence from `.ddev/commands/web/drupal-install`
- * verbatim, just SQLite-backed and Docker-free.
- *
- * The SQLite override lives in `web/sites/default/settings.local.php`
- * (gitignored), not `settings.php`. This repo has no committed
- * `settings.php` at all — only `default.settings.php` — so this copies it
- * once and enables its already-present (but commented-out)
- * `settings.local.php` include; every subsequent `provision` run then only
- * ever touches the gitignored file.
+ * `settings.php` comes from amazee.io's drupal_integrations scaffold and is
+ * not committed. On Lagoon its settings.lagoon.php supplies the database,
+ * hash salt and reverse proxy. Anywhere else this script writes them to the
+ * gitignored settings.local.php. Project settings for every environment are
+ * in assets/all.settings.php.
  */
 
 declare(strict_types=1);
@@ -50,23 +41,32 @@ echo '         🚀 PROVISION          ' . PHP_EOL;
 echo '===============================' . PHP_EOL;
 echo PHP_EOL;
 
-TASK('Preparing web/sites/default/settings.php.');
-$settings_php = 'web/sites/default/settings.php';
-if (!file_exists($settings_php)) {
-  if (!copy('web/sites/default/default.settings.php', $settings_php)) {
-    FAIL('Unable to create %s from default.settings.php.', $settings_php);
+$lagoon = (bool) getenv('LAGOON');
+
+// Web requests answer 503 until provisioning ends (see all.settings.php). A
+// request served mid-install caches a container without the modules still to
+// come, and the final cache rebuild boots from it.
+$flag = 'web/sites/default/files/.provisioning';
+@mkdir(dirname($flag), 0775, TRUE);
+touch($flag);
+register_shutdown_function(static fn () => @unlink($flag));
+// A deploy that stops this task mid-install must not leave the site answering 503.
+if (function_exists('pcntl_async_signals')) {
+  pcntl_async_signals(TRUE);
+  foreach ([SIGINT, SIGTERM, SIGHUP] as $signal) {
+    pcntl_signal($signal, static fn () => exit(143));
   }
 }
-$settings_contents = (string) file_get_contents($settings_php);
-$commented_include = "#\n# if (file_exists(\$app_root . '/' . \$site_path . '/settings.local.php')) {\n#   include \$app_root . '/' . \$site_path . '/settings.local.php';\n# }\n";
-$active_include = "\nif (file_exists(\$app_root . '/' . \$site_path . '/settings.local.php')) {\n  include \$app_root . '/' . \$site_path . '/settings.local.php';\n}\n";
-if (str_contains($settings_contents, $commented_include)) {
-  file_put_contents($settings_php, str_replace($commented_include, $active_include, $settings_contents));
+
+TASK('Checking web/sites/default/settings.php.');
+$settings_php = 'web/sites/default/settings.php';
+if (!file_exists($settings_php)) {
+  FAIL('%s is missing. composer install scaffolds it from amazeeio/drupal_integrations.', $settings_php);
 }
-elseif (!str_contains($settings_contents, $active_include)) {
-  FAIL('Could not find the expected settings.local.php include block (commented or active) in %s. The file may have changed shape - update this script\'s anchor rather than skipping the patch.', $settings_php);
+if (!str_contains((string) file_get_contents($settings_php), 'settings.local.php')) {
+  FAIL('%s does not include settings.local.php. Remove it and run composer install to scaffold it again.', $settings_php);
 }
-PASS('settings.php includes settings.local.php.');
+PASS('settings.php includes settings.lagoon.php and settings.local.php.');
 
 // The driver only. The URL carries a password on a hosted environment and
 // this output goes to a build log.
@@ -85,10 +85,15 @@ $lines = '';
 foreach ($connection as $key => $value) {
   $lines .= sprintf("  '%s' => %s,\n", $key, var_export($value, TRUE));
 }
-file_put_contents('web/sites/default/settings.local.php', sprintf(
-  "<?php\n\n/**\n * @file\n * Provision-only override, written fresh each run by .devtools/provision.\n * Gitignored - never committed.\n */\n\n\$databases['default']['default'] = [\n%s];\n",
-  $lines
-));
+// On Lagoon settings.lagoon.php already has all of this, for every pod. A
+// salt written here would reach the cli pod alone.
+if (!$lagoon) {
+  file_put_contents('web/sites/default/settings.local.php', sprintf(
+    "<?php\n\n/**\n * @file\n * Provision-only override, written fresh each run by .devtools/provision.\n * Gitignored - never committed.\n */\n\n\$databases['default']['default'] = [\n%s];\n%s",
+    $lines,
+    sprintf("\n\$settings['hash_salt'] = %s;\n", var_export(bin2hex(random_bytes(32)), TRUE))
+  ));
+}
 PASS('%s database configured.', $db['driver']);
 
 // The installer's "Choose demo or add-ons" step (installer_recipes_form,
@@ -99,8 +104,19 @@ PASS('%s database configured.', $db['driver']);
 // configuration"). Passing the field as a site:install parameter picks
 // it non-interactively, in the same install flow it was designed for.
 TASK('Running drush site:install commerce_kickstart (with demo content).');
-drush('site:install commerce_kickstart installer_recipes_form.demo=%s', 'drupal/commerce_kickstart_demo');
+drush('site:install commerce_kickstart installer_recipes_form.demo=%s --account-name=admin', 'drupal/commerce_kickstart_demo');
 PASS('Site installed with demo content.');
+
+// The admin password from DRUPAL_ACCOUNT_PASS, read inside Drupal so it is
+// never on a command line a failed step would print. Unset, the installer's
+// random one stands and `drush user:login` is the way in.
+if (getenv('DRUPAL_ACCOUNT_PASS')) {
+  drush('php:eval %s', '$admin = user_load_by_name("admin"); $admin->setPassword(getenv("DRUPAL_ACCOUNT_PASS")); $admin->save();');
+}
+
+// Before any module installs. On Lagoon a cache service outlives the
+// reinstall, and plugin discovery would otherwise come from the old site.
+drush('cache:rebuild');
 
 TASK('Enabling druxt.');
 drush('pm:enable druxt');
@@ -116,6 +132,10 @@ PASS('Site name and slogan set.');
 
 TASK('Enabling authenticated editing via JSON:API.');
 drush('config:set jsonapi.settings read_only %s', '0');
+// Orders move through fulfilment, so a placed order has somewhere to go:
+// the storefront's order page and the operator console show it moving.
+drush('config:set -y commerce_order.commerce_order_type.default workflow %s', 'order_fulfillment');
+
 PASS('jsonapi.settings read_only disabled.');
 
 TASK('Enabling decoupled settings.');
@@ -218,6 +238,10 @@ if ($edited === '' || $edited === '0') {
   FAIL('The landing page copy was not updated. Kickstart block ids may have changed, in which case the ids in this step need revisiting rather than skipping.');
 }
 PASS('Landing page copy set, Centarro credited, gallery section removed.');
+
+TASK('Rebuilding caches.');
+drush('cache:rebuild');
+PASS('Caches rebuilt.');
 
 echo PHP_EOL;
 echo '===============================' . PHP_EOL;

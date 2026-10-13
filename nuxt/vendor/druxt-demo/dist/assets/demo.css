@@ -1,0 +1,144 @@
+/* The defaults a site overrides by custom property. Values from the Druxt
+   design system: ink is base-content, ink-2 is mark-ink, accent is
+   primary-focus, which clears 4.5:1 on base-200. */
+:root {
+  --druxt-demo-ink: #1f2937;
+  --druxt-demo-ink-2: #2f495e;
+  --druxt-demo-paper: #ffffff;
+  --druxt-demo-paper-2: #f4f7fa;
+  --druxt-demo-line: #dbe3ec;
+  --druxt-demo-accent: #036397;
+  --druxt-demo-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.druxt-demo-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.375rem 1rem;
+  background: var(--druxt-demo-ink-2);
+  color: var(--druxt-demo-paper);
+  font: 500 0.75rem/1.4 var(--druxt-demo-mono);
+}
+.druxt-demo-bar a {
+  color: inherit;
+}
+.druxt-demo-bar__links {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+.druxt-demo-bar__switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  background: none;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.druxt-demo-bar__knob {
+  position: relative;
+  width: 1.75rem;
+  height: 1rem;
+  border: 1px solid currentColor;
+  border-radius: 1rem;
+}
+.druxt-demo-bar__knob::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: currentColor;
+  transition: transform 120ms;
+}
+.druxt-demo-bar__switch[aria-checked='true'] .druxt-demo-bar__knob::after {
+  transform: translateX(12px);
+}
+
+.druxt-demo-note {
+  margin: 1.5rem 0;
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--druxt-demo-line);
+  border-left: 3px solid var(--druxt-demo-accent);
+  background: var(--druxt-demo-paper-2);
+  color: var(--druxt-demo-ink);
+}
+.druxt-demo-note__kicker {
+  display: block;
+  margin-bottom: 0.5rem;
+  font: 600 0.6875rem/1 var(--druxt-demo-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--druxt-demo-accent);
+}
+.druxt-demo-note__request {
+  margin: 0.75rem 0 0;
+  font: 0.75rem/1.5 var(--druxt-demo-mono);
+  word-break: break-all;
+}
+.druxt-demo-note__file {
+  display: block;
+  margin-top: 0.5rem;
+  font: 0.75rem/1.5 var(--druxt-demo-mono);
+}
+.druxt-demo-note__link {
+  display: inline-block;
+  margin-top: 0.5rem;
+  color: var(--druxt-demo-accent);
+}
+
+.druxt-demo-drawer__toggle,
+.druxt-demo-view-modes button,
+.druxt-demo-reset button {
+  min-height: 44px;
+  padding: 0 0.75rem;
+  background: var(--druxt-demo-paper);
+  border: 1px solid var(--druxt-demo-line);
+  color: var(--druxt-demo-ink);
+  font: 500 0.8125rem/1 var(--druxt-demo-mono);
+  cursor: pointer;
+}
+.druxt-demo-view-modes button[aria-pressed='true'] {
+  border-color: var(--druxt-demo-ink);
+  font-weight: 700;
+}
+.druxt-demo-drawer__body pre {
+  max-height: 24rem;
+  padding: 1rem;
+  overflow: auto;
+  background: var(--druxt-demo-paper-2);
+  font: 0.75rem/1.5 var(--druxt-demo-mono);
+}
+.druxt-demo-reset__dialog {
+  margin-top: 0.5rem;
+  padding: 1rem;
+  border: 1px solid var(--druxt-demo-line);
+  background: var(--druxt-demo-paper);
+}
+
+/* The overlay: every Druxt module component outlined and named. */
+.druxt-demo-overlay [data-druxt] {
+  position: relative;
+  outline: 1px dashed var(--druxt-demo-accent);
+  outline-offset: -1px;
+}
+.druxt-demo-overlay [data-druxt]::before {
+  content: attr(data-druxt);
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 60;
+  padding: 2px 4px;
+  background: var(--druxt-demo-accent);
+  color: var(--druxt-demo-paper);
+  font: 600 0.625rem/1 var(--druxt-demo-mono);
+  pointer-events: none;
+}

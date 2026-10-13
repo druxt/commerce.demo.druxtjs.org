@@ -13,7 +13,7 @@ const localhostListenURL = function () {
   })
 }
 
-export default {
+export default async () => ({
   // Generated, then served by server/start.js with Drupal's paths proxied on
   // the same origin. The cart, checkout and catalogue filters run in the
   // browser against JSON:API, so a static build loses nothing.
@@ -54,6 +54,14 @@ export default {
     ]
   },
 
+  router: {
+    // Drupal's product listing lives at /products, and Kickstart's own hero
+    // links there. The storefront has one catalogue, so both names reach it.
+    extendRoutes(routes) {
+      routes.unshift({ path: '/products', redirect: '/catalogue' })
+    },
+  },
+
   // Global CSS: https://go.nuxtjs.dev/config-css
   css: [
     // Belgrade-derived structural utilities for the Bootstrap class names
@@ -81,8 +89,20 @@ export default {
   // Modules: https://go.nuxtjs.dev/config-modules
   modules: [
     'druxt-site',
+    // The demo layer: bar, notes, overlay. After druxt-site, so the Druxt
+    // client exists when the plugin attaches its request log.
+    '@druxt/demo',
     localhostListenURL,
   ],
+
+  // The demo layer's links and notice. Styled here by UnoCSS, so the
+  // module's own stylesheet stays out.
+  druxtDemo: {
+    source: 'https://github.com/druxt/commerce.demo.druxtjs.org',
+    docs: 'https://druxtjs.org',
+    notice: 'A demo. Carts and orders are real in Drupal, no money moves, and the daily reset wipes them.',
+    css: false,
+  },
 
   // DruxtJS: https://druxtjs.org
   druxt: {
@@ -111,4 +131,4 @@ export default {
       },
     },
   }
-}
+})
