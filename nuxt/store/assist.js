@@ -8,6 +8,8 @@ const GREETING =
   'I know every product in the store. Tell me who it is for or what it needs to do, and I will narrow it down. Ask for a person any time.'
 const CHIPS = ['A gift under $40', 'Furnishing a dining room', 'Something to read', 'For a kid, outdoors', 'Talk to a person']
 const SCRIPTED_DELAY = 400
+// How long a seeded question waits for the hub's replay of the thread.
+const REPLAY_WAIT = 3000
 
 const greeting = () => ({ role: 'bot', text: GREETING, chips: CHIPS, at: 0 })
 
@@ -97,14 +99,23 @@ export const mutations = {
 
 export const actions = {
   // Open the panel and, with the live layer, the conversation on the hub.
+  // A seeded question waits for the conversation, so it goes on the thread.
   async openPanel({ commit, state, dispatch }, { seed } = {}) {
     commit('open', seed)
     if (!state.conversation) await dispatch('connect')
+    if (seed && state.open && state.seed === seed) await dispatch('ask', seed)
   },
 
+  // Resolves once the hub has replayed the thread, which replaces what the
+  // panel shows, so a question asked after it is not wiped by it.
   async connect({ commit, state }) {
     const live = this.$live
     if (!live) return commit('conversation', fallbackId())
+    let stop = () => {}
+    const replayed = new Promise((resolve) => {
+      stop = live.onThread((type) => type === 'thread' && resolve())
+      setTimeout(resolve, REPLAY_WAIT)
+    })
     try {
       const code = await live.openConversation(this.$router.currentRoute.fullPath)
       commit('conversation', code)
@@ -129,8 +140,11 @@ export const actions = {
           }
         })
       }
+      await replayed
     } catch (e) {
       commit('conversation', fallbackId())
+    } finally {
+      stop()
     }
   },
 
