@@ -99,9 +99,11 @@ export default {
       if (on) {
         this.opened = document.activeElement
         this.$nextTick(() => this.$refs.closeButton && this.$refs.closeButton.focus())
+        document.addEventListener('focusin', this.trap)
         document.addEventListener('keydown', this.onKey)
         this.timer = setInterval(() => (this.now = Date.now()), 2000)
       } else {
+        document.removeEventListener('focusin', this.trap)
         document.removeEventListener('keydown', this.onKey)
         clearInterval(this.timer)
         if (this.opened && this.opened.focus) this.opened.focus()
@@ -114,6 +116,7 @@ export default {
   },
 
   beforeDestroy() {
+    document.removeEventListener('focusin', this.trap)
     document.removeEventListener('keydown', this.onKey)
     clearInterval(this.timer)
   },
@@ -127,6 +130,14 @@ export default {
     },
     onKey(event) {
       if (event.key === 'Escape') this.close()
+    },
+    // Keep focus inside the dialog while it is open, as the assist panel does.
+    trap(event) {
+      const panel = this.$refs.panel
+      if (panel && !panel.contains(event.target)) {
+        const first = panel.querySelector('button, input, a[href]')
+        if (first) first.focus()
+      }
     },
   },
 }
