@@ -54,7 +54,7 @@
           </p>
           <div class="flex flex-wrap gap-2">
             <input class="field flex-[1_1_180px] font-mono text-13px" :value="link" readonly aria-label="Room link" @focus="$event.target.select()">
-            <button type="button" class="btn-secondary" @click="copy">{{ copied ? 'Copied' : 'Copy link' }}</button>
+            <button type="button" class="btn-secondary" @click="copy">{{ copied || 'Copy link' }}</button>
           </div>
           <p class="font-mono text-12px text-ink-2 flex items-center gap-2 mt-3">
             <span class="w-1.5 h-1.5 rounded-full bg-teal shrink-0" aria-hidden="true" />
@@ -100,7 +100,7 @@ export default {
     bannersOnly: { type: Boolean, default: false },
   },
 
-  data: () => ({ busy: false, error: '', copied: false, code: '', now: Date.now(), timer: null }),
+  data: () => ({ busy: false, error: '', copied: '', code: '', now: Date.now(), timer: null }),
 
   computed: {
     room: ({ $live }) => $live.room,
@@ -171,11 +171,15 @@ export default {
     async copy() {
       try {
         await navigator.clipboard.writeText(this.link)
-        this.copied = true
-        setTimeout(() => (this.copied = false), 2000)
+        this.copied = 'Copied'
       } catch (e) {
+        // Off https, or with the permission refused, there is no clipboard
+        // API. The old copy command takes the selection, and where that fails
+        // too, the button says the link is selected for the shopper to copy.
         this.$el.querySelector('input[readonly]').select()
+        this.copied = document.execCommand('copy') ? 'Copied' : 'Selected: copy it'
       }
+      setTimeout(() => (this.copied = ''), this.copied === 'Copied' ? 2000 : 6000)
     },
 
     // The room's cart goes with the room, so the page is back to its top, where
