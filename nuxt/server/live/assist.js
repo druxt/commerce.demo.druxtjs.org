@@ -29,6 +29,15 @@ const assistHandler = ({ drupal, drupalUrl, accountOf, registry, rand = Math.ran
 
   const fail = (hub, client, channel, message) => hub.send(client, 'error', channel, { message })
 
+  // A turn whose picks do not parse keeps its body.
+  const picksOf = (value) => {
+    try {
+      return value ? JSON.parse(value) : undefined
+    } catch {
+      return undefined
+    }
+  }
+
   const summary = (t) => ({
     code: t.code,
     session: t.session,
@@ -89,7 +98,7 @@ const assistHandler = ({ drupal, drupalUrl, accountOf, registry, rand = Math.ran
       const turns = (chats.data || []).map((c) => ({
         author: c.attributes.field_author,
         body: c.attributes.field_body || '',
-        picks: c.attributes.field_picks ? JSON.parse(c.attributes.field_picks) : undefined,
+        picks: picksOf(c.attributes.field_picks),
         at: Date.parse(c.attributes.created) || Date.now(),
       }))
       const t = {
