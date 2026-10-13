@@ -1,0 +1,50 @@
+docker-compose-yaml: 'docker-compose.yml'
+
+project: druxtjs-org-demo-commerce
+
+# One environment runs the whole demo: Drupal and the storefront that
+# generates from it. Previews build from feature/, fix/ and release/
+# branches on Lagoon's own routes.
+environments:
+  main:
+    routes:
+      - app:
+          - commerce.demo.druxtjs.org
+      - nginx:
+          - api.commerce.demo.druxtjs.org
+    cronjobs:
+      - name: drush cron
+        schedule: '*/15 * * * *'
+        command: drush cron
+        service: cli
+      # The demo back to its fresh store once a day, whatever visitors left
+      # in it. 16:00 UTC is the small hours in Melbourne, where it is run from.
+      - name: reset the demo
+        schedule: '0 16 * * *'
+        command: /app/.devtools/demo-reset
+        service: cli
+
+tasks:
+  post-rollout:
+    # Commerce Kickstart has no content to import: the demo store is created
+    # by the install profile itself. DRUPAL_DB_URL points provision at the
+    # MariaDB service instead of its local SQLite default.
+    - run:
+        name: drupal install
+        command: >-
+          DRUPAL_DB_URL="mysql://${MARIADB_USERNAME}:${MARIADB_PASSWORD}@${MARIADB_HOST}:${MARIADB_PORT}/${MARIADB_DATABASE}"
+          .devtools/provision
+        service: cli
+
+    # The fresh store, kept, so .devtools/demo-reset can put it back in seconds.
+    - run:
+        name: snapshot the fresh demo
+        command: .devtools/demo-snapshot
+        service: cli
+
+    # New content means new entity IDs, so the storefront builds again from
+    # it. The old build serves until the new one is complete.
+    - run:
+        name: regenerate the site
+        command: curl -fsS --retry 5 --retry-connrefused -X POST http://app:3000/_regenerate
+        service: cli

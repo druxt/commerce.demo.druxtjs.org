@@ -64,6 +64,11 @@ On Windows, use the dev container, WSL2, or a container backend - see
 backend if it is not already running, and leave external backends
 alone.
 
+`npm run start` runs the frontend as the hosted demo does: a starting page
+while it generates the site against the backend, then the generated site,
+with the backend's JSON:API, files and theme assets proxied on the same
+origin so the cart's session cookie is first party.
+
 Other commands: `npm run stop`, `npm run reset` (fresh site), `npm run
 info`, `npm run login`, `npm run devtools -- <script>` for direct
 access to `drupal/.devtools/`. See `drupal/.devtools/README.md` for
@@ -178,7 +183,7 @@ with the DruxtSite module enabled.
 Query the catalogue over JSON:API directly, e.g.:
 
 ```bash
-curl http://127.0.0.1:8888/jsonapi/commerce_product/physical
+curl http://127.0.0.1:8888/jsonapi/products/physical
 ```
 
 In a Development Container (VS Code, DevPod), forwarded ports are

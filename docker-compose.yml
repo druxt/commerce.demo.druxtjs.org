@@ -1,0 +1,76 @@
+version: '2.3'
+
+x-user:
+  &default-user # The user the containers run as. Change this on Linux if your uid is not 1000.
+  user: '1000'
+
+services:
+  cli:
+    build:
+      context: .
+      dockerfile: .docker/Dockerfile.cli
+    image: &cli-image druxt-commerce-cli
+    labels:
+      lagoon.type: cli-persistent
+      lagoon.persistent.name: nginx
+      lagoon.persistent: /app/web/sites/default/files/
+      lando.type: php-cli-drupal
+    user: root
+
+  nginx:
+    build:
+      context: .
+      dockerfile: .docker/Dockerfile.nginx
+      args:
+        CLI_IMAGE: *cli-image
+    labels:
+      lagoon.type: nginx-php-persistent
+      lagoon.persistent: /app/web/sites/default/files/
+      lando.type: nginx-drupal
+    <<: *default-user
+    depends_on:
+      - cli
+    networks:
+      - amazeeio-network
+      - default
+
+  php:
+    build:
+      context: .
+      dockerfile: .docker/Dockerfile.php
+      args:
+        CLI_IMAGE: *cli-image
+    labels:
+      lagoon.type: nginx-php-persistent
+      # Part of the nginx pod in Lagoon.
+      lagoon.name: nginx
+      lagoon.persistent: /app/web/sites/default/files/
+      lando.type: php-fpm
+    depends_on:
+      - cli
+
+  mariadb:
+    image: uselagoon/mariadb-10.11-drupal:latest
+    labels:
+      lagoon.type: mariadb
+      lando.type: mariadb-drupal
+    ports:
+      - '3306'
+
+  app:
+    networks:
+      - amazeeio-network
+      - default
+    build:
+      context: .
+      dockerfile: .docker/Dockerfile.app
+    labels:
+      lagoon.type: node
+      lando.type: node
+    environment:
+      LAGOON_LOCALDEV_HTTP_PORT: 3000
+      LAGOON_ROUTE: http://druxtjs-org-demo-commerce.docker.amazee.io
+
+networks:
+  amazeeio-network:
+    external: true

@@ -15,6 +15,17 @@ While it does, the usual 0.x reading applies:
 - **Patch** - fixes and dependency updates that leave the documented
   setup alone.
 
+## Unreleased
+
+- The hosted demo runs in one Lagoon environment, `main`: Drupal, and a
+  storefront that generates from it when its container starts, then serves
+  the generated site with Drupal's paths proxied on the same origin. Each
+  deploy snapshots the fresh store, and a daily cron puts it back. The split
+  `staging/` and `production/` frontend and backend environments are gone.
+- Druxt 0.25.0 from the npm `dev` channel, with axios 0.34 and the Vue
+  packages pinned to 2.7.14 through npm `overrides`. The `druxt-site` `fs`
+  patch is rerolled for it.
+
 ## 0.3.0 (2026-08-21)
 
 A full modernization: Drupal 11, a local backend that needs no Docker,

@@ -6,19 +6,43 @@
     "dev": "nuxt",
     "build": "nuxt build",
     "start": "nuxt start",
-    "generate": "nuxt generate"
+    "generate": "nuxt generate",
+    "css:belgrade": "node scripts/build-belgrade-layout.mjs",
+    "postinstall": "patch-package",
+    "serve": "node server/start.js"
   },
   "dependencies": {
+    "axios": "^0.34.0",
     "bootstrap-vue": "^2.22.0",
     "core-js": "3.25.1",
     "dotenv": "^16.0.3",
     "druxt-site": "0.15.0-dev.20261011015353",
     "nuxt": "2.15.8",
-    "vue-server-renderer": "^2.7.14",
-    "vue-template-compiler": "^2.7.14"
+    "vue-server-renderer": "2.7.14",
+    "vue-template-compiler": "2.7.14"
   },
   "devDependencies": {
     "@nuxtjs/storybook": "4.3.2",
-    "postcss": "8.4.16"
+    "@unocss/nuxt": "^0.58.9",
+    "@unocss/preset-uno": "^0.58.9",
+    "bootstrap": "^5.3.8",
+    "patch-package": "^8.0.1",
+    "postcss": "8.4.16",
+    "sass": "^1.32.13",
+    "unocss": "^0.58.9"
+  },
+  "overrides": {
+    "druxt": "0.25.0-dev.20261011015353",
+    "druxt-blocks": "0.18.0-dev.20261011015353",
+    "druxt-breadcrumb": "0.18.0-dev.20261011015353",
+    "druxt-entity": "0.29.0-dev.20261011015353",
+    "druxt-menu": "0.22.0-dev.20261011015353",
+    "druxt-router": "0.32.0-dev.20261011015353",
+    "druxt-schema": "0.12.0-dev.20261011015353",
+    "druxt-views": "0.23.0-dev.20261011015353",
+    "axios": "^0.34.0",
+    "vue": "2.7.14",
+    "vue-server-renderer": "2.7.14",
+    "vue-template-compiler": "2.7.14"
   }
 }

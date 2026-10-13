@@ -35,6 +35,14 @@ require_once __DIR__ . '/helpers.php';
 
 $db_file = resolve_env_value('DB_FILE', '/tmp/quickstart-commerce-drupal-site.sqlite')[0];
 
+// DRUPAL_DB_URL replaces the database entirely, which is how Lagoon points
+// this script at the MariaDB service it provides. Unset, it keeps the local
+// SQLite default, so nothing changes for a developer running `npm run
+// provision`. Both paths write the same settings.local.php: one mechanism,
+// two drivers, rather than a second code path that only ever runs in CI.
+$db_url = resolve_env_value('DRUPAL_DB_URL', 'sqlite://localhost/' . $db_file)[0];
+$db = parse_database_url($db_url);
+
 // -----------------------------------------------------------------------------
 
 echo '===============================' . PHP_EOL;
@@ -60,17 +68,28 @@ elseif (!str_contains($settings_contents, $active_include)) {
 }
 PASS('settings.php includes settings.local.php.');
 
-TASK('Configuring the SQLite database at %s.', $db_file);
-if (file_exists($db_file)) {
-  unlink($db_file);
+// The driver only. The URL carries a password on a hosted environment and
+// this output goes to a build log.
+TASK('Configuring the %s database.', $db['driver']);
+if ($db['driver'] === 'sqlite' && file_exists($db['database'])) {
+  unlink($db['database']);
 }
-// var_export() so a path containing quotes stays valid PHP.
-$db_file_php = var_export($db_file, TRUE);
+// var_export() throughout, so a value containing quotes stays valid PHP.
+$connection = ['driver' => $db['driver'], 'database' => $db['database']];
+foreach (['username', 'password', 'host', 'port'] as $key) {
+  if ($db[$key] !== '') {
+    $connection[$key] = $db[$key];
+  }
+}
+$lines = '';
+foreach ($connection as $key => $value) {
+  $lines .= sprintf("  '%s' => %s,\n", $key, var_export($value, TRUE));
+}
 file_put_contents('web/sites/default/settings.local.php', sprintf(
-  "<?php\n\n/**\n * @file\n * Provision-only override, written fresh each run by .devtools/provision.\n * Gitignored - never committed.\n */\n\n\$databases['default']['default'] = [\n  'driver' => 'sqlite',\n  'database' => %s,\n];\n",
-  $db_file_php
+  "<?php\n\n/**\n * @file\n * Provision-only override, written fresh each run by .devtools/provision.\n * Gitignored - never committed.\n */\n\n\$databases['default']['default'] = [\n%s];\n",
+  $lines
 ));
-PASS('SQLite database configured.');
+PASS('%s database configured.', $db['driver']);
 
 // The installer's "Choose demo or add-ons" step (installer_recipes_form,
 // its `demo` checkbox) is how the demo recipe is meant to be selected -
@@ -88,16 +107,124 @@ drush('pm:enable druxt');
 drush('role:perm:add anonymous %s', 'access druxt resources');
 PASS('druxt enabled; anonymous can access Druxt resources.');
 
+// site:install names the site after the install command, so every page title
+// on the demo reads "Drush Site-Install" until this is set.
+TASK('Setting the site identity.');
+drush('config:set -y system.site name %s', 'Druxt Store');
+drush('config:set -y system.site slogan %s', 'Drupal Commerce Kickstart, served by Nuxt via Druxt');
+PASS('Site name and slogan set.');
+
 TASK('Enabling authenticated editing via JSON:API.');
 drush('config:set jsonapi.settings read_only %s', '0');
 PASS('jsonapi.settings read_only disabled.');
+
+TASK('Enabling decoupled settings.');
+drush('pm:install -y decoupled_settings');
+drush('role:perm:add anonymous %s', 'read decoupled settings');
+PASS('Site name, slogan and theme logo readable over JSON:API.');
+
+// The storefront's cart, checkout and product resources are commerce_api's.
+// It also renames Commerce's JSON:API resources, `product-variation--physical`
+// for `commerce_product_variation--physical`, which is what the frontend reads.
+TASK('Enabling the cart and checkout API.');
+drush('pm:install -y commerce_api');
+PASS('Carts, checkout and the renamed product resources served over JSON:API.');
+
+// Layout Builder inline blocks are non-reusable, so Drupal resolves their
+// view access through a host entity looked up in `inline_block_usage`. The
+// Kickstart demo recipe writes the layout sections without ever registering
+// that usage, leaving the table empty, so every inline block returns
+// "Non-reusable blocks must set an access dependency for access control" and
+// a decoupled frontend can read the page's structure but none of its content.
+//
+// This walks the layouts and registers what the recipe did not, using core's
+// own usage service rather than writing to the table directly.
+TASK('Registering inline block usage, which the demo recipe leaves empty.');
+$register = <<<'PHP'
+$usage = \Drupal::service('inline_block.usage');
+$etm = \Drupal::entityTypeManager();
+$added = 0;
+foreach (['node', 'commerce_product'] as $etid) {
+  if (!$etm->hasDefinition($etid)) { continue; }
+  foreach ($etm->getStorage($etid)->loadMultiple() as $entity) {
+    if (!$entity->hasField('layout_builder__layout')) { continue; }
+    foreach ($entity->get('layout_builder__layout') as $item) {
+      $section = $item->section;
+      if (!$section) { continue; }
+      foreach ($section->getComponents() as $component) {
+        $conf = $component->get('configuration');
+        if (empty($conf['id']) || !str_starts_with($conf['id'], 'inline_block:')) { continue; }
+        if (empty($conf['block_id'])) { continue; }
+        $usage->addUsage((int) $conf['block_id'], $entity);
+        $added++;
+      }
+    }
+  }
+}
+echo $added;
+PHP;
+$registered = trim(drush('php:eval %s', $register));
+if ($registered === '' || $registered === '0') {
+  FAIL('No inline block usage was registered. The layouts carry inline blocks, so an empty result means the frontend will not be able to read any of their content.');
+}
+PASS('%s inline block usages registered.', $registered);
+
+// Kickstart's demo landing page is Centarro's pitch for Commerce Kickstart,
+// which is the right content for their demo and the wrong content for this
+// one. Two edits make it a Druxt demo without touching anything structural:
+// the "Content" section says what this site is demonstrating and carries the
+// credit to Centarro, and the "Gallery" section of four unrelated stock
+// photographs comes off the page.
+TASK('Making the landing page a Druxt demo.');
+$content = <<<'PHP'
+$etm = \Drupal::entityTypeManager();
+$bcs = $etm->getStorage('block_content');
+$copy = [
+  3  => ['cklb_title' => 'Decoupled, and still Drupal'],
+  10 => ['cklb_text' => [
+    'value' => '<p>Everything on this page is Drupal Commerce. The catalogue, the prices, the layout of this very section are all edited in Drupal and served over JSON:API. Nuxt renders it, and Druxt is what maps one to the other.</p><p>Built on <a href="https://www.centarro.io/">Commerce Kickstart</a> by Centarro.</p>',
+    'format' => 'basic_html',
+  ]],
+  4  => ['cklb_cta' => ['uri' => 'https://druxtjs.org', 'title' => 'How Druxt works', 'options' => []]],
+];
+$changed = 0;
+foreach ($copy as $id => $fields) {
+  $block = $bcs->load($id);
+  if (!$block) { continue; }
+  foreach ($fields as $name => $value) {
+    if ($block->hasField($name)) { $block->set($name, $value); }
+  }
+  $block->save();
+  $changed++;
+}
+$node = NULL;
+foreach ($etm->getStorage('node')->loadByProperties(['type' => 'cklb_landing_page']) as $candidate) {
+  $node = $candidate;
+  break;
+}
+if ($node && $node->hasField('layout_builder__layout')) {
+  $sections = $node->get('layout_builder__layout')->getSections();
+  foreach (array_reverse(array_keys($sections)) as $delta) {
+    if (($sections[$delta]->getLayoutSettings()['label'] ?? '') === 'Gallery') {
+      $node->get('layout_builder__layout')->removeSection($delta);
+    }
+  }
+  $node->save();
+}
+echo $changed;
+PHP;
+$edited = trim(drush('php:eval %s', $content));
+if ($edited === '' || $edited === '0') {
+  FAIL('The landing page copy was not updated. Kickstart block ids may have changed, in which case the ids in this step need revisiting rather than skipping.');
+}
+PASS('Landing page copy set, Centarro credited, gallery section removed.');
 
 echo PHP_EOL;
 echo '===============================' . PHP_EOL;
 echo '   🚀 PROVISION COMPLETE  ✅  ' . PHP_EOL;
 echo '===============================' . PHP_EOL;
 echo PHP_EOL;
-echo 'Database: ' . $db_file . PHP_EOL;
+echo 'Database: ' . $db['driver'] . ' (' . $db['database'] . ')' . PHP_EOL;
 echo PHP_EOL;
 echo '> Next steps:' . PHP_EOL;
 echo '  .devtools/start    # Start the webserver' . PHP_EOL;
