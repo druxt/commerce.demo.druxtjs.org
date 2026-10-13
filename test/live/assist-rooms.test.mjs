@@ -229,3 +229,14 @@ test('a thread the hub forgot comes back from Drupal', async () => {
   })
   assert.equal(s.handler.threads.get('ABCDEF').turns.length, 4)
 })
+
+test('an operator claims only a thread on a session that is open', async () => {
+  const s = setup()
+  const v = client('v')
+  const code = await open(s, v, '')
+  const c = client('c')
+  await s.hub.enter(s.handler, `assist:${code}`, c)
+  await s.handler.message(s.hub, `assist:${code}`, c, 'claim', { token: operatorToken })
+  assert.ok(errorsTo(s.hub, 'c').includes('Only an operator on the session can claim its threads.'))
+  assert.equal(s.handler.threads.get(code).operator, null)
+})

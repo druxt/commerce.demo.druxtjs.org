@@ -212,6 +212,7 @@ const assistHandler = ({ drupal, drupalUrl, accountOf, registry, rand = Math.ran
       if (type === 'claim') {
         const account = await accountOf(drupalUrl, payload.token)
         if (!account || !account.roles.includes('operator')) return fail(hub, client, channel, 'Only an operator can claim a thread.')
+        if (!t.session || !registry.get(t.session)) return fail(hub, client, channel, 'Only an operator on the session can claim its threads.')
         if (!hub.members(channel).some((m) => m.id === client.id)) return fail(hub, client, channel, 'Join the thread first.')
         t.operator = client.id
         t.operatorName = account.name
