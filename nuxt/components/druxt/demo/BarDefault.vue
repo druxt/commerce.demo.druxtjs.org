@@ -3,6 +3,8 @@
   <div class="bg-ink text-paper-2 font-mono text-11px tracking-wide min-h-30px px-4 flex flex-wrap items-center justify-center gap-x-3.5 gap-y-1 text-center">
     <span class="text-ink-3">commerce.demo.druxtjs.org</span>
     <span class="hidden md:inline text-ink-2" aria-hidden="true">/</span>
+    <!-- The full notice wraps to three lines on a phone, so a phone gets the short one. -->
+    <span class="md:hidden">Live demo · resets daily</span>
     <span class="hidden md:inline">{{ notice }}</span>
     <span class="hidden md:inline text-ink-2" aria-hidden="true">/</span>
     <a v-if="source" :href="source" rel="noopener" target="_blank" class="text-paper hover:text-mint">source</a>
