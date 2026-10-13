@@ -167,9 +167,6 @@ jobs:
         working-directory: nuxt
         run: npm install
 
-      - name: Create .env
-        run: cp .env.example .env
-
   # No Cypress suite here (none is configured for this starterkit). The
   # meaningful test is that Commerce Kickstart actually installs with its
   # demo content, that druxt/JSON:API serves real commerce_product data,
