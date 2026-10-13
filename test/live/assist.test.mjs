@@ -185,3 +185,15 @@ test('the catalogue follows every page drupal gives it', async () => {
   assert.equal(lines.length, CATALOGUE.length)
   assert.equal(seen.length, 3)
 })
+
+test('a body of null gets the scripted default answer', async () => {
+  const route = createAssistRoute({
+    drupalUrl: 'http://drupal',
+    apiKey: '',
+    fetch: fetchFor(''),
+    log: () => {},
+  })
+  const res = await call(route, null)
+  assert.equal(res.statusCode, 200)
+  assert.equal(res.json().bucket, 'default')
+})
