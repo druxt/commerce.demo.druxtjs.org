@@ -91,8 +91,8 @@ export default {
   },
 
   proxy: {
-    '/jsonapi': process.env.BASE_URL || 'http://127.0.0.1:18961',
-    '/oauth/debug': process.env.BASE_URL || 'http://127.0.0.1:18961',
+    '/jsonapi': drupalProxy,
+    '/oauth/debug': drupalProxy,
   },
 
   auth: {
