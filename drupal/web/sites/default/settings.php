@@ -64,3 +64,11 @@ $ddev_settings = dirname(__FILE__) . '/settings.ddev.php';
 if (getenv('IS_DDEV_PROJECT') == 'true' && is_readable($ddev_settings)) {
   require $ddev_settings;
 }
+$databases['default']['default'] = array (
+  'prefix' => '',
+  'database' => '/tmp/quickstart-commerce-drupal-site.sqlite',
+  'driver' => 'sqlite',
+  'namespace' => 'Drupal\\sqlite\\Driver\\Database\\sqlite',
+  'autoload' => 'core/modules/sqlite/src/Driver/Database/sqlite/',
+);
+$settings['hash_salt'] = 'cdL4fDVhgn3HUVaL0inDE1K4AvfXrfbtE4grm86risZRs0NOaaLlKFM0bQQaixhyBpLQwDK1Jg';

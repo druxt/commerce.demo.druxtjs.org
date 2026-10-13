@@ -8,6 +8,7 @@
 /web/profiles/contrib/
 /web/libraries/
 /libraries/
+/recipes/
 
 # Ignore sensitive information
 /web/sites/*/settings.php
