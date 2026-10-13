@@ -65,3 +65,13 @@ test('a failed reload keeps the items on screen, and the next load reads again',
   await again
   assert.deepEqual(state.items.map((i) => i.title), ['second'])
 })
+
+test('a burst of reloads reads the catalogue once more, not once each', async () => {
+  const { state, dispatch, reads, answer } = harness(await freshStore())
+  const burst = [dispatch('catalogue/reload'), dispatch('catalogue/reload'), dispatch('catalogue/reload')]
+  await answer(0, 'during')
+  for (let read = 1; read < reads.length; read++) await answer(read, 'after')
+  await Promise.all(burst)
+  assert.equal(reads.length, 2)
+  assert.deepEqual(state.items.map((i) => i.title), ['after'])
+})
