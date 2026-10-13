@@ -1,8 +1,8 @@
 {
-  "name": "druxt-quickstart-commerce",
+  "name": "druxt-commerce-demo",
   "version": "0.3.0",
   "private": true,
-  "description": "Druxt quickstart (Commerce): fully decoupled Drupal + Nuxt mono-repo starter, with Commerce Kickstart.",
+  "description": "Druxt Commerce demo: Drupal Commerce Kickstart with a decoupled Nuxt storefront, built with Druxt.",
   "packageManager": "npm@8.15.0",
   "scripts": {
     "setup": "node scripts/setup.mjs",

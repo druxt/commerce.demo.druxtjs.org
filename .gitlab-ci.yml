@@ -232,7 +232,7 @@ build:
       - drupal/vendor
       - nuxt/node_modules
 
-# No Cypress suite here (none is configured for this starterkit) - the
+# No Cypress suite here (none is configured for this demo) - the
 # meaningful test is that Commerce Kickstart actually installs with its
 # demo content, druxt/JSON:API serves real commerce_product data, and the
 # Nuxt frontend builds against that live backend.

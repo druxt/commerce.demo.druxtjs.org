@@ -167,7 +167,7 @@ jobs:
         working-directory: nuxt
         run: npm install
 
-  # No Cypress suite here (none is configured for this starterkit). The
+  # No Cypress suite here (none is configured for this demo). The
   # meaningful test is that Commerce Kickstart actually installs with its
   # demo content, that druxt/JSON:API serves real commerce_product data,
   # and that the Nuxt frontend builds against that live backend.

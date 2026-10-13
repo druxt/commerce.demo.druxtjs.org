@@ -1,4 +1,4 @@
-# quickstart-druxt-site
+# druxt-commerce-storefront
 
 ## Build Setup
 

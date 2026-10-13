@@ -1,7 +1,6 @@
 /**
- * Runs after `npm install` at the repository root - including
- * `npx giget gh:druxt/quickstart-druxt-commerce my-site --install`,
- * where it is the first thing a new user sees.
+ * Runs after `npm install` at the repository root, where it is the
+ * first thing someone running the demo locally sees.
  *
  * `--install` should install, so on a fresh checkout with PHP +
  * Composer available this triggers the full setup pipeline (the same
