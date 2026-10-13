@@ -83,6 +83,10 @@ export const mutations = {
 // the browser: on the server this module is shared by every request.
 let pending
 
+// The reload in flight, and whether another change came in during it.
+let reloading
+let again = false
+
 // Every page of a collection, each with its own `included`. JSON:API gives
 // at most 50 resources a page.
 const allPages = async (dispatch, type, params) => {
@@ -126,10 +130,25 @@ const fetchAll = async (dispatch) => {
 export const actions = {
   // Read the catalogue again, whatever was read before: a product arrived.
   // The old items stay on screen until the new ones are in.
-  async reload({ dispatch, commit }) {
-    commit('unload')
-    pending = undefined
-    return dispatch('load')
+  // A burst of changes reads it twice at most: once in flight, and once more
+  // after that read for anything that changed while it ran.
+  reload({ dispatch, commit }) {
+    if (reloading) {
+      again = true
+      return reloading
+    }
+    const read = async () => {
+      do {
+        again = false
+        commit('unload')
+        pending = undefined
+        await dispatch('load')
+      } while (again)
+    }
+    reloading = read().finally(() => {
+      reloading = undefined
+    })
+    return reloading
   },
 
   async load({ state, commit, dispatch }) {
