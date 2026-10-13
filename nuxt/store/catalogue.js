@@ -80,15 +80,12 @@ export const mutations = {
 // the browser: on the server this module is shared by every request.
 let pending
 
-// Every page of a bundle, each with its own `included`. JSON:API gives at
-// most 50 resources a page.
-const bundlePages = async (dispatch, type) => {
+// Every page of a collection, each with its own `included`. JSON:API gives
+// at most 50 resources a page.
+const allPages = async (dispatch, type, params) => {
   const pages = []
   for (let offset = 0; ; offset += 50) {
-    const query = new DrupalJsonApiParams()
-      .addInclude(['variations', 'images', 'product_collections', 'product_brand'])
-      .addPageLimit(50)
-      .addPageOffset(offset)
+    const query = params().addPageLimit(50).addPageOffset(offset)
     const page = await dispatch('druxt/getCollection', { type, query }, { root: true })
     pages.push(page)
     if (!(page.links || {}).next) return pages
@@ -97,15 +94,18 @@ const bundlePages = async (dispatch, type) => {
 
 const fetchAll = async (dispatch) => {
   const results = await Promise.all([
-    ...BUNDLES.map((type) => bundlePages(dispatch, type)),
+    ...BUNDLES.map((type) =>
+      allPages(dispatch, type, () =>
+        new DrupalJsonApiParams().addInclude(['variations', 'images', 'product_collections', 'product_brand'])
+      )
+    ),
     // Collections are a tree; the parents name the top-level categories.
-    dispatch('druxt/getCollection', {
-      type: 'taxonomy_term--product_collections',
-      query: new DrupalJsonApiParams().addFields('taxonomy_term--product_collections', ['name', 'parent']),
-    }, { root: true }),
+    allPages(dispatch, 'taxonomy_term--product_collections', () =>
+      new DrupalJsonApiParams().addFields('taxonomy_term--product_collections', ['name', 'parent'])
+    ),
   ])
 
-  const terms = results.pop().data || []
+  const terms = results.pop().flatMap((page) => page.data || [])
   const term = (id) => terms.find((t) => t.id === id)
   const rootOf = (id) => {
     let t = term(id)
