@@ -28,3 +28,19 @@ test('the picks land when the thread is still the one selected', async () => {
   await s.ask('a hat')
   assert.deepEqual(s.state.picks.picks, [{ sku: 'HAT', why: 'warm', on: true }])
 })
+
+test("an older question's answer leaves the newer one asking", async () => {
+  const answers = []
+  const s = store(() => new Promise((resolve) => answers.push(resolve)))
+  s.commit('select', 'AAAAAA')
+  const first = s.ask('a hat')
+  s.commit('select', 'BBBBBB')
+  const second = s.ask('a scarf')
+  answers[0]({ data: { note: 'For A', picks: [{ sku: 'HAT', why: 'warm' }] } })
+  await first
+  assert.equal(s.state.asking, true)
+  answers[1]({ data: { note: 'For B', picks: [{ sku: 'SCARF', why: 'long' }] } })
+  await second
+  assert.equal(s.state.asking, false)
+  assert.equal(s.state.picks.note, 'For B')
+})
