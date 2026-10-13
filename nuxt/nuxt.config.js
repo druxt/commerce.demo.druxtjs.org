@@ -109,12 +109,6 @@ export default async () => ({
     localhostListenURL,
   ],
 
-  publicRuntimeConfig: {
-    // Where the live socket opens when not on the page's own host: on Lagoon
-    // the `app.` route, around the CDN, which drops WebSockets.
-    socketsOrigin: process.env.SOCKETS_ORIGIN || '',
-  },
-
   sockets: {
     path: '/_live',
     server: process.env.NODE_ENV !== 'production',
