@@ -1,8 +1,12 @@
-FROM amazeeio/php:8.3-cli-drupal
+FROM uselagoon/php-8.3-cli-drupal:26.8.1
 
 # composer.json first, so a dependency-only change does not invalidate the
-# layer that copies the rest of the site.
+# layer that copies the rest of the site. The core patch applies during the
+# install, and the scaffold copies assets/all.settings.php, so both are in
+# place before it runs.
 COPY ./drupal/composer.* /app/
+COPY ./drupal/patches /app/patches
+COPY ./drupal/assets /app/assets
 RUN COMPOSER_MEMORY_LIMIT=-1 composer install --no-dev
 COPY ./drupal/ /app
 RUN mkdir -p -v -m775 /app/web/sites/default/files

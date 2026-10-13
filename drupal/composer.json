@@ -53,6 +53,7 @@
     "require": {
         "php": ">=8.3",
         "ext-curl": "*",
+        "amazeeio/drupal_integrations": "^0.5",
         "centarro/certified-projects": "^3",
         "centarro/commerce_kickstart": "^5.1",
         "composer/installers": "^2.0",
@@ -83,6 +84,12 @@
     },
     "extra": {
         "drupal-scaffold": {
+            "allowed-packages": [
+                "amazeeio/drupal_integrations"
+            ],
+            "file-mapping": {
+                "[web-root]/sites/default/all.settings.php": "assets/all.settings.php"
+            },
             "locations": {
                 "web-root": "web/"
             }

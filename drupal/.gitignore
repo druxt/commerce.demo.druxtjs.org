@@ -30,3 +30,12 @@
 # Ignore .env files as they are personal
 /.env
 
+# amazee.io's drupal_integrations: its drush commands and generated files.
+/.drush-lock-update
+/drush/Commands/contrib/
+/drush/sites/lagoon.site.yml
+/drush/sites/.gitignore
+/web/sites/default/settings.lagoon.php
+/web/sites/default/default.development.services.yml
+# Scaffolded from assets/all.settings.php by composer install.
+/web/sites/default/all.settings.php
