@@ -163,3 +163,25 @@ test('with no source given, a room code does not come from Math.random', async (
     Math.random = random
   }
 })
+
+test('a room nobody joins is forgotten, and one somebody joined is kept', async () => {
+  const timers = []
+  const hub = fakeHub()
+  const { handler, rooms } = cartHandler({
+    orderForToken,
+    drupalUrl: 'http://drupal',
+    rand: (() => {
+      let n = 0
+      return () => ((n++ % 7) + 0.5) / 32
+    })(),
+    setTimer: (fn) => timers.push(fn),
+  })
+  const lost = await open({ hub, handler }, client('a'))
+  const owner = client('o')
+  const kept = await open({ hub, handler }, owner)
+  await hub.enter(handler, `cart:${kept}`, owner)
+  assert.notEqual(lost, kept)
+  for (const fn of timers) fn()
+  assert.equal(rooms.get(lost), undefined)
+  assert.ok(rooms.get(kept))
+})
