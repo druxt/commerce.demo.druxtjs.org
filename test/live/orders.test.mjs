@@ -211,3 +211,16 @@ test('a shipment purge reaches the order room with the shipment state', async ()
   assert.equal(moved.payload.shipment, 'shipped')
   assert.equal(moved.payload.state, 'fulfillment')
 })
+
+test('a purge of many orders and shipments reads every one of them', async () => {
+  const read = []
+  const { hub, order, onTags } = setup(async (path) => {
+    read.push(path)
+    return { data: [] }
+  })
+  await hub.enter(order, `order:${UUID}`, client('v'))
+  const ids = Array.from({ length: 25 }, (_, i) => i + 1)
+  await onTags([...ids.map((i) => `commerce_order:${i}`), ...ids.map((i) => `commerce_shipment:${i}`)])
+  assert.equal(read.filter((p) => p.includes('/orders/')).length, 25)
+  assert.equal(read.filter((p) => p.includes('/shipments/')).length, 25)
+})
