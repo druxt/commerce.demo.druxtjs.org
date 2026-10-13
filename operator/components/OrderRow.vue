@@ -2,17 +2,18 @@
   <div :class="order.isNew && 'bg-new-2'">
     <!-- One order: number, who, when, state, total, and what the workflow allows next. -->
     <div class="px-4 py-3 border-b border-line flex flex-col gap-2 md:grid md:grid-cols-[auto_1fr_auto_auto_auto_auto] md:items-center md:gap-x-3.5 md:min-h-13">
-      <div class="flex items-center gap-2 font-mono font-600 text-14px">
+      <div class="flex flex-wrap items-center gap-2 font-mono font-600 text-14px">
         #{{ order.number }}
         <span v-if="order.isNew" class="font-mono text-11px bg-teal text-paper px-1.5 py-0.5 rounded-full">new</span>
         <span class="pill md:hidden ml-1" :class="pillClass">{{ stateLabel }}</span>
+        <span v-if="order.shipment" class="pill md:hidden" :class="shipmentClass">{{ shipmentText }}</span>
         <span class="md:hidden ml-auto font-mono text-13px text-ink">{{ order.total }}</span>
       </div>
       <div class="text-14px min-w-0 truncate">{{ order.email || 'anonymous' }}</div>
       <div class="mono">{{ placedAt }}</div>
       <div class="hidden md:flex flex-col gap-1 items-start">
         <span class="pill" :class="pillClass">{{ stateLabel }}</span>
-        <span v-if="order.shipment" class="pill" :class="order.shipment === 'shipped' ? 'border-teal-3 bg-teal-2 text-teal-4' : ''">{{ shipmentText }}</span>
+        <span v-if="order.shipment" class="pill" :class="shipmentClass">{{ shipmentText }}</span>
       </div>
       <div class="hidden md:block font-mono text-13px text-ink">{{ order.total }}</div>
       <div class="flex gap-2 md:justify-end">
@@ -58,6 +59,8 @@ export default {
       order.state === 'fulfillment' && order.shipmentId ? shipmentTransitionsFor(order.shipment) : [],
 
     shipmentText: ({ order }) => shipmentLabel(order.shipment),
+
+    shipmentClass: ({ order }) => (order.shipment === 'shipped' ? 'border-teal-3 bg-teal-2 text-teal-4' : ''),
 
     stateLabel: ({ order }) => label(order.state),
 
