@@ -133,8 +133,11 @@ export default {
   watch: {
     async open(on) {
       if (on) {
+        const opening = (this.opening = {})
         this.opened = document.activeElement
         await this.$store.dispatch('catalogue/load')
+        // Closed, or closed and opened again, while the catalogue loaded.
+        if (!this.open || this.opening !== opening) return
         await this.$nextTick()
         this.$refs.input && this.$refs.input.focus()
         document.addEventListener('focusin', this.trap)
