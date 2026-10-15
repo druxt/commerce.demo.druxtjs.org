@@ -12,7 +12,15 @@
  *
  * Consoles follow a session's threads by joining `assist:new` and sending
  * `list` with their token and session code.
+ *
+ * The code names a thread; it does not open one. `open` answers with a key
+ * as well, and the visitor's tab sends it in `resume` after joining. Only
+ * the key's holder is the visitor, and only the visitor and the operator
+ * who claimed the thread hear its turns, so a code read off a screen or a
+ * shared link shows nothing. The key is an HMAC of the code, so a hub that
+ * restarts still knows it.
  */
+const { createHmac, timingSafeEqual } = require('crypto')
 const { roomCode, isCode } = require('./code')
 
 const STATES = ['concierge', 'waiting', 'with_operator', 'closed']
@@ -20,14 +28,33 @@ const AUTHORS = ['visitor', 'concierge', 'operator']
 const BODY_MAX = 2000
 const TURNS_MAX = 200
 
-const assistHandler = ({ drupal, drupalUrl, accountOf, registry, rand, log = () => {} } = {}) => {
+const assistHandler = ({ drupal, drupalUrl, accountOf, registry, rand, secret, log = () => {} } = {}) => {
+  if (!secret) throw new Error('assist: a secret signs the visitor keys')
   const threads = new Map()
+  const recovering = new Map()
   const codes = new Set()
   // Console client ids watching a session's threads.
   const watchers = new Map()
   let hubApi = null
 
   const fail = (hub, client, channel, message) => hub.send(client, 'error', channel, { message })
+
+  /** The visitor's key for a code. */
+  const keyOf = (code) => createHmac('sha256', secret).update(`assist:${code}`).digest('base64url')
+  const holdsKey = (code, key) => {
+    const want = Buffer.from(keyOf(code))
+    const got = Buffer.from(typeof key === 'string' ? key : '')
+    return got.length === want.length && timingSafeEqual(got, want)
+  }
+
+  /** A thread's event, to its visitor and its operator: never the whole channel. */
+  const tell = (hub, t, type, payload) => {
+    for (const id of new Set([t.visitor, t.operator])) {
+      const client = id && hub.clients.get(id)
+      if (client) hub.send(client, type, `assist:${t.code}`, payload)
+    }
+  }
+  const threadPayload = (t) => ({ code: t.code, state: t.state, operatorName: t.operatorName, turns: t.turns, session: t.session, waitingSince: t.waitingSince || 0 })
 
   // A turn whose picks do not parse keeps its body.
   const picksOf = (value) => {
@@ -92,10 +119,16 @@ const assistHandler = ({ drupal, drupalUrl, accountOf, registry, rand, log = () 
       )
       const row = (found.data || [])[0]
       if (!row) return null
-      const chats = await drupal.get(
-        `/jsonapi/message/chat?filter[field_conversation.field_code]=${encodeURIComponent(code)}&sort=created&fields[message--chat]=field_author,field_body,field_picks,created`
-      )
-      const turns = (chats.data || []).map((c) => ({
+      // Newest first, a page at a time, so a long thread keeps its latest
+      // turns; the id orders turns written in the same second.
+      const rows = []
+      let next = `/jsonapi/message/chat?filter[field_conversation.field_code]=${encodeURIComponent(code)}&sort=-created,-drupal_internal__mid&fields[message--chat]=field_author,field_body,field_picks,created`
+      while (next && rows.length < TURNS_MAX) {
+        const page = await drupal.get(next)
+        rows.push(...(page.data || []))
+        next = ((page.links || {}).next || {}).href
+      }
+      const turns = rows.slice(0, TURNS_MAX).reverse().map((c) => ({
         author: c.attributes.field_author,
         body: c.attributes.field_body || '',
         picks: picksOf(c.attributes.field_picks),
@@ -123,7 +156,14 @@ const assistHandler = ({ drupal, drupalUrl, accountOf, registry, rand, log = () 
     }
   }
 
-  const threadOf = async (code) => (isCode(code) && (threads.get(code) || (await recover(code)))) || null
+  // Two calls for a forgotten code share one recovery, so neither replaces
+  // the thread the other set up.
+  const threadOf = async (code) => {
+    if (!isCode(code)) return null
+    if (threads.has(code)) return threads.get(code)
+    if (!recovering.has(code)) recovering.set(code, recover(code).finally(() => recovering.delete(code)))
+    return (await recovering.get(code)) || null
+  }
 
   const handler = {
     threads,
@@ -132,12 +172,10 @@ const assistHandler = ({ drupal, drupalUrl, accountOf, registry, rand, log = () 
       hubApi = hub
       const code = channel.slice('assist:'.length)
       if (code === 'new') return
+      // Joining tells nothing: the visitor sends its key in `resume`, and an
+      // operator `claim`s.
       const t = await threadOf(code)
       if (!t) return fail(hub, client, channel, 'That conversation has ended.')
-      // An empty slot is the visitor's, back after a reload even while an
-      // operator has the thread.
-      if (!t.visitor && t.operator !== client.id) t.visitor = client.id
-      hub.send(client, 'thread', channel, { code, state: t.state, operatorName: t.operatorName, turns: t.turns, session: t.session, waitingSince: t.waitingSince || 0 })
     },
 
     leave(hub, channel, client) {
@@ -155,7 +193,7 @@ const assistHandler = ({ drupal, drupalUrl, accountOf, registry, rand, log = () 
         if (t.state === 'with_operator') {
           t.state = 'concierge'
           persistState(t)
-          hub.broadcast(channel, 'handback', { code })
+          tell(hub, t, 'handback', { code })
           tellWatchers(hub, t.session, 'assist:thread', summary(t))
         }
       }
@@ -192,7 +230,7 @@ const assistHandler = ({ drupal, drupalUrl, accountOf, registry, rand, log = () 
           } catch (error) {
             log(`conversation ${next}: Drupal did not record it: ${error.message}`)
           }
-          return hub.send(client, 'conversation', channel, { code: next })
+          return hub.send(client, 'conversation', channel, { code: next, key: keyOf(next) })
         }
         // A console follows a session's threads.
         if (type === 'list') {
@@ -211,6 +249,15 @@ const assistHandler = ({ drupal, drupalUrl, accountOf, registry, rand, log = () 
 
       const t = await threadOf(code)
       if (!t) return fail(hub, client, channel, 'That conversation has ended.')
+
+      // The key's holder is the visitor: back after a reload, even while an
+      // operator has the thread.
+      if (type === 'resume') {
+        if (!holdsKey(code, payload.key)) return fail(hub, client, channel, 'That conversation is not yours, or has ended.')
+        if (t.operator !== client.id) t.visitor = client.id
+        return hub.send(client, 'thread', channel, threadPayload(t))
+      }
+
       const isOperator = t.operator === client.id
       const isVisitor = !isOperator && t.visitor === client.id
 
@@ -220,17 +267,14 @@ const assistHandler = ({ drupal, drupalUrl, accountOf, registry, rand, log = () 
         if (!t.session || !registry.get(t.session)) return fail(hub, client, channel, 'Only an operator on the session can claim its threads.')
         if (!hub.members(channel).some((m) => m.id === client.id)) return fail(hub, client, channel, 'Join the thread first.')
         t.operator = client.id
-        // A console that joined a thread with no visitor in it took the slot.
-        // It gives it back, so the visitor can return.
-        if (t.visitor === client.id) t.visitor = null
         t.operatorName = account.name
         t.state = 'with_operator'
         t.waitingSince = 0
         await persistState(t)
         log(`conversation ${code}: claimed by ${account.name}`)
-        hub.broadcast(channel, 'operator', { code, name: account.name })
+        tell(hub, t, 'operator', { code, name: account.name })
         tellWatchers(hub, t.session, 'assist:thread', summary(t))
-        return hub.send(client, 'thread', channel, { code, state: t.state, operatorName: t.operatorName, turns: t.turns, session: t.session, waitingSince: t.waitingSince || 0 })
+        return hub.send(client, 'thread', channel, threadPayload(t))
       }
 
       if (!isVisitor && !isOperator) return fail(hub, client, channel, 'This is not your conversation.')
@@ -251,7 +295,7 @@ const assistHandler = ({ drupal, drupalUrl, accountOf, registry, rand, log = () 
         if (payload.route) t.route = String(payload.route).slice(0, 200)
         if (payload.cartCount !== undefined) t.cartCount = Number(payload.cartCount) || 0
         persistTurn(t, turn)
-        hub.broadcast(channel, 'turn', { code, ...turn })
+        tell(hub, t, 'turn', { code, ...turn })
         tellWatchers(hub, t.session, 'assist:thread', summary(t))
         return
       }
@@ -261,7 +305,7 @@ const assistHandler = ({ drupal, drupalUrl, accountOf, registry, rand, log = () 
         t.state = 'waiting'
         t.waitingSince = Date.now()
         await persistState(t)
-        hub.broadcast(channel, 'state', { code, state: t.state })
+        tell(hub, t, 'state', { code, state: t.state })
         tellWatchers(hub, t.session, 'assist:waiting', summary(t))
         return
       }
@@ -270,7 +314,7 @@ const assistHandler = ({ drupal, drupalUrl, accountOf, registry, rand, log = () 
         t.state = 'concierge'
         t.waitingSince = 0
         await persistState(t)
-        hub.broadcast(channel, 'state', { code, state: t.state })
+        tell(hub, t, 'state', { code, state: t.state })
         tellWatchers(hub, t.session, 'assist:thread', summary(t))
         return
       }
@@ -280,7 +324,7 @@ const assistHandler = ({ drupal, drupalUrl, accountOf, registry, rand, log = () 
         t.operatorName = ''
         t.state = 'concierge'
         await persistState(t)
-        hub.broadcast(channel, 'handback', { code })
+        tell(hub, t, 'handback', { code })
         tellWatchers(hub, t.session, 'assist:thread', summary(t))
         return
       }

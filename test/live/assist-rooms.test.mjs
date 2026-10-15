@@ -1,9 +1,12 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import { createHmac } from 'node:crypto'
 import { assistHandler } from '../../nuxt/server/live/assist.js'
 import { fakeHub, client, errorsTo } from './fake-hub.mjs'
 
 const operatorToken = 'op-token-1234567890abcdef'
+const secret = 'assist-test-secret'
+const keyOf = (code) => createHmac('sha256', secret).update(`assist:${code}`).digest('base64url')
 const accountOf = async (url, bearer) =>
   bearer === operatorToken ? { sub: '2', name: 'Sam', roles: ['authenticated', 'operator'] } : null
 const drupalStub = (rows = {}) => {
@@ -18,7 +21,11 @@ const drupalStub = (rows = {}) => {
       writes.push(['PATCH', path, document])
       return {}
     },
-    get: async (path) => rows[path.split('?')[0]] || { data: [] },
+    get: async (path) => {
+      writes.push(['GET', path])
+      const row = rows[path.split('?')[0]]
+      return (typeof row === 'function' ? row(path) : row) || { data: [] }
+    },
   }
 }
 const registry = { get: (code) => (code === 'SESS22' ? { code } : undefined) }
@@ -40,6 +47,7 @@ const setup = (drupal = drupalStub()) => {
     accountOf,
     registry,
     rand,
+    secret,
   })
   return { hub, handler, drupal }
 }
@@ -49,6 +57,11 @@ const open = async ({ hub, handler }, visitor, session = 'SESS22') => {
   const code = hub.sent.find((m) => m.to === visitor.id && m.type === 'conversation').payload.code
   await hub.enter(handler, `assist:${code}`, visitor)
   return code
+}
+// A tab that comes back: it joins, then shows the key.
+const resume = async ({ hub, handler }, visitor, code, key = keyOf(code)) => {
+  await hub.enter(handler, `assist:${code}`, visitor)
+  await handler.message(hub, `assist:${code}`, visitor, 'resume', { key })
 }
 const watch = async ({ hub, handler }, console_, session = 'SESS22') => {
   await hub.enter(handler, 'assist:new', console_)
@@ -75,9 +88,10 @@ test('a visitor opens a conversation, turns are written and replayed on a new jo
   assert.equal(chats[1][2].data.attributes.field_author, 'concierge')
   assert.equal(JSON.parse(chats[1][2].data.attributes.field_picks)[0].sku, 'book-alice-hard-copy')
   assert.equal(chats[1][2].data.relationships.field_conversation.data.id, 'id-1')
+  assert.equal(s.hub.sent.find((m) => m.type === 'conversation').payload.key, keyOf(code))
   // The same tab after a reload: the thread comes back.
   const again = client('v2')
-  await s.hub.enter(s.handler, `assist:${code}`, again)
+  await resume(s, again, code)
   const thread = s.hub.sent.filter((m) => m.to === 'v2' && m.type === 'thread').pop().payload
   assert.deepEqual(
     thread.turns.map((t) => t.author),
@@ -183,6 +197,7 @@ test('a thread the hub forgot comes back from Drupal', async () => {
         },
       ],
     },
+    // Drupal answers newest first, as the hub asks it to.
     '/jsonapi/message/chat': {
       data: [
         {
@@ -209,12 +224,12 @@ test('a thread the hub forgot comes back from Drupal', async () => {
             created: '2026-10-12T00:00:02+00:00',
           },
         },
-      ],
+      ].reverse(),
     },
   })
   const s = setup(drupal)
   const v = client('v')
-  await s.hub.enter(s.handler, 'assist:ABCDEF', v)
+  await resume(s, v, 'ABCDEF')
   const thread = s.hub.sent.find((m) => m.type === 'thread').payload
   assert.equal(thread.state, 'waiting')
   // Drupal does not keep when the wait began, so it counts from the recovery.
@@ -261,7 +276,7 @@ test('a console that joins a thread with no visitor in it claims it as the opera
   assert.equal(s.handler.threads.get(code).turns.pop().author, 'operator')
   // The visitor reloads and can answer.
   const back = client('v2')
-  await s.hub.enter(s.handler, `assist:${code}`, back)
+  await resume(s, back, code)
   await s.handler.message(s.hub, `assist:${code}`, back, 'turn', {
     author: 'visitor',
     text: 'Thanks.',
@@ -278,8 +293,120 @@ test('a thread replayed while it waits says when the wait began', async () => {
   const since = s.handler.threads.get(code).waitingSince
   assert.ok(since > 0)
   const again = client('v2')
-  await s.hub.enter(s.handler, `assist:${code}`, again)
+  await resume(s, again, code)
   const thread = s.hub.sent.filter((m) => m.to === 'v2' && m.type === 'thread').pop().payload
   assert.equal(thread.state, 'waiting')
   assert.equal(thread.waitingSince, since)
+})
+
+test('a code alone shows nothing: a stranger who joins hears no turns and cannot take the visitor slot', async () => {
+  const s = setup()
+  const v = client('v')
+  const code = await open(s, v)
+  const stranger = client('s')
+  await s.hub.enter(s.handler, `assist:${code}`, stranger)
+  await s.handler.message(s.hub, `assist:${code}`, v, 'turn', {
+    author: 'visitor',
+    text: 'my address is...',
+  })
+  assert.deepEqual(
+    s.hub.sent.filter((m) => m.to === 's').map((m) => m.type),
+    []
+  )
+  assert.ok(s.hub.sent.some((m) => m.to === 'v' && m.type === 'turn'))
+  // The visitor's tab goes; the stranger still cannot speak, nor resume with a guess.
+  await s.hub.exit(s.handler, `assist:${code}`, v)
+  await s.handler.message(s.hub, `assist:${code}`, stranger, 'turn', {
+    author: 'visitor',
+    text: 'hi',
+  })
+  await s.handler.message(s.hub, `assist:${code}`, stranger, 'resume', { key: keyOf('ZZZZZZ') })
+  await s.handler.message(s.hub, `assist:${code}`, stranger, 'resume', {})
+  assert.deepEqual(errorsTo(s.hub, 's'), [
+    'This is not your conversation.',
+    'That conversation is not yours, or has ended.',
+    'That conversation is not yours, or has ended.',
+  ])
+  assert.ok(!s.hub.sent.some((m) => m.to === 's' && m.type === 'thread'))
+  assert.equal(s.handler.threads.get(code).visitor, null)
+})
+
+test('the handler will not start without a secret to sign keys with', () => {
+  assert.throws(() => assistHandler({ drupal: drupalStub(), accountOf, registry }), /secret/)
+})
+
+test('a recovered thread keeps its newest turns, read newest first across pages', async () => {
+  const chat = (n) => ({
+    attributes: {
+      field_author: 'visitor',
+      field_body: `turn ${n}`,
+      field_picks: '',
+      created: '2026-10-12T00:00:00+00:00',
+    },
+  })
+  // 230 rows, newest first: 230, 229, ... in pages of 50.
+  const page = (path) => {
+    const at = Number((path.match(/page\[offset\]=(\d+)/) || [])[1] || 0)
+    const data = []
+    for (let n = 230 - at; n > 230 - at - 50 && n > 0; n--) data.push(chat(n))
+    const next =
+      at + 50 < 230 ? `http://drupal/jsonapi/message/chat?page[offset]=${at + 50}` : undefined
+    return { data, links: next ? { next: { href: next } } : {} }
+  }
+  const drupal = drupalStub({
+    '/jsonapi/message/conversation': {
+      data: [
+        {
+          id: 'conv-1',
+          attributes: { field_code: 'ABCDEF', field_session: '', field_state: 'concierge' },
+        },
+      ],
+    },
+    '/jsonapi/message/chat': page,
+    'http://drupal/jsonapi/message/chat': page,
+  })
+  const s = setup(drupal)
+  await resume(s, client('v'), 'ABCDEF')
+  const turns = s.hub.sent.find((m) => m.type === 'thread').payload.turns
+  assert.equal(turns.length, 200)
+  assert.equal(turns[0].body, 'turn 31')
+  assert.equal(turns[199].body, 'turn 230')
+  const first = drupal.writes.find(
+    (w) => w[0] === 'GET' && w[1].includes('/jsonapi/message/chat')
+  )[1]
+  assert.match(first, /sort=-created,-drupal_internal__mid/)
+})
+
+test('two calls for a forgotten code share one recovery', async () => {
+  let release
+  const gate = new Promise((resolve) => (release = resolve))
+  let reads = 0
+  const drupal = drupalStub({
+    '/jsonapi/message/conversation': () => {
+      reads++
+      return {
+        data: [
+          {
+            id: 'conv-1',
+            attributes: { field_code: 'ABCDEF', field_session: '', field_state: 'concierge' },
+          },
+        ],
+      }
+    },
+  })
+  const get = drupal.get
+  drupal.get = async (path) => {
+    await gate
+    return get(path)
+  }
+  const s = setup(drupal)
+  const v = client('v')
+  const both = Promise.all([
+    resume(s, v, 'ABCDEF'),
+    s.hub.enter(s.handler, 'assist:ABCDEF', client('c')),
+  ])
+  release()
+  await both
+  assert.equal(reads, 1)
+  assert.equal(s.handler.threads.get('ABCDEF').visitor, 'v')
 })

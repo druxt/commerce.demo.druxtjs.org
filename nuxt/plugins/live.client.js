@@ -18,6 +18,7 @@ import { cartToken, adoptToken, dropToken } from '~/store/cart'
 const SESSION_KEY = 'druxtDemoSession'
 const ROOM_KEY = 'druxtCartRoom'
 const THREAD_KEY = 'druxtAssistThread'
+const THREAD_SECRET = 'druxtAssistKey'
 const CODE = /^[A-Z0-9]{6}$/
 
 export default (context, inject) => {
@@ -144,6 +145,22 @@ export default (context, inject) => {
   })
   const threadChannel = () => `assist:${thread.code}`
   const threadListeners = []
+  // The key the hub gave with the code: it makes this tab the visitor. Kept
+  // out of the observable, so nothing renders it.
+  let threadKey = ''
+  const resume = () => {
+    if (thread.code && threadKey) $sockets.send('resume', threadChannel(), { key: threadKey })
+  }
+  const forget = () => {
+    thread.code = ''
+    threadKey = ''
+    storage((s) => {
+      s.removeItem(THREAD_KEY)
+      s.removeItem(THREAD_SECRET)
+    })
+  }
+  // A new identity after a hub restart is a stranger until it shows the key.
+  $sockets.on('hello', resume)
 
   $sockets.on('thread', (m) => {
     if (!thread.code || m.channel !== threadChannel()) return
@@ -179,10 +196,9 @@ export default (context, inject) => {
   })
   $sockets.on('error', (m) => {
     if (thread.code && m.channel === threadChannel() && /ended/.test(m.payload.message)) {
-      thread.code = ''
+      forget()
       thread.turns = []
       thread.state = 'concierge'
-      storage((s) => s.removeItem(THREAD_KEY))
     }
   })
 
@@ -226,9 +242,12 @@ export default (context, inject) => {
     openConversation(route) {
       if (thread.code) return Promise.resolve(thread.code)
       const kept = storage((s) => s.getItem(THREAD_KEY))
-      if (kept && CODE.test(kept)) {
+      const keptKey = storage((s) => s.getItem(THREAD_SECRET))
+      if (kept && CODE.test(kept) && keptKey) {
         thread.code = kept
+        threadKey = keptKey
         $sockets.join(threadChannel())
+        resume()
         return Promise.resolve(kept)
       }
       return new Promise((resolve, reject) => {
@@ -241,8 +260,13 @@ export default (context, inject) => {
           if (m.channel !== 'assist:new') return
           done()
           thread.code = m.payload.code
-          storage((s) => s.setItem(THREAD_KEY, thread.code))
+          threadKey = m.payload.key || ''
+          storage((s) => {
+            s.setItem(THREAD_KEY, thread.code)
+            s.setItem(THREAD_SECRET, threadKey)
+          })
           $sockets.join(threadChannel())
+          resume()
           resolve(thread.code)
         })
         const offError = $sockets.on('error', (m) => {
@@ -273,12 +297,11 @@ export default (context, inject) => {
     /** A fresh conversation: the old code is left behind. */
     resetConversation() {
       if (thread.code) $sockets.leave(threadChannel())
-      thread.code = ''
+      forget()
       thread.state = 'concierge'
       thread.operatorName = ''
       thread.turns = []
       thread.waitingSince = 0
-      storage((s) => s.removeItem(THREAD_KEY))
     },
 
     /** The order this tab placed, for the session's console. */

@@ -212,3 +212,33 @@ test('the carts and the stock are read past their first page', async () => {
   assert.deepEqual(Object.fromEntries(stock().levels), { v1: 2, v2: 0 })
   assert.equal(counts().get(P1), 2)
 })
+
+test('a failed stock read keeps the last levels and tries again', async () => {
+  let down = false
+  const drupal = {
+    get: async (path) => {
+      if (path.includes('/orders/')) return carts([])
+      if (down && path.includes('/media-physical')) throw new Error('stock down')
+      return path.includes('/media-physical?') ? stockBody([['v1', 0, P1]]) : { data: [] }
+    },
+  }
+  const log = []
+  const timers = []
+  const { refresh, stock } = productHandler({
+    drupal,
+    log: (m) => log.push(m),
+    setTimer: (fn) => (timers.push(fn), 1),
+  })
+  await refresh()
+  assert.equal(stock().levels.get('v1'), 0)
+  down = true
+  await refresh()
+  // Sold out stays sold out, not unknown.
+  assert.equal(stock().levels.get('v1'), 0)
+  assert.match(log.pop(), /stock: not read, the last levels stand: stock down/)
+  assert.equal(timers.length, 1)
+  down = false
+  await timers[0]()
+  assert.equal(stock().levels.get('v1'), 0)
+  assert.equal(timers.length, 1)
+})

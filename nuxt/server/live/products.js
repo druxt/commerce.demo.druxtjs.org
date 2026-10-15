@@ -68,7 +68,7 @@ const readStock = (bodies = []) => {
   return { levels, productOf }
 }
 
-const productHandler = ({ drupal, log = () => {}, debounceMs = 400, setTimer = setTimeout } = {}) => {
+const productHandler = ({ drupal, log = () => {}, debounceMs = 400, retryMs = 5000, setTimer = setTimeout } = {}) => {
   let counts = new Map()
   let stock = { levels: new Map(), productOf: new Map() }
   let hubApi = null
@@ -92,14 +92,33 @@ const productHandler = ({ drupal, log = () => {}, debounceMs = 400, setTimer = s
     if (!drupal) return
     let cartsBody
     let stockBodies
+    let stockFailed = null
     try {
       cartsBody = await readAll(drupal, CARTS_PATH)
-      stockBodies = await Promise.all(STOCK_PATHS.map((p) => readAll(drupal, p).catch(() => ({ data: [] }))))
+      stockBodies = await Promise.all(
+        STOCK_PATHS.map((p) =>
+          readAll(drupal, p).catch((error) => {
+            stockFailed = error
+            return null
+          })
+        )
+      )
     } catch (error) {
       return log(`carts: not read: ${error.message}`)
     }
+    // A failed stock read is not an empty catalogue: the last levels stand,
+    // so a sold-out card stays sold out, and the read is tried again.
+    if (stockFailed) {
+      log(`stock: not read, the last levels stand: ${stockFailed.message}`)
+      if (!timer) {
+        timer = setTimer(() => {
+          timer = null
+          return refresh()
+        }, retryMs)
+      }
+    }
     const nextCounts = countCarts(cartsBody)
-    const nextStock = readStock(stockBodies)
+    const nextStock = stockFailed ? stock : readStock(stockBodies)
     const movedCarts = new Set([...counts.keys(), ...nextCounts.keys()].filter((id) => (counts.get(id) || 0) !== (nextCounts.get(id) || 0)))
     const movedSkus = [...new Set([...stock.levels.keys(), ...nextStock.levels.keys()])].filter((sku) => stock.levels.get(sku) !== nextStock.levels.get(sku))
     counts = nextCounts
