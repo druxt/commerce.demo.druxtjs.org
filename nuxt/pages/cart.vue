@@ -1,7 +1,7 @@
 <template>
   <div class="mx-auto max-w-5xl px-5 py-12 flex flex-col gap-8">
     <header class="flex flex-wrap items-baseline justify-between gap-3">
-      <h1 class="text-3xl">Your cart</h1>
+      <h1 class="text-3xl">{{ room.guest && room.code ? `Cart · with ${ownerName}` : 'Your cart' }}</h1>
       <p v-if="!isEmpty" class="label-mono">{{ count }} {{ count === 1 ? 'item' : 'items' }}</p>
     </header>
 
@@ -10,11 +10,14 @@
     <div v-if="$fetchState.pending" class="label-mono">Loading your cart…</div>
 
     <div v-else-if="isEmpty" class="card p-10 flex flex-col items-center gap-4 text-center">
+      <ShopTogether v-if="room.closed" />
       <p class="text-lg text-ink-2">Your cart is empty.</p>
       <NuxtLink to="/catalogue" class="btn-primary">Browse the catalogue</NuxtLink>
+      <ShopTogether v-if="!room.closed" join-only class="w-full max-w-90 mt-2" />
     </div>
 
     <template v-else>
+      <ShopTogether banners-only />
       <ul class="card divide-y divide-line">
         <li
           v-for="line in lines"
@@ -24,6 +27,9 @@
           <div class="flex-1 min-w-40">
             <p class="font-600">{{ line.title }}</p>
             <p class="label-mono mt-1">{{ line.unitPrice }} each</p>
+            <p v-if="room.added[line.title]" class="font-mono text-11px text-teal mt-1">
+              added by {{ room.added[line.title] === room.you ? 'you' : room.names[room.added[line.title]] || 'someone' }}
+            </p>
           </div>
 
           <div class="flex items-center border border-line rounded" role="group" :aria-label="`Quantity for ${line.title}`">
@@ -62,9 +68,15 @@
 
         <div class="flex flex-wrap gap-3">
           <NuxtLink to="/catalogue" class="btn-secondary">Keep shopping</NuxtLink>
-          <NuxtLink to="/checkout" class="btn-primary">Checkout</NuxtLink>
+          <span v-if="room.closed" class="btn-primary opacity-50 cursor-default" aria-disabled="true">
+            Checked out by {{ room.closed.by === room.you ? 'you' : room.names[room.closed.by] || 'someone' }}
+          </span>
+          <NuxtLink v-else to="/checkout" class="btn-primary">Checkout</NuxtLink>
         </div>
       </div>
+
+      <!-- Shop together: the room, or the offer to open one. -->
+      <ShopTogether />
     </template>
 
     <client-only>
@@ -95,6 +107,12 @@ export default {
   computed: {
     ...mapState('cart', ['lines', 'busy', 'error']),
     ...mapGetters('cart', ['count', 'total', 'subtotal', 'isEmpty']),
+
+    // The cart room this tab is in, from the live layer; an empty one when
+    // the layer is absent, so the template reads the same either way.
+    room: ({ $live }) => ($live && $live.room) || { code: '', guest: false, members: [], names: {}, added: {}, closed: null, you: '' },
+
+    ownerName: ({ room }) => room.names[room.owner] || 'someone',
   },
 
   methods: {

@@ -1,5 +1,7 @@
 <template>
-  <section class="relative bg-ink text-paper overflow-hidden">
+  <!-- Fills the carousel's cell, so every slide is the same height whatever
+       its copy, and the control bar sits on the image, not under it. -->
+  <section class="relative h-full bg-ink text-paper overflow-hidden">
     <img
       v-if="backgroundUrl"
       :src="backgroundUrl"
@@ -8,7 +10,7 @@
       class="absolute inset-0 w-full h-full object-cover opacity-45"
     >
 
-    <div class="relative wrap py-20 sm:py-28 flex flex-col gap-6 items-start">
+    <div class="relative wrap pt-20 pb-28 sm:py-28 flex flex-col gap-6 items-start">
       <p v-if="subtitle" class="label-mono text-mint">{{ subtitle }}</p>
 
       <h1 v-if="title" class="text-4xl sm:text-6xl max-w-3xl">{{ title }}</h1>

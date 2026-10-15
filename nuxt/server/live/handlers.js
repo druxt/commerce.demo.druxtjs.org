@@ -9,12 +9,15 @@ const { createHubClient, accountOf, orderForToken } = require('./drupal')
 const { sessionHandler } = require('./sessions')
 const { ordersHandler } = require('./orders')
 const { productHandler } = require('./products')
+const { cartHandler } = require('./carts')
+const { assistHandler } = require('./assist')
 
 module.exports = ({ drupalUrl, log = () => {} } = {}) => {
+  const hubSecret = process.env.DRUXT_HUB_SECRET || 'hub-secret-for-local-only'
   const drupal = createHubClient({
     drupalUrl,
     clientId: process.env.DRUXT_HUB_CLIENT_ID || 'commerce_hub',
-    clientSecret: process.env.DRUXT_HUB_SECRET || 'hub-secret-for-local-only',
+    clientSecret: hubSecret,
   })
   const session = sessionHandler({ drupal, drupalUrl, accountOf, orderForToken, log })
   const { orders, order, onTags } = ordersHandler({
@@ -26,7 +29,15 @@ module.exports = ({ drupalUrl, log = () => {} } = {}) => {
     log,
   })
   const product = productHandler({ drupal, log })
-  const handlers = { session, orders, order, product: product.handler }
+  const handlers = {
+    session,
+    orders,
+    order,
+    product: product.handler,
+    catalogue: product.catalogue,
+    cart: cartHandler({ orderForToken, drupalUrl, log }).handler,
+    assist: assistHandler({ drupal, drupalUrl, accountOf, registry: session.registry, secret: hubSecret, log }),
+  }
   // Cart counts start from Drupal's carts as they are now.
   product.refresh()
 

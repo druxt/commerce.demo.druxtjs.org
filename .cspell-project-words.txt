@@ -2,15 +2,19 @@ amazeeio
 appserver
 archivo
 bcmath
+Beachball
 behaviour
+blkchr
 bmewburn
 bootstrapvue
 Centarro
 centorium
 cklb
+Clusterfibre
 commitlint
 compomnent
 consolas
+conv
 cweagans
 davidanson
 dbaeumer
@@ -33,6 +37,7 @@ fieldsets
 furf
 gdlib
 giget
+handback
 hverlin
 instantiator
 intelephense
@@ -61,6 +66,7 @@ LOCALDEV
 luma
 makedirs
 mbstring
+MDEDT
 namelist
 netcat
 neue
@@ -74,6 +80,7 @@ opcache
 openssl
 openvscode
 packagist
+Parfum
 phar
 phpcodesniffer
 phpdotenv
@@ -81,6 +88,7 @@ phpmyadmin
 phpsab
 phpstan
 phpunit
+plantpots
 projectname
 projecttype
 qrcode
@@ -90,8 +98,10 @@ rels
 repository
 scule
 Segoe
+SESS
 setuptools
 shivammathur
+skus
 someenv
 somename
 someotherenv
@@ -106,6 +116,8 @@ tbachert
 tokenless
 trixie
 tysc
+udolpho
+Udolpho
 uncompiled
 unocss
 updb
@@ -117,7 +129,11 @@ webflo
 webimage
 webmozart
 webroot
+whtsh
+whttbl
 wicd
 workrounds
 xauth
 xhprof
+zoneinfo
+zxqv

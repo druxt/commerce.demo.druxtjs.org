@@ -21,6 +21,17 @@ const LABELS = {
 }
 
 const transitionsFor = (state) => WORKFLOW[state] || []
+
+/** What the shipment allows: ready ships; shipped is done. */
+const shipmentTransitionsFor = (state) =>
+  state === 'ready' ? [{ id: 'ship', label: 'Ship it', to: 'shipped' }] : []
+
+const shipmentLabel = (state) =>
+  ({ draft: 'Not ready', ready: 'Ready to ship', shipped: 'Shipped', canceled: 'Canceled' })[
+    state
+  ] ||
+  state ||
+  ''
 const label = (state) => LABELS[state] || state
 
-module.exports = { transitionsFor, label }
+module.exports = { transitionsFor, label, shipmentTransitionsFor, shipmentLabel }

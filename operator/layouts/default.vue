@@ -58,10 +58,13 @@ export default {
     signedIn: ({ $auth, $store }) => !!$auth.loggedIn && $store.state.operator.allowed,
     user: ({ $auth }) => ($auth.user && ($auth.user.preferred_username || $auth.user.name)) || '',
     code: ({ $store }) => $store.state.session.code,
-    nav: () => [
+    nav: ({ waiting }) => [
       { to: '/', label: 'Session' },
       { to: '/orders', label: 'Orders' },
+      { to: '/assist', label: waiting ? `Assist · ${waiting}` : 'Assist' },
     ],
+
+    waiting: ({ $store }) => $store.getters['assist/waiting'].length,
   },
 
   methods: {
