@@ -222,6 +222,41 @@ In production the console is the `ops` service on its own route, built by
 `.docker/Dockerfile.ops` and served by `operator/server/start.js`, which also
 proxies Drupal's paths on the console's origin.
 
+## Concierge
+
+The assist panel's answers come from `POST /_assist`, which tries three
+things, in this order:
+
+1. **A language model** writes a note and picks SKUs from the catalogue,
+   when `ANTHROPIC_API_KEY` is set (`ASSIST_MODEL` names the model).
+2. **An intent model** chooses one of the scripted buckets by what the
+   shopper means, and the bucket's own picks answer. It speaks
+   [TypeSafe's Jev](https://docs.typesafe.ai/api) protocol, so it is Jev
+   itself or [Laya](https://github.com/NandhaKishorM/laya), an
+   open-weights model on the same protocol.
+3. **Keywords** choose the bucket, with no network at all.
+
+| Variable              | Intent model setting                                   |
+| --------------------- | ------------------------------------------------------ |
+| `TYPESAFE_API_KEY`    | The key for Jev, or for a Laya that asks for one       |
+| `TYPESAFE_BASE_URL`   | Where it answers; `https://api.typesafe.ai` by default |
+| `ASSIST_INTENT_MODEL` | `jev-latest` by default; `typed-decisions` for Laya    |
+
+Either of the first two turns it on. To develop against Laya on your own
+machine, which needs Python 3.10 or newer, run it in another terminal:
+
+```bash
+npm run laya
+```
+
+The first run installs it into `.laya/` and downloads its checkpoint, about
+1.6 GB. Then add to `.env`:
+
+```bash
+TYPESAFE_BASE_URL=http://127.0.0.1:8765
+ASSIST_INTENT_MODEL=typed-decisions
+```
+
 ## Services
 
 | Port   | Service                                                                               |
@@ -229,6 +264,7 @@ proxies Drupal's paths on the console's origin.
 | `3000` | Nuxt.js                                                                               |
 | `3001` | Operator console                                                                      |
 | `3003` | Storybook                                                                             |
+| `8765` | Laya, the concierge's intent model in development (`npm run laya`)                    |
 | `8888` | Drupal (local `.devtools` backend - DDEV serves at its own `*.ddev.site` URL instead) |
 
 ## Tools

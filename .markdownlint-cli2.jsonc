@@ -11,5 +11,5 @@
     "MD041": false,
     "MD036": false,
   },
-  "ignores": ["node_modules/**", "**/node_modules/**", "nuxt/**", "drupal/**"],
+  "ignores": ["node_modules/**", "**/node_modules/**", "nuxt/**", "drupal/**", ".laya/**"],
 }

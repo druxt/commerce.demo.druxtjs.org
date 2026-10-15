@@ -231,3 +231,115 @@ test('a body of null gets the scripted default answer', async () => {
   assert.equal(res.statusCode, 200)
   assert.equal(res.json().bucket, 'default')
 })
+
+// The intent model on its own host: Laya, or Jev, behind the same protocol.
+const withIntent =
+  (choice, confidence = 0.9, base = fetchFor(''), seen = []) =>
+  async (url, init) => {
+    if (String(url).startsWith('http://laya/')) {
+      seen.push(JSON.parse(init.body))
+      if (choice instanceof Error) throw choice
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ answers: { want: { choice, confidence } } }),
+      }
+    }
+    return base(url, init)
+  }
+const INTENT = { baseUrl: 'http://laya', apiKey: 'k', model: 'typed-decisions' }
+
+test('with no model key the intent model picks the bucket the keywords miss', async () => {
+  const route = createAssistRoute({
+    drupalUrl: 'http://drupal',
+    apiKey: '',
+    intent: INTENT,
+    fetch: withIntent('warm'),
+    log: () => {},
+  })
+  const message = 'It is freezing at the bus stop every morning'
+  const body = (await call(route, { message })).json()
+  assert.equal(body.source, 'intent')
+  assert.equal(body.bucket, 'warm')
+  assert.deepEqual(
+    body.picks.map((p) => p.sku),
+    ['UT-KnitHat-Green', 'UT-KnitHat-MNPlum', 'whtsh']
+  )
+  const keywords = createAssistRoute({
+    drupalUrl: 'http://drupal',
+    apiKey: '',
+    intent: null,
+    fetch: fetchFor(''),
+    log: () => {},
+  })
+  assert.equal((await call(keywords, { message })).json().bucket, 'default')
+})
+
+test('the model answers first, the intent model only when it fails', async () => {
+  const seen = []
+  const good = createAssistRoute({
+    drupalUrl: 'http://drupal',
+    apiKey: 'k',
+    intent: INTENT,
+    fetch: withIntent(
+      'warm',
+      0.9,
+      fetchFor('{"note":"ok","picks":[{"sku":"whtsh","why":"soft"}]}'),
+      seen
+    ),
+    log: () => {},
+  })
+  assert.equal((await call(good, { message: 'cold' })).json().source, 'model')
+  assert.equal(seen.length, 0)
+  const bad = createAssistRoute({
+    drupalUrl: 'http://drupal',
+    apiKey: 'k',
+    intent: INTENT,
+    fetch: withIntent('warm', 0.9, fetchFor('prose'), seen),
+    log: () => {},
+  })
+  assert.equal((await call(bad, { message: 'cold' })).json().source, 'intent')
+  assert.equal(seen.length, 1)
+})
+
+test('a person gets the note and no picks; a failed intent model leaves the keywords', async () => {
+  const person = createAssistRoute({
+    drupalUrl: 'http://drupal',
+    apiKey: '',
+    intent: INTENT,
+    fetch: withIntent('person'),
+    log: () => {},
+  })
+  const body = (await call(person, { message: 'is anyone real there' })).json()
+  assert.equal(body.source, 'intent')
+  assert.equal(body.bucket, 'person')
+  assert.deepEqual(body.picks, [])
+  assert.match(body.note, /Talk to a person/)
+  const down = createAssistRoute({
+    drupalUrl: 'http://drupal',
+    apiKey: '',
+    intent: INTENT,
+    fetch: withIntent(new Error('ECONNREFUSED')),
+    log: () => {},
+  })
+  const scripted = (await call(down, { message: 'a gift under $40' })).json()
+  assert.equal(scripted.source, 'scripted')
+  assert.equal(scripted.bucket, 'gift')
+})
+
+test('a turn that reaches both models spends one allowance, and past the cap neither is asked', async () => {
+  const seen = []
+  const route = createAssistRoute({
+    drupalUrl: 'http://drupal',
+    apiKey: 'k',
+    intent: INTENT,
+    fetch: withIntent('warm', 0.9, fetchFor('prose'), seen),
+    now: () => 1000,
+    limits: { perMinute: 2 },
+    log: () => {},
+  })
+  assert.equal((await call(route, { message: 'cold' })).json().source, 'intent')
+  assert.equal((await call(route, { message: 'cold' })).json().source, 'intent')
+  assert.equal((await call(route, { message: 'cold' })).json().source, 'scripted')
+  assert.equal(seen.length, 2)
+})
