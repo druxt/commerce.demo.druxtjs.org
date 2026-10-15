@@ -47,7 +47,7 @@
         <dt class="font-mono text-11px uppercase tracking-wider text-ink-2 self-center">Paid</dt>
         <dd class="m-0 font-mono">{{ (order.total_paid || {}).formatted || '–' }}</dd>
         <dt class="font-mono text-11px uppercase tracking-wider text-ink-2 self-center">Shipment</dt>
-        <dd class="m-0 font-mono">{{ shipment === null ? 'none yet' : shipment }} <span class="text-ink-2">· demo courier, nothing ships</span></dd>
+        <dd class="m-0 font-mono">{{ shipment === null ? 'none yet' : shipment }} <span class="text-ink-2">· demo courier</span></dd>
       </dl>
 
       <DruxtDemoNote

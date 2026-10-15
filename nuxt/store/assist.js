@@ -193,7 +193,7 @@ export const actions = {
   talk({ commit }) {
     const live = this.$live
     if (!live || !live.session || !live.thread.code) {
-      return commit('push', { role: 'sys', text: 'No operator session is open right now, so the concierge answers on its own.' })
+      return commit('push', { role: 'sys', text: 'Our people join during live demos. The concierge has you until then.' })
     }
     commit('push', { role: 'user', text: 'Can I talk to a person?' })
     live.turn('visitor', 'Can I talk to a person?')

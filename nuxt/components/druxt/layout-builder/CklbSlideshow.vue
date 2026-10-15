@@ -24,12 +24,36 @@
       Hidden slides keep their space but are removed from the accessibility
       tree and from the tab order.
     -->
+    <!-- Product rails name themselves, so a light slideshow is a row of tabs. -->
+    <div v-if="tabbed" class="wrap pt-[clamp(36px,5vw,56px)] flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
+      <div class="flex gap-x-[clamp(16px,2.4vw,28px)] max-w-full overflow-x-auto whitespace-nowrap" role="tablist" aria-label="Products" @keydown="onTabKey">
+        <button
+          v-for="(slot, index) in slides"
+          :id="`tab-${slot}`"
+          :key="`tab-${slot}`"
+          ref="tabs"
+          type="button"
+          role="tab"
+          :aria-selected="index === current ? 'true' : 'false'"
+          :aria-controls="`panel-${slot}`"
+          :tabindex="index === current ? 0 : -1"
+          class="pb-2 -mb-px border-0 border-b-2 border-solid bg-transparent px-0 shrink-0 text-[clamp(18px,3vw,26px)] font-700 tracking-tight leading-tight cursor-pointer transition-colors duration-150"
+          :class="index === current ? 'text-ink border-ink' : 'text-ink-3 border-transparent hover:text-ink'"
+          @click="current = index"
+        >{{ titles[slot] }}</button>
+      </div>
+      <NuxtLink to="/catalogue" class="pb-2 text-14px font-600 text-accent">Browse all products &rarr;</NuxtLink>
+    </div>
+
     <div class="grid">
       <div
         v-for="(slot, index) in slides"
+        :id="tabbed ? `panel-${slot}` : undefined"
         :key="slot"
         class="col-start-1 row-start-1 min-w-0"
         :class="index === current ? 'visible' : 'invisible pointer-events-none'"
+        :role="tabbed ? 'tabpanel' : undefined"
+        :aria-labelledby="tabbed ? `tab-${slot}` : undefined"
         :aria-hidden="index === current ? 'false' : 'true'"
       >
         <slot :name="slot" />
@@ -43,7 +67,7 @@
       light slide it sits below, where there is no image to fight with.
     -->
     <div
-      v-if="multiple"
+      v-if="multiple && !tabbed"
       class="wrap flex items-center gap-4"
       :class="onDark
         ? 'absolute bottom-0 left-0 right-0 pb-6 text-paper'
@@ -88,7 +112,7 @@
 
     <!-- Slide choice for assistive technology and keyboard users, without the
          visual weight of a row of dots. -->
-    <div v-if="multiple" class="sr-only">
+    <div v-if="multiple && !tabbed" class="sr-only">
       <button
         v-for="(slot, index) in slides"
         :key="`goto-${slot}`"
@@ -104,16 +128,25 @@
 export default {
   name: 'DruxtLayoutBuilderCklbSlideshow',
 
+  // A product rail in a slide gives its title here, keyed by the uuid its
+  // slot is named after.
+  provide() {
+    return { rail: { setTitle: (uuid, title) => this.$set(this.titles, uuid, title) } }
+  },
+
   data: () => ({
     current: 0,
     slides: [],
+    titles: {},
     onDark: false,
   }),
 
   computed: {
     multiple: ({ slides }) => slides.length > 1,
 
-    label: ({ slides }) => (slides.length > 1 ? `Slideshow, ${slides.length} slides` : undefined),
+    tabbed: ({ multiple, slides, titles }) => multiple && slides.every((s) => titles[s]),
+
+    label: ({ slides, tabbed }) => (slides.length > 1 && !tabbed ? `Slideshow, ${slides.length} slides` : undefined),
   },
 
   // $scopedSlots is a new object on every render, so reading it from a
@@ -158,6 +191,16 @@ export default {
     previous() {
       if (!this.multiple) return
       this.current = (this.current - 1 + this.slides.length) % this.slides.length
+    },
+
+    // Arrow keys move along the tabs, Home and End jump to the ends.
+    onTabKey(event) {
+      const last = this.slides.length - 1
+      const moves = { ArrowRight: this.next, ArrowLeft: this.previous, Home: () => (this.current = 0), End: () => (this.current = last) }
+      if (!moves[event.key]) return
+      event.preventDefault()
+      moves[event.key]()
+      this.$nextTick(() => this.$refs.tabs && this.$refs.tabs[this.current] && this.$refs.tabs[this.current].focus())
     },
   },
 }

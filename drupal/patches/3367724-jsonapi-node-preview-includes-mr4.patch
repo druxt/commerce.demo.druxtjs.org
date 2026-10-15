@@ -1,0 +1,720 @@
+diff --git a/jsonapi_node_preview.services.yml b/jsonapi_node_preview.services.yml
+index 254357831e6092d16e6e46cd45b1b45ab5c21671..b6c014e37b4db65e5df637327f069e0889d732fc 100644
+--- a/jsonapi_node_preview.services.yml
++++ b/jsonapi_node_preview.services.yml
+@@ -13,9 +13,13 @@ services:
+     class: Drupal\jsonapi_node_preview\Controller\EntityResource
+     parent: jsonapi.entity_resource
+ 
+-  # Overwrites @jsonapi.include_resolver.
++  # Overwrites @jsonapi.include_resolver. The request stack lets the
++  # resolver detect a preview request from the route, so the behavior
++  # survives modules that decorate this service (like jsonapi_resources)
++  # and drop the extra parameter at the decoration boundary.
+   jsonapi.include_resolver:
+     class: Drupal\jsonapi_node_preview\IncludeResolver
+     arguments:
+       - '@entity_type.manager'
+       - '@jsonapi.entity_access_checker'
++      - '@request_stack'
+diff --git a/src/IncludeResolver.php b/src/IncludeResolver.php
+index 97269ebcccbb304d0f6e4b2b4e4a8332d9082b6f..1d20e0dcc62b94ae8ab0bdafe83052e24c4e8f32 100755
+--- a/src/IncludeResolver.php
++++ b/src/IncludeResolver.php
+@@ -5,8 +5,12 @@ namespace Drupal\jsonapi_node_preview;
+ use Drupal\jsonapi\IncludeResolver as BaseIncludeResolver;
+ use Drupal\Core\Access\AccessResult;
+ use Drupal\Core\Entity\EntityInterface;
++use Drupal\Core\Entity\EntityTypeManagerInterface;
++use Drupal\Core\Entity\RevisionableStorageInterface;
+ use Drupal\Core\Field\FieldItemListInterface;
+ use Drupal\Core\Field\Plugin\Field\FieldType\EntityReferenceItem;
++use Drupal\entity_reference_revisions\Plugin\Field\FieldType\EntityReferenceRevisionsItem;
++use Drupal\jsonapi\Access\EntityAccessChecker;
+ use Drupal\jsonapi\Exception\EntityAccessDeniedHttpException;
+ use Drupal\jsonapi\JsonApiResource\Data;
+ use Drupal\jsonapi\JsonApiResource\IncludedData;
+@@ -14,6 +18,7 @@ use Drupal\jsonapi\JsonApiResource\LabelOnlyResourceObject;
+ use Drupal\jsonapi\JsonApiResource\ResourceIdentifierInterface;
+ use Drupal\jsonapi\JsonApiResource\ResourceObject;
+ use Drupal\jsonapi\JsonApiResource\ResourceObjectData;
++use Symfony\Component\HttpFoundation\RequestStack;
+ 
+ /**
+  * Resolves included resources for an entity or collection of entities.
+@@ -25,6 +30,44 @@ use Drupal\jsonapi\JsonApiResource\ResourceObjectData;
+  */
+ class IncludeResolver extends BaseIncludeResolver {
+ 
++  /**
++   * The request stack, when available.
++   *
++   * Optional so that a container which still holds the old two argument
++   * definition keeps working. Without it, preview detection relies on the
++   * explicit parameter alone.
++   *
++   * @var \Symfony\Component\HttpFoundation\RequestStack|null
++   */
++  protected $requestStack;
++
++  /**
++   * Constructs a new IncludeResolver.
++   *
++   * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
++   *   The entity type manager.
++   * @param \Drupal\jsonapi\Access\EntityAccessChecker $entity_access_checker
++   *   The entity access checker.
++   * @param \Symfony\Component\HttpFoundation\RequestStack|null $request_stack
++   *   The request stack.
++   */
++  public function __construct(EntityTypeManagerInterface $entity_type_manager, EntityAccessChecker $entity_access_checker, ?RequestStack $request_stack = NULL) {
++    parent::__construct($entity_type_manager, $entity_access_checker);
++    $this->requestStack = $request_stack;
++  }
++
++  /**
++   * Tells whether the current request is a node preview request.
++   *
++   * Decorators of this service (jsonapi_resources, for example) call into
++   * this resolver without the preview parameter, so the parameter alone is
++   * not a reliable signal. The route is.
++   */
++  protected function isPreviewRequest(): bool {
++    $route = $this->requestStack?->getCurrentRequest()?->attributes->get('_route');
++    return is_string($route) && str_ends_with($route, '.individual.preview');
++  }
++
+   /**
+    * {@inheritdoc}
+    *
+@@ -38,6 +81,7 @@ class IncludeResolver extends BaseIncludeResolver {
+    * @throws \Drupal\Core\TypedData\Exception\MissingDataException
+    */
+   public function resolve($data, $include_parameter, bool $in_preview = FALSE) {
++    $in_preview = $in_preview || $this->isPreviewRequest();
+     assert($data instanceof ResourceObject || $data instanceof ResourceObjectData);
+     $data = $data instanceof ResourceObjectData ? $data : new ResourceObjectData([$data], 1);
+     $include_tree = static::toIncludeTree($data, $include_parameter);
+@@ -61,6 +105,9 @@ class IncludeResolver extends BaseIncludeResolver {
+    * @throws \Drupal\Core\TypedData\Exception\MissingDataException
+    */
+   protected function resolveIncludeTree(array $include_tree, Data $data, ?Data $includes = NULL, bool $in_preview = FALSE) {
++    // Decorators call this method directly and cannot pass the preview
++    // parameter, so derive it from the request as well.
++    $in_preview = $in_preview || $this->isPreviewRequest();
+     $includes = is_null($includes) ? new IncludedData([]) : $includes;
+     foreach ($include_tree as $field_name => $children) {
+       $references = [];
+@@ -105,9 +152,19 @@ class IncludeResolver extends BaseIncludeResolver {
+           assert($field_item instanceof EntityReferenceItem);
+           // CUSTOM MODIFICATION STARTS.
+           // $references[$target_type][] = $field_item->get($field_item::mainPropertyName())->getValue();
+-          // When in preview, use the already loaded entity from fields,
+-          // instead of loading them from database.
+-          $references[$target_type][$field_item->get($field_item::mainPropertyName())->getValue()][] = $in_preview ? $field_item->entity : NULL;
++          // Record one entry for each field item. Keep the entity the field
++          // item holds, which in a preview has the changes that are not saved.
++          // Keep the id to load when there is no such entity. For a revisioned
++          // reference, keep the revision id, so a non-default revision resolves
++          // to the right included data. Otherwise keep the plain target id.
++          $is_revision = $field_item instanceof EntityReferenceRevisionsItem;
++          $references[$target_type][] = [
++            'entity' => $in_preview ? $field_item->entity : NULL,
++            'id' => $is_revision
++              ? $field_item->get('target_revision_id')->getValue()
++              : $field_item->get($field_item::mainPropertyName())->getValue(),
++            'is_revision' => $is_revision,
++          ];
+           // CUSTOM MODIFICATION ENDS.
+         }
+       }
+@@ -115,38 +172,66 @@ class IncludeResolver extends BaseIncludeResolver {
+       // foreach ($references as $target_type => $ids) {
+       //   $entity_storage = $this->entityTypeManager->getStorage($target_type);
+       //   $targeted_entities = $entity_storage->loadMultiple(array_unique($ids));
+-      foreach ($references as $target_type => $id_group) {
+-        // Create a sorted array of targeted entities. Entities already loaded
+-        // from $references are added to $targeted_entities, while missing
+-        // ones only add its key so sorting is kept as original. Missing
+-        // entities are also saved into $ids so they are loaded at once in a
+-        // second step.
++      foreach ($references as $target_type => $items) {
++        // Build the targeted entities in field order. Use the entity the field
++        // item holds when there is one. Collect the ids of the others so they
++        // load in as few queries as possible. Keep plain ids and revision ids
++        // apart, because they load with different methods.
+         $targeted_entities = [];
+-        $ids = [];
+-        foreach ($id_group as $id => $entity) {
+-          if ($entity instanceof EntityInterface) {
+-            $targeted_entities[$id] = $entity;
++        $plain_ids = [];
++        $revision_ids = [];
++        foreach ($items as $delta => $item) {
++          if ($item['entity'] instanceof EntityInterface) {
++            $targeted_entities[$delta] = $item['entity'];
++            continue;
++          }
++          $targeted_entities[$delta] = NULL;
++          // An entity that is not saved yet has no id. It must never go to a
++          // query.
++          if ($item['id'] === NULL || $item['id'] === '') {
++            continue;
++          }
++          if ($item['is_revision']) {
++            $revision_ids[$delta] = $item['id'];
+           }
+           else {
+-            $targeted_entities[$id] = NULL;
+-            $ids[] = $id;
++            $plain_ids[$delta] = $item['id'];
+           }
+         }
+ 
+-        // Load missing entities, if any, and add them to $targeted_entities
+-        // where their key is already in place (so sorting is kept as original).
+-        if (count($ids) > 0) {
++        if ($plain_ids || $revision_ids) {
+           $entity_storage = $this->entityTypeManager->getStorage($target_type);
+-          $queried_targeted_entities = $entity_storage->loadMultiple(array_unique($ids));
+-          foreach ($queried_targeted_entities as $id => $entity) {
+-            $targeted_entities[$id] = $entity;
++          // Load a plain reference by its target id.
++          if ($plain_ids) {
++            $loaded = $entity_storage->loadMultiple(array_unique($plain_ids));
++            foreach ($plain_ids as $delta => $id) {
++              if (isset($loaded[$id])) {
++                $targeted_entities[$delta] = $loaded[$id];
++              }
++            }
++          }
++          // Load a revisioned reference by its revision id, so a non-default
++          // revision resolves to the revision the parent points to, not the
++          // default one. This is the fix for the wrong revision in includes.
++          // The storage of a revisionable entity type implements the revision
++          // interface. Guard for the rare storage that does not.
++          if ($revision_ids && $entity_storage instanceof RevisionableStorageInterface) {
++            $loaded = $entity_storage->loadMultipleRevisions(array_unique($revision_ids));
++            foreach ($revision_ids as $delta => $id) {
++              if (isset($loaded[$id])) {
++                $targeted_entities[$delta] = $loaded[$id];
++              }
++            }
+           }
+         }
+-        // Remove non-loaded entities which value is still NULL.
++        // Remove the slots that did not resolve to an entity.
+         $targeted_entities = array_filter($targeted_entities);
+ 
+-        foreach ($targeted_entities as $entity) {
+-          if ($entity instanceof EntityInterface) {
++        // A preview must never be cached. Do this for a preview only. This
++        // class replaces the include resolver for the whole site, so every
++        // other request keeps the cacheability that core gives it.
++        if ($in_preview) {
++          foreach ($targeted_entities as $entity) {
+             $entity->mergeCacheMaxAge(0);
+           }
+         }
+diff --git a/tests/src/Kernel/PreviewIncludeResolverTest.php b/tests/src/Kernel/PreviewIncludeResolverTest.php
+new file mode 100644
+index 0000000000000000000000000000000000000000..3222f2e2017d0324f035fe86ff471fe72d0a8db0
+--- /dev/null
++++ b/tests/src/Kernel/PreviewIncludeResolverTest.php
+@@ -0,0 +1,496 @@
++<?php
++
++declare(strict_types=1);
++
++namespace Drupal\Tests\jsonapi_node_preview\Kernel;
++
++use Drupal\KernelTests\KernelTestBase;
++use Drupal\Tests\user\Traits\UserCreationTrait;
++use Drupal\Core\Entity\ContentEntityInterface;
++use Drupal\Core\Field\FieldItemListInterface;
++use Drupal\Core\Field\Plugin\Field\FieldType\EntityReferenceItem;
++use Drupal\field\Entity\FieldConfig;
++use Drupal\field\Entity\FieldStorageConfig;
++use Drupal\jsonapi\JsonApiResource\ResourceObject;
++use Drupal\node\Entity\Node;
++use Drupal\node\Entity\NodeType;
++use Drupal\paragraphs\Entity\Paragraph;
++use Drupal\paragraphs\Entity\ParagraphsType;
++use Symfony\Component\HttpFoundation\Request;
++
++/**
++ * Tests that preview includes use the entities held in memory.
++ *
++ * A node preview holds unsaved entities. The include resolver must read those
++ * entities from the field items. It must not load them from storage, because
++ * storage holds the old values.
++ *
++ * @group jsonapi_node_preview
++ *
++ * @see \Drupal\jsonapi_node_preview\IncludeResolver
++ */
++class PreviewIncludeResolverTest extends KernelTestBase {
++
++  use UserCreationTrait;
++
++  /**
++   * {@inheritdoc}
++   */
++  protected static $modules = [
++    'system',
++    'user',
++    'field',
++    'filter',
++    'text',
++    'node',
++    'serialization',
++    'jsonapi',
++    'file',
++    'entity_reference_revisions',
++    'paragraphs',
++    'jsonapi_node_preview',
++  ];
++
++  /**
++   * The include resolver under test.
++   *
++   * @var \Drupal\jsonapi_node_preview\IncludeResolver
++   */
++  protected $includeResolver;
++
++  /**
++   * The JSON:API resource type repository.
++   *
++   * @var \Drupal\jsonapi\ResourceType\ResourceTypeRepositoryInterface
++   */
++  protected $resourceTypeRepository;
++
++  /**
++   * {@inheritdoc}
++   */
++  protected function setUp(): void {
++    parent::setUp();
++
++    $this->installEntitySchema('user');
++    $this->installEntitySchema('node');
++    $this->installEntitySchema('paragraph');
++    $this->installSchema('node', ['node_access']);
++    $this->installConfig(['system', 'field', 'filter', 'node']);
++
++    NodeType::create(['type' => 'article', 'name' => 'Article'])->save();
++    ParagraphsType::create(['id' => 'text', 'label' => 'Text'])->save();
++
++    $this->createStringField('paragraph', 'text', 'field_text');
++    $this->createParagraphField('field_body');
++    $this->createParagraphField('field_nested', 'paragraph', 'text');
++
++    // The resolver runs an access check on every included entity. Use an
++    // administrator so the test measures the resolver, not access.
++    $this->setUpCurrentUser([], [], TRUE);
++
++    $this->includeResolver = $this->container->get('jsonapi.include_resolver');
++    $this->resourceTypeRepository = $this->container->get('jsonapi.resource_type.repository');
++  }
++
++  /**
++   * Tests that an edited paragraph is included with its unsaved text.
++   */
++  public function testEditedParagraphUsesInMemoryEntity(): void {
++    $paragraph = Paragraph::create(['type' => 'text', 'field_text' => 'Original']);
++    $paragraph->save();
++
++    $node = Node::create([
++      'type' => 'article',
++      'title' => 'Test',
++      'field_body' => [$paragraph],
++    ]);
++    $node->save();
++
++    // Edit the paragraph without saving it, the way a preview does.
++    $this->referenced($node->get('field_body'), 0)->set('field_text', 'Edited');
++
++    $this->assertSame(['Edited'], $this->resolveTexts($node, 'field_body'));
++  }
++
++  /**
++   * Tests that a paragraph which was never saved is included.
++   *
++   * A new paragraph has no target ID. It must not be dropped, and its empty
++   * ID must never reach an entity storage query.
++   */
++  public function testNewParagraphIsIncluded(): void {
++    $node = Node::create(['type' => 'article', 'title' => 'Test']);
++    $node->save();
++
++    $node->get('field_body')->appendItem(
++      Paragraph::create(['type' => 'text', 'field_text' => 'Brand new'])
++    );
++
++    $this->assertSame(['Brand new'], $this->resolveTexts($node, 'field_body'));
++  }
++
++  /**
++   * Tests that two unsaved paragraphs are both included.
++   *
++   * Both have an empty target ID, so an implementation keyed on the target ID
++   * keeps only one of them.
++   */
++  public function testTwoNewParagraphsAreBothIncluded(): void {
++    $node = Node::create(['type' => 'article', 'title' => 'Test']);
++    $node->save();
++
++    $node->get('field_body')->appendItem(Paragraph::create(['type' => 'text', 'field_text' => 'First']));
++    $node->get('field_body')->appendItem(Paragraph::create(['type' => 'text', 'field_text' => 'Second']));
++
++    $texts = $this->resolveTexts($node, 'field_body');
++    sort($texts);
++    $this->assertSame(['First', 'Second'], $texts);
++  }
++
++  /**
++   * Tests that a saved paragraph and a new one are both included.
++   *
++   * This is the common editing case, and it mixes the in-memory path with the
++   * storage fallback in a single field.
++   */
++  public function testMixedSavedAndNewParagraphs(): void {
++    $paragraph = Paragraph::create(['type' => 'text', 'field_text' => 'Original']);
++    $paragraph->save();
++
++    $node = Node::create([
++      'type' => 'article',
++      'title' => 'Test',
++      'field_body' => [$paragraph],
++    ]);
++    $node->save();
++
++    $this->referenced($node->get('field_body'), 0)->set('field_text', 'Edited');
++    $node->get('field_body')->appendItem(
++      Paragraph::create(['type' => 'text', 'field_text' => 'Brand new'])
++    );
++
++    $texts = $this->resolveTexts($node, 'field_body');
++    sort($texts);
++    $this->assertSame(['Brand new', 'Edited'], $texts);
++  }
++
++  /**
++   * Tests that a paragraph nested in a paragraph uses the in-memory entity.
++   */
++  public function testNestedParagraphUsesInMemoryEntity(): void {
++    $child = Paragraph::create(['type' => 'text', 'field_text' => 'Child original']);
++    $child->save();
++
++    $parent = Paragraph::create([
++      'type' => 'text',
++      'field_text' => 'Parent',
++      'field_nested' => [$child],
++    ]);
++    $parent->save();
++
++    $node = Node::create([
++      'type' => 'article',
++      'title' => 'Test',
++      'field_body' => [$parent],
++    ]);
++    $node->save();
++
++    $parent_in_memory = $this->referenced($node->get('field_body'), 0);
++    $this->referenced($parent_in_memory->get('field_nested'), 0)->set('field_text', 'Child edited');
++
++    $texts = $this->resolveTexts($node, 'field_body.field_nested');
++    sort($texts);
++    $this->assertSame(['Child edited', 'Parent'], $texts);
++  }
++
++  /**
++   * Tests that a request which is not a preview reads from storage.
++   *
++   * This module replaces the jsonapi.include_resolver service for the whole
++   * site, so ordinary requests must keep core behaviour.
++   */
++  public function testNonPreviewReadsFromStorage(): void {
++    $paragraph = Paragraph::create(['type' => 'text', 'field_text' => 'Original']);
++    $paragraph->save();
++
++    $node = Node::create([
++      'type' => 'article',
++      'title' => 'Test',
++      'field_body' => [$paragraph],
++    ]);
++    $node->save();
++
++    // Edit in memory, then resolve without the preview flag. The saved value
++    // must win.
++    $this->referenced($node->get('field_body'), 0)->set('field_text', 'Edited');
++
++    $this->assertSame(['Original'], $this->resolveTexts($node, 'field_body', FALSE));
++  }
++
++  /**
++   * Tests that an ordinary request is not forced to be uncacheable.
++   *
++   * The resolver sets a zero max-age so previews are never cached. That must
++   * apply to previews only, because this service is replaced site wide.
++   */
++  public function testOrdinaryIncludesRemainCacheable(): void {
++    $paragraph = Paragraph::create(['type' => 'text', 'field_text' => 'Original']);
++    $paragraph->save();
++
++    $node = Node::create([
++      'type' => 'article',
++      'title' => 'Test',
++      'field_body' => [$paragraph],
++    ]);
++    $node->save();
++
++    $includes = $this->resolve($node, 'field_body', FALSE);
++
++    foreach ($includes as $included) {
++      if (!$included instanceof ResourceObject) {
++        continue;
++      }
++      $this->assertNotSame(0, $included->getCacheMaxAge(), sprintf(
++        'Included %s is uncacheable on an ordinary request.',
++        $included->getResourceType()->getTypeName()
++      ));
++    }
++  }
++
++  /**
++   * Tests that a preview response is never cached.
++   */
++  public function testPreviewIncludesAreUncacheable(): void {
++    $paragraph = Paragraph::create(['type' => 'text', 'field_text' => 'Original']);
++    $paragraph->save();
++
++    $node = Node::create([
++      'type' => 'article',
++      'title' => 'Test',
++      'field_body' => [$paragraph],
++    ]);
++    $node->save();
++
++    $includes = $this->resolve($node, 'field_body');
++    $this->assertGreaterThan(0, iterator_count($includes->getIterator()));
++
++    foreach ($includes as $included) {
++      if (!$included instanceof ResourceObject) {
++        continue;
++      }
++      $this->assertSame(0, $included->getCacheMaxAge());
++    }
++  }
++
++  /**
++   * Tests that a non-default revision loads the right included revision.
++   *
++   * This is the wrong-revision-in-includes case. A node revision points at a
++   * specific paragraph revision. The resolver must load that revision, not the
++   * default one. This is not a preview: it exercises the site-wide resolver on
++   * an ordinary revision request.
++   */
++  public function testNonDefaultRevisionLoadsCorrectParagraphRevision(): void {
++    $paragraph = Paragraph::create(['type' => 'text', 'field_text' => 'Revision one']);
++    $paragraph->save();
++
++    $node = Node::create([
++      'type' => 'article',
++      'title' => 'Test',
++      'field_body' => [$paragraph],
++    ]);
++    $node->save();
++    $first_vid = $node->getRevisionId();
++
++    // Save a second revision with the paragraph text changed.
++    $this->referenced($node->get('field_body'), 0)->set('field_text', 'Revision two');
++    $node->setNewRevision(TRUE);
++    $node->save();
++
++    // Load the first revision and resolve its includes without preview. The
++    // included paragraph must be the first revision, not the current one.
++    $storage = $this->container->get('entity_type.manager')->getStorage('node');
++    $old = $storage->loadRevision($first_vid);
++    assert($old instanceof Node);
++    $this->assertSame(['Revision one'], $this->resolveTexts($old, 'field_body', FALSE));
++
++    // The current revision still resolves to the current paragraph.
++    $this->assertSame(['Revision two'], $this->resolveTexts($node, 'field_body', FALSE));
++  }
++
++  /**
++   * Tests that a preview request is detected from the route.
++   *
++   * Modules like jsonapi_resources decorate the include resolver and call it
++   * without the preview parameter. The resolver must then derive the flag
++   * from the current route, or previews silently serve saved data.
++   */
++  public function testPreviewDetectedFromRoute(): void {
++    $paragraph = Paragraph::create(['type' => 'text', 'field_text' => 'Original']);
++    $paragraph->save();
++    $node = Node::create(['type' => 'article', 'title' => 'Test', 'field_body' => [$paragraph]]);
++    $node->save();
++    $this->referenced($node->get('field_body'), 0)->set('field_text', 'Edited');
++
++    $this->pushRequestWithRoute('jsonapi.node--article.individual.preview');
++    // No third argument: this is how a decorator calls the resolver.
++    $this->assertSame(['Edited'], $this->resolveTexts($node, 'field_body', NULL));
++
++    // The protected method is what a decorator delegates to directly.
++    $resource_type = $this->resourceTypeRepository->get('node', $node->bundle());
++    $resource_object = \Drupal\jsonapi\JsonApiResource\ResourceObject::createFromEntity($resource_type, $node);
++    $data = new \Drupal\jsonapi\JsonApiResource\ResourceObjectData([$resource_object], 1);
++    $tree = ['field_body' => []];
++    $method = new \ReflectionMethod($this->includeResolver, 'resolveIncludeTree');
++    $includes = $method->invoke($this->includeResolver, $tree, $data);
++    $texts = [];
++    foreach ($includes as $included) {
++      if ($included instanceof \Drupal\jsonapi\JsonApiResource\ResourceObject) {
++        $texts[] = (string) $included->getField('field_text')->value;
++      }
++    }
++    $this->assertSame(['Edited'], $texts);
++
++    $this->popRequest();
++  }
++
++  /**
++   * Tests that an ordinary route never turns preview detection on.
++   */
++  public function testOrdinaryRouteIsNotAPreview(): void {
++    $paragraph = Paragraph::create(['type' => 'text', 'field_text' => 'Original']);
++    $paragraph->save();
++    $node = Node::create(['type' => 'article', 'title' => 'Test', 'field_body' => [$paragraph]]);
++    $node->save();
++    $this->referenced($node->get('field_body'), 0)->set('field_text', 'Edited');
++
++    $this->pushRequestWithRoute('jsonapi.node--article.individual');
++    $this->assertSame(['Original'], $this->resolveTexts($node, 'field_body', NULL));
++    $this->popRequest();
++  }
++
++  /**
++   * Pushes a request carrying a route name onto the request stack.
++   */
++  protected function pushRequestWithRoute(string $route): void {
++    $request = Request::create('/');
++    $request->attributes->set('_route', $route);
++    $this->container->get('request_stack')->push($request);
++  }
++
++  /**
++   * Pops the pushed request.
++   */
++  protected function popRequest(): void {
++    $this->container->get('request_stack')->pop();
++  }
++
++  /**
++   * Resolves includes for a node.
++   *
++   * @param \Drupal\node\Entity\Node $node
++   *   The node to resolve includes for.
++   * @param string $include
++   *   The JSON:API include parameter.
++   * @param bool $in_preview
++   *   TRUE to resolve as a preview.
++   *
++   * @return \Drupal\jsonapi\JsonApiResource\IncludedData
++   *   The resolved includes.
++   */
++  protected function resolve(Node $node, string $include, ?bool $in_preview = TRUE) {
++    $resource_type = $this->resourceTypeRepository->get('node', $node->bundle());
++    $resource_object = ResourceObject::createFromEntity($resource_type, $node);
++    if ($in_preview === NULL) {
++      // Call without the parameter, the way a decorator does.
++      return $this->includeResolver->resolve($resource_object, $include);
++    }
++    return $this->includeResolver->resolve($resource_object, $include, $in_preview);
++  }
++
++  /**
++   * Returns the text of every included paragraph.
++   *
++   * @param \Drupal\node\Entity\Node $node
++   *   The node to resolve includes for.
++   * @param string $include
++   *   The JSON:API include parameter.
++   * @param bool $in_preview
++   *   TRUE to resolve as a preview.
++   *
++   * @return string[]
++   *   The field_text value of each included paragraph.
++   */
++  protected function resolveTexts(Node $node, string $include, ?bool $in_preview = TRUE): array {
++    $texts = [];
++    foreach ($this->resolve($node, $include, $in_preview) as $included) {
++      if ($included instanceof ResourceObject && $included->getResourceType()->getEntityTypeId() === 'paragraph') {
++        $texts[] = (string) $included->getField('field_text')->value;
++      }
++    }
++    return $texts;
++  }
++
++  /**
++   * Returns the entity that a reference field item holds.
++   *
++   * This reads the computed 'entity' property. In a preview the property holds
++   * the entity with the changes that are not saved.
++   *
++   * @param \Drupal\Core\Field\FieldItemListInterface<\Drupal\Core\Field\FieldItemInterface> $list
++   *   The reference field item list.
++   * @param int $delta
++   *   The item delta.
++   *
++   * @return \Drupal\Core\Entity\ContentEntityInterface
++   *   The referenced entity.
++   */
++  protected function referenced(FieldItemListInterface $list, int $delta): ContentEntityInterface {
++    $item = $list->get($delta);
++    assert($item instanceof EntityReferenceItem);
++    $entity = $item->get('entity')->getValue();
++    assert($entity instanceof ContentEntityInterface);
++    return $entity;
++  }
++
++  /**
++   * Adds a string field to an entity bundle.
++   */
++  protected function createStringField(string $entity_type, string $bundle, string $field_name): void {
++    FieldStorageConfig::create([
++      'field_name' => $field_name,
++      'entity_type' => $entity_type,
++      'type' => 'string',
++    ])->save();
++    FieldConfig::create([
++      'field_name' => $field_name,
++      'entity_type' => $entity_type,
++      'bundle' => $bundle,
++      'label' => $field_name,
++    ])->save();
++  }
++
++  /**
++   * Adds an unlimited paragraph reference field to an entity bundle.
++   */
++  protected function createParagraphField(string $field_name, string $entity_type = 'node', string $bundle = 'article'): void {
++    FieldStorageConfig::create([
++      'field_name' => $field_name,
++      'entity_type' => $entity_type,
++      'type' => 'entity_reference_revisions',
++      'settings' => ['target_type' => 'paragraph'],
++      'cardinality' => FieldStorageConfig::CARDINALITY_UNLIMITED,
++    ])->save();
++    FieldConfig::create([
++      'field_name' => $field_name,
++      'entity_type' => $entity_type,
++      'bundle' => $bundle,
++      'label' => $field_name,
++      'settings' => [
++        'handler' => 'default:paragraph',
++        'handler_settings' => ['target_bundles' => ['text' => 'text']],
++      ],
++    ])->save();
++  }
++
++}

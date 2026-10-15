@@ -7,7 +7,7 @@
         :key="index"
         :section="section"
       >
-        <template v-for="component of Object.values(section.components)" v-slot:[component.uuid]>
+        <template v-for="component of byWeight(section.components)" v-slot:[component.uuid]>
           <component
             v-if="componentIs(component.configuration.id) !== 'div'"
             :is="componentIs(component.configuration.id)"
@@ -45,6 +45,11 @@ export default {
   },
 
   methods: {
+    // Drupal orders a region by weight, not by where a component sits in the data.
+    byWeight(components) {
+      return Object.values(components || {}).sort((a, b) => (a.weight || 0) - (b.weight || 0))
+    },
+
     componentIs(id) {
       const name = this.componentName(id)
       return this.$nuxt.$options.components[name] ? name : 'div'

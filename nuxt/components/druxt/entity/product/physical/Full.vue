@@ -216,7 +216,7 @@ export default {
       stockLeft === null
         ? 'Ships in 2 business days.'
         : stockLeft === 0
-          ? 'Out of stock. Commerce Stock counted the last one out.'
+          ? 'Out of stock.'
           : stockLeft <= 3
             ? `Only ${stockLeft} left. Ships in 2 business days.`
             : `${stockLeft} in stock. Ships in 2 business days.`,

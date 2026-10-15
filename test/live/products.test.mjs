@@ -242,3 +242,27 @@ test('a failed stock read keeps the last levels and tries again', async () => {
   assert.equal(stock().levels.get('v1'), 0)
   assert.equal(timers.length, 1)
 })
+
+test('a product purge tells the catalogue room to read again', async () => {
+  const { catalogue, onTags } = productHandler({
+    drupal: { get: async () => ({ data: [] }) },
+    setTimer: () => 1,
+  })
+  const hub = fakeHub()
+  await hub.enter(catalogue, 'catalogue:live', client('l'))
+  hub.sent.length = 0
+  onTags(['commerce_product:4'])
+  assert.equal(
+    hub.sent.filter((m) => m.to === '*catalogue:live' && m.type === 'products').length,
+    1
+  )
+  onTags(['node:1'])
+  assert.equal(hub.sent.filter((m) => m.type === 'products').length, 1)
+  // A room nobody is in hears nothing.
+  const quiet = productHandler({ drupal: { get: async () => ({ data: [] }) }, setTimer: () => 1 })
+  const hub2 = fakeHub()
+  await hub2.enter(quiet.handler, 'product:x', client('p'))
+  hub2.sent.length = 0
+  quiet.onTags(['commerce_product:4'])
+  assert.equal(hub2.sent.length, 0)
+})

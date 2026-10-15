@@ -1,0 +1,65 @@
+{
+  "name": "@druxt-contrib/node-preview",
+  "version": "0.1.0",
+  "description": "Renders Drupal node previews in a Druxt frontend, fed by JSON:API Node Preview and Consumer Node Preview.",
+  "keywords": [
+    "decoupled",
+    "drupal",
+    "druxt",
+    "jsonapi",
+    "json:api",
+    "module",
+    "node preview",
+    "nuxt",
+    "preview"
+  ],
+  "exports": {
+    ".": {
+      "require": "./dist/index.ssr.js",
+      "import": "./dist/index.esm.js"
+    }
+  },
+  "main": "dist/index.ssr.js",
+  "module": "dist/index.esm.js",
+  "files": [
+    "dist",
+    "templates"
+  ],
+  "scripts": {
+    "build": "siroc build",
+    "build:watch": "siroc build --watch",
+    "lint": "eslint --ext .js,.vue src templates test",
+    "test": "jest",
+    "test:e2e": "playwright test",
+    "test:e2e:stack": "test/e2e/run.sh",
+    "test:watch": "jest --watch"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.26.0",
+    "@babel/preset-env": "^7.26.0",
+    "@playwright/test": "^1.49.0",
+    "@vue/test-utils": "1.3.3",
+    "babel-core": "7.0.0-bridge.0",
+    "druxt": "0.25.0-dev.20261006113740",
+    "druxt-entity": "0.29.0-dev.20261006113740",
+    "esbuild-jest": "0.5.0",
+    "eslint": "8.28.0",
+    "eslint-plugin-nuxt": "3.2.0",
+    "jest": "27.5.1",
+    "jest-junit": "^15.0.0",
+    "siroc": "0.16.0",
+    "vue": "2.7.14",
+    "vue-jest": "3.0.7",
+    "vue-template-compiler": "2.7.14"
+  },
+  "peerDependencies": {
+    "druxt": ">=0.25.0-0 <1",
+    "druxt-entity": ">=0.29.0-0 <1"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "jest-junit": {
+    "outputName": "junit.xml"
+  }
+}
