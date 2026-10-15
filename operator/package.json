@@ -36,7 +36,7 @@
     "unocss": "^0.58.9"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=24.22.0"
   },
   "overrides": {
     "druxt-auth": {
