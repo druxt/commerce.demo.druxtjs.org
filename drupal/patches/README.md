@@ -1,9 +1,10 @@
 # Local patches
 
-Patches kept in the repo rather than referenced by URL, because each is a
-reworked version of work that is still open upstream. Each is a replacement for
-what is on its issue, not a parallel fix, and is intended to be offered back once
-it has proven itself here.
+Patches kept in the repo rather than referenced by URL. A merge request's diff
+URL changes with every push to it, and with `composer-exit-on-patch-failure` on,
+a push upstream could break `composer install` or apply code nobody reviewed
+here. Some rework an upstream patch and go back to their issue once they work
+here. Others copy a merge request's diff as it stood.
 
 ## `2942975-layout-builder-jsonapi-drupal11.patch`
 
@@ -80,3 +81,17 @@ The 2022 patch's own test additions are carried where they applied, but
 `composer-exit-on-patch-failure` is set to `true` alongside this, because
 `cweagans/composer-patches` 1.x otherwise reports "Could not apply patch!
 Skipping" and continues, leaving a half-patched tree that looks installed.
+
+## `3367724-jsonapi-node-preview-includes-mr4.patch`
+
+Issue: [#3367724](https://www.drupal.org/project/jsonapi_node_preview/issues/3367724),
+[merge request 4](https://git.drupalcode.org/project/jsonapi_node_preview/-/merge_requests/4)
+on `jsonapi_node_preview`.
+
+A preview's `include` resolves from the entity being previewed: references are
+loaded from memory and by revision, not from the last saved revision. Without
+it, a preview of an edited node shows the saved node's images and terms.
+
+This is the merge request's diff at commit `f7820a9e` (25 August 2026),
+unchanged, and it applies to `1.0.0-beta5`. To take a newer push, download
+the diff again, check it, and replace this file.

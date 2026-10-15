@@ -144,7 +144,7 @@
                 "#2942975 Expose Layout Builder data to REST and JSON:API, rerolled for Drupal 11": "patches/2942975-layout-builder-jsonapi-drupal11.patch"
             },
             "drupal/jsonapi_node_preview": {
-                "Issue #3367724: resolve includes from the previewed entity": "https://git.drupalcode.org/project/jsonapi_node_preview/-/merge_requests/4.diff"
+                "Issue #3367724: resolve includes from the previewed entity": "patches/3367724-jsonapi-node-preview-includes-mr4.patch"
             }
         }
     }
