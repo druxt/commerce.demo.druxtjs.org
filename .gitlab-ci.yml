@@ -23,7 +23,7 @@ cache:
   # tools themselves need it: cspell requires >=22.18.0, markdownlint-cli2
   # >=22, commitlint >=22.12.0. This template only runs root-level
   # tooling, never touches the app's own runtime.
-  image: node:22
+  image: node:24.22.0
   cache:
     key:
       files:
@@ -265,7 +265,7 @@ test_e2e:
 # and node:assert, so they run on a modern Node with nothing installed.
 test_scripts:
   stage: test
-  image: node:22
+  image: node:24.22.0
   needs: []
   script:
     - npm run test:scripts:coverage
@@ -298,7 +298,7 @@ test_consumer_install:
 # fail loudly, and a too-old PHP must be rejected by the preflight.
 test_install_guardrails:
   stage: test
-  image: node:22
+  image: node:24.22.0
   needs: []
   script:
     # The checks below need a machine without PHP. node:22 has none today.
