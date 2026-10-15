@@ -72,6 +72,9 @@ typings/
 .env
 .env.test
 
+# Laya for the concierge in development: npm run laya
+.laya/
+
 # parcel-bundler cache (https://parceljs.org/)
 .cache
 

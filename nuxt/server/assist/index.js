@@ -1,11 +1,12 @@
 /**
  * `POST /_assist`: the concierge. The route holds the model key, builds the
  * catalogue the picks are checked against, asks the model within its caps,
- * and otherwise answers from the scripted matcher. The browser never sees
- * which, beyond `source`.
+ * then the intent model for a bucket, and otherwise answers from the
+ * scripted matcher's keywords. The browser never sees which, beyond `source`.
  */
 const { cachedCatalogue } = require('./catalogue')
 const { askModel } = require('./model')
+const { askIntent, intentConfigured, PERSON, PERSON_NOTE } = require('./intent')
 const { match, CHIPS } = require('./matcher')
 
 const MESSAGE_MAX = 500
@@ -60,6 +61,9 @@ const createAssistRoute = ({
   drupalUrl,
   apiKey = process.env.ANTHROPIC_API_KEY,
   model = process.env.ASSIST_MODEL,
+  // The intent model's options, `{baseUrl, apiKey, model}` over the
+  // environment's; null leaves it out.
+  intent = intentConfigured() ? {} : null,
   fetch: request = globalThis.fetch,
   now = Date.now,
   limits = {},
@@ -94,11 +98,18 @@ const createAssistRoute = ({
     const address = forwarded.length ? forwarded[forwarded.length - 1] : String(req.socket?.remoteAddress || '')
     const lines = await catalogue()
 
-    let answer = null
-    if (apiKey && message && caps.allow(address, conversation)) {
-      answer = await askModel({ message, catalogue: lines, apiKey, model, fetch: request, log })
-    }
+    // One allowance a turn, whichever of the two models it reaches.
+    const allowed = Boolean(message && (apiKey || intent) && caps.allow(address, conversation))
+    const answer = allowed && apiKey ? await askModel({ message, catalogue: lines, apiKey, model, fetch: request, log }) : null
     if (answer) return reply(200, { ...answer, source: 'model', chips: CHIPS })
+    const chosen = allowed && intent ? await askIntent({ ...intent, message, fetch: request, log }) : null
+    if (chosen && chosen.bucket === PERSON) {
+      return reply(200, { note: PERSON_NOTE, picks: [], source: 'intent', bucket: PERSON, chips: CHIPS })
+    }
+    if (chosen) {
+      const picked = match(message, lines, chosen.bucket)
+      return reply(200, { note: picked.note, picks: picked.picks, source: 'intent', bucket: picked.bucket, chips: CHIPS })
+    }
     const scripted = match(message, lines)
     return reply(200, { note: scripted.note, picks: scripted.picks, source: 'scripted', bucket: scripted.bucket, chips: CHIPS })
   }

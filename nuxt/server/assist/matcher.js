@@ -3,13 +3,15 @@
  * SKUs. It answers when the model is absent, slow, over budget or wrong,
  * and it is what the demo runs on when the network is bad at a conference.
  * Every pick is checked against the catalogue the server built, so a SKU
- * that left the store leaves the answer.
+ * that left the store leaves the answer. `means` is the bucket in a
+ * sentence, for the intent model that picks a bucket by meaning.
  */
 const pick = (sku, why) => ({ sku, why })
 
 const BUCKETS = [
   {
     key: 'pair',
+    means: 'Wants things that go with something they already bought',
     words: ['pair', 'pairs', 'goes with', 'go with', 'match', 'alongside'],
     note: 'Things that go outside with it.',
     picks: [
@@ -20,6 +22,7 @@ const BUCKETS = [
   },
   {
     key: 'read',
+    means: 'Wants a book or something to read',
     words: ['read', 'book', 'books', 'novel', 'flight', 'plane', 'train', 'story', 'stories', 'classic'],
     note: 'All three classics come as a hard copy or a digital download.',
     picks: [
@@ -30,6 +33,7 @@ const BUCKETS = [
   },
   {
     key: 'seating',
+    means: 'Wants chairs, stools or somewhere to sit or eat',
     words: ['chair', 'chairs', 'seat', 'seats', 'stool', 'dining', 'kitchen', 'table', 'sit'],
     note: 'Seating, cheapest to dearest.',
     picks: [
@@ -40,6 +44,7 @@ const BUCKETS = [
   },
   {
     key: 'desk',
+    means: 'Wants to set up a desk or workspace at home',
     words: ['desk', 'work', 'wfh', 'office', 'study', 'home office'],
     note: 'A desk, a chair and one thing for the wall.',
     picks: [
@@ -50,6 +55,7 @@ const BUCKETS = [
   },
   {
     key: 'gift',
+    means: 'Wants a small, inexpensive gift',
     words: ['gift', 'present', 'cheap', 'under', 'budget', '$', 'dollars', 'small'],
     note: 'All under thirty, all safe bets.',
     picks: [
@@ -60,6 +66,7 @@ const BUCKETS = [
   },
   {
     key: 'warm',
+    means: 'Wants warm clothes or a hat',
     words: ['warm', 'cold', 'winter', 'hat', 'knit', 'wear', 'jumper', 'sweatshirt', 'clothes'],
     note: 'Warm things to wear.',
     picks: [
@@ -70,6 +77,7 @@ const BUCKETS = [
   },
   {
     key: 'outdoors',
+    means: 'Wants things for children, the beach, the pool or summer outside',
     words: ['summer', 'hot', 'outdoor', 'outdoors', 'pool', 'beach', 'kid', 'kids', 'child', 'children', 'sun', 'garden'],
     note: 'For being outside in it.',
     picks: [
@@ -80,6 +88,7 @@ const BUCKETS = [
   },
   {
     key: 'wall',
+    means: 'Wants art or prints to decorate a wall',
     words: ['wall', 'print', 'prints', 'art', 'poster', 'picture', 'decor', 'decorate'],
     note: 'Three prints, one wall.',
     picks: [
@@ -90,6 +99,7 @@ const BUCKETS = [
   },
   {
     key: 'scent',
+    means: 'Wants perfume or something that smells nice',
     words: ['perfume', 'scent', 'fragrance', 'beauty', 'her', 'mum', 'mother', 'smell'],
     note: 'Scent, in two bottles and a candle.',
     picks: [
@@ -100,6 +110,7 @@ const BUCKETS = [
   },
   {
     key: 'listen',
+    means: 'Wants headphones or something to listen to music with',
     words: ['music', 'listen', 'headphones', 'audio', 'tech', 'electrical', 'sound', 'podcast'],
     note: 'Something to listen with, and to read.',
     picks: [
@@ -110,6 +121,7 @@ const BUCKETS = [
   },
   {
     key: 'default',
+    means: 'Is just browsing or has not said what they want',
     words: [],
     note: 'The three things people buy most often.',
     picks: [
@@ -134,13 +146,14 @@ const has = (text, word) => {
  *
  * @param {string} message - What the shopper said.
  * @param {Array<{sku: string}>} catalogue - The server's compact catalogue.
+ * @param {string} [bucket] - A bucket already chosen, by the intent model; the keywords otherwise.
  * @returns {{note: string, picks: Array<{sku: string, why: string}>, bucket: string}}
  */
-const match = (message, catalogue = []) => {
+const match = (message, catalogue = [], bucket) => {
   const text = String(message || '').toLowerCase()
   const known = new Set(catalogue.map((c) => c.sku))
-  const keep = (bucket) => bucket.picks.filter((p) => known.has(p.sku))
-  const found = BUCKETS.find((b) => b.words.some((w) => has(text, w)))
+  const keep = (b) => b.picks.filter((p) => known.has(p.sku))
+  const found = bucket ? BUCKETS.find((b) => b.key === bucket) : BUCKETS.find((b) => b.words.some((w) => has(text, w)))
   const fallback = BUCKETS[BUCKETS.length - 1]
   if (found && keep(found).length) return { note: found.note, picks: keep(found), bucket: found.key }
   const picks = keep(fallback)

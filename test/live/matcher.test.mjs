@@ -46,3 +46,11 @@ test('the chips are five and the last asks for a person', () => {
   assert.equal(CHIPS.length, 5)
   assert.equal(CHIPS[4], 'Talk to a person')
 })
+
+test('a bucket chosen by meaning skips the keywords, and keeps to the catalogue', () => {
+  assert.equal(match('It is freezing at the bus stop', CATALOGUE).bucket, 'default')
+  const chosen = match('It is freezing at the bus stop', CATALOGUE, 'warm')
+  assert.equal(chosen.bucket, 'warm')
+  const without = CATALOGUE.filter((c) => !c.sku.startsWith('UT-KnitHat') && c.sku !== 'whtsh')
+  assert.equal(match('It is freezing at the bus stop', without, 'warm').bucket, 'default')
+})
