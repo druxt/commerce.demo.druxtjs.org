@@ -30,9 +30,10 @@ if (!env.STOREFRONT_ORIGIN && previewRoute()) env.STOREFRONT_ORIGIN = previewRou
 
 const DRUPAL_PATH = /^\/(?:jsonapi|oauth|router\/translate-path)(?:[/?]|$)/
 const TOKEN_PATH = '/_auth/drupal-password/token'
-// The live socket lives on the storefront's server, the `app` service. The
-// socket client opens on the page's own host, so the console carries the
-// WebSocket through.
+// The concierge route and the live socket live on the storefront's server,
+// the `app` service. The socket client opens on the page's own host, so the
+// console carries the WebSocket through.
+const ASSIST_PATH = '/_assist'
 const LIVE_PATH = '/_live'
 const hubUrl = (env.HUB_URL || 'http://app:3000').replace(/\/+$/, '')
 const live = httpProxy.createProxyServer({ target: hubUrl, ws: true, changeOrigin: true })
@@ -75,6 +76,7 @@ async function main() {
   const server = http.createServer((req, res) => {
     const path = req.url.split('?')[0]
     if (path === TOKEN_PATH) return token(req, res)
+    if (path === ASSIST_PATH) return proxy(req, res, hubUrl)
     if (path === LIVE_PATH || path.startsWith(`${LIVE_PATH}/`)) return live.web(req, res)
     if (DRUPAL_PATH.test(req.url)) return proxy(req, res)
     return nuxt.render(req, res)

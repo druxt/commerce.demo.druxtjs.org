@@ -83,7 +83,7 @@
 import { mapState, mapGetters } from 'vuex'
 
 // The cart in the layout: the same store the cart page reads, so a line
-// added from a card or someone else's phone in a shared room
+// added from a card, the concierge or someone else's phone in a shared room
 // shows here on whatever route is open, with no reload.
 export default {
   name: 'CartDrawer',
@@ -162,7 +162,7 @@ export default {
     onKey(event) {
       if (event.key === 'Escape') this.close()
     },
-    // Keep focus inside the dialog while it is open.
+    // Keep focus inside the dialog while it is open, as the assist panel does.
     trap(event) {
       const panel = this.$refs.panel
       if (panel && !panel.contains(event.target)) {

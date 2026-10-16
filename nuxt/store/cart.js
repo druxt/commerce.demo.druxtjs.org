@@ -172,7 +172,7 @@ export const actions = {
 
   // `title` is for whoever watches the store (the live layer names what was
   // added); Drupal is told the variation.
-  async add({ commit, dispatch }, { type, id, quantity = 1 }) {
+  async add({ commit, dispatch, rootState }, { type, id, quantity = 1 }) {
     commit('setBusy', true)
     commit('setError', undefined)
     try {
@@ -181,9 +181,9 @@ export const actions = {
         body: JSON.stringify({ data: [{ type, id, meta: { quantity } }] }),
       })
       await dispatch('load')
-      // The cart shows itself with the new line.
+      // The cart shows itself with the new line, unless the assist panel is
       // open: the drawer would cover it, and the button there says Added.
-      commit('setDrawer', true)
+      if (!rootState.assist.open) commit('setDrawer', true)
     } catch (error) {
       commit('setError', error.message)
     } finally {
