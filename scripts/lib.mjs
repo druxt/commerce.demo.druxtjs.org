@@ -3,8 +3,7 @@
  *
  * Runs on plain Node (>= 16, see .nvmrc / mise.toml) with zero npm
  * dependencies: the root package.json intentionally has none, so
- * `npx giget gh:druxt/quickstart my-site --install` stays fast and
- * nothing can hoist over or conflict with nuxt/'s dependency tree.
+ * a fresh clone's `npm install` stays fast and nothing can hoist over or conflict with nuxt/'s dependency tree.
  */
 
 import { spawn, spawnSync } from 'node:child_process'
@@ -226,8 +225,8 @@ export async function waitForPort(host, port, timeoutSeconds = 30) {
 }
 
 /**
- * The ports the frontend may serve on. This starterkit has no OAuth
- * consumer, so nothing has to be registered against them - the range
+ * The ports the frontend may serve on. Nothing is registered against
+ * them in Drupal - the range
  * just keeps the dev server's address predictable when 3000 is taken.
  */
 export const FRONTEND_PORTS = Array.from({ length: 10 }, (_, index) => 3000 + index)

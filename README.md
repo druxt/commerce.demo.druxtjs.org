@@ -1,19 +1,22 @@
-# DruxtSite quickstart - Commerce Kickstart
+# Druxt Commerce - A decoupled store
 
-> Fully Decoupled Drupal + Nuxt starter-kit for decoupled commerce, built on Centarro's Commerce Kickstart.
+> Drupal Commerce Kickstart + DruxtSite
 
-DruxtSite connects Drupal to Nuxt via JSON:API to provide a framework for building a Fully Decoupled site. This starter-kit pairs it with [Commerce Kickstart](https://www.centarro.io/commerce-kickstart), Centarro's Drupal Commerce distribution, so a `commerce_product`/`commerce_product_variation` catalogue with real demo pricing is available out of the box.
+A demonstration of a decoupled Drupal Commerce store: [Commerce Kickstart](https://www.centarro.io/commerce-kickstart), Centarro's Drupal Commerce distribution, with a Nuxt storefront built on DruxtSite. The catalogue, carts, checkout and orders are real Drupal Commerce, read and written over JSON:API. A live layer adds shared carts, live stock and an operator console.
 
-This repository provides:
+View the site @ https://commerce.demo.druxtjs.org
 
-- Drupal 11 with Commerce Kickstart 5 (demo content included)
-- Nuxt 2
-- DruxtSite
+## Links
 
-The repository is
-[druxt/commerce.demo.druxtjs.org](https://github.com/druxt/commerce.demo.druxtjs.org).
-It has not been renamed to match the starterkit yet, so the clone URL
-below reads differently from the directory it creates.
+- DruxtJS: https://druxtjs.org
+- Commerce Kickstart: https://www.centarro.io/commerce-kickstart
+- DruxtJS Community Discord: https://discord.druxtjs.org
+
+## What runs here
+
+- Drupal 11 with Commerce Kickstart 5 and its demo store
+- A Nuxt 2 storefront on Druxt's development releases
+- The operator console, a second Nuxt app for the live layer
 
 ## Getting started
 
@@ -35,8 +38,8 @@ On Windows, use the dev container, WSL2, or a container backend - see
 1. Clone the repository, then from the repository root:
 
    ```bash
-   git clone https://github.com/druxt/commerce.demo.druxtjs.org.git quickstart-druxt-commerce
-   cd quickstart-druxt-commerce
+   git clone https://github.com/druxt/commerce.demo.druxtjs.org.git
+   cd commerce.demo.druxtjs.org
    npm install
    ```
 
@@ -156,10 +159,10 @@ Any of these work instead, with no changes to the repository:
 through `drupal/.devtools` (PHP built-in server + SQLite) - no
 Docker-in-Docker needed.
 
-| Tool                        | How                                                                                                                                                                    |
-| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| VS Code                     | Clone, open the folder, run **Dev Containers: Reopen in Container**                                                                                                    |
-| [DevPod](https://devpod.sh) | `devpod up https://github.com/druxt/commerce.demo.druxtjs.org --id quickstart-druxt-commerce` (CLI), or add the same URL as a workspace source in DevPod's desktop app |
+| Tool                        | How                                                                                                                                                              |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| VS Code                     | Clone, open the folder, run **Dev Containers: Reopen in Container**                                                                                              |
+| [DevPod](https://devpod.sh) | `devpod up https://github.com/druxt/commerce.demo.druxtjs.org --id druxt-commerce-demo` (CLI), or add the same URL as a workspace source in DevPod's desktop app |
 
 First open runs `npm install` at the repository root, which triggers
 the same full setup pipeline as above: frontend dependencies,
