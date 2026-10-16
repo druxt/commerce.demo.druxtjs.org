@@ -1,0 +1,34 @@
+<?php
+
+/**
+ * @file
+ * What the demo's live hub needs of Drupal that the contrib modules do not give.
+ */
+
+declare(strict_types=1);
+
+use Drupal\commerce_demo_live\Field\StockItemList;
+use Drupal\Core\Entity\EntityTypeInterface;
+use Drupal\Core\Field\BaseFieldDefinition;
+
+/**
+ * Implements hook_entity_base_field_info().
+ *
+ * The stock level as a read-only computed field on every variation, so it
+ * reads over JSON:API as anyone. Commerce Stock's own field reports a level
+ * only once a stored item exists, which a seeded store never has.
+ */
+function commerce_demo_live_entity_base_field_info(EntityTypeInterface $entity_type): array {
+  if ($entity_type->id() !== 'commerce_product_variation') {
+    return [];
+  }
+  return [
+    'stock' => BaseFieldDefinition::create('integer')
+      ->setLabel(t('Stock'))
+      ->setDescription(t('Units available, from the stock service.'))
+      ->setComputed(TRUE)
+      ->setReadOnly(TRUE)
+      ->setClass(StockItemList::class)
+      ->setDisplayConfigurable('view', TRUE),
+  ];
+}

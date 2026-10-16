@@ -2,17 +2,29 @@
   <div :class="order.isNew && 'bg-new-2'">
     <!-- One order: number, who, when, state, total, and what the workflow allows next. -->
     <div class="px-4 py-3 border-b border-line flex flex-col gap-2 md:grid md:grid-cols-[auto_1fr_auto_auto_auto_auto] md:items-center md:gap-x-3.5 md:min-h-13">
-      <div class="flex items-center gap-2 font-mono font-600 text-14px">
+      <div class="flex flex-wrap items-center gap-2 font-mono font-600 text-14px">
         #{{ order.number }}
         <span v-if="order.isNew" class="font-mono text-11px bg-teal text-paper px-1.5 py-0.5 rounded-full">new</span>
         <span class="pill md:hidden ml-1" :class="pillClass">{{ stateLabel }}</span>
+        <span v-if="order.shipment" class="pill md:hidden" :class="shipmentClass">{{ shipmentText }}</span>
         <span class="md:hidden ml-auto font-mono text-13px text-ink">{{ order.total }}</span>
       </div>
       <div class="text-14px min-w-0 truncate">{{ order.email || 'anonymous' }}</div>
       <div class="mono">{{ placedAt }}</div>
-      <div class="hidden md:block"><span class="pill" :class="pillClass">{{ stateLabel }}</span></div>
+      <div class="hidden md:flex flex-col gap-1 items-start">
+        <span class="pill" :class="pillClass">{{ stateLabel }}</span>
+        <span v-if="order.shipment" class="pill" :class="shipmentClass">{{ shipmentText }}</span>
+      </div>
       <div class="hidden md:block font-mono text-13px text-ink">{{ order.total }}</div>
       <div class="flex gap-2 md:justify-end">
+        <button
+          v-for="t in shipmentTransitions"
+          :key="t.id"
+          type="button"
+          class="btn-primary btn-sm"
+          :disabled="busy"
+          @click="$emit('transition', { uuid: order.uuid, to: t.to, shipmentId: order.shipmentId })"
+        >{{ t.label }}</button>
         <button
           v-for="t in transitions"
           :key="t.id"
@@ -29,7 +41,7 @@
 </template>
 
 <script>
-import { transitionsFor, label } from '~/lib/transitions'
+import { transitionsFor, label, shipmentTransitionsFor, shipmentLabel } from '~/lib/transitions'
 
 export default {
   name: 'OrderRow',
@@ -42,6 +54,13 @@ export default {
 
   computed: {
     transitions: ({ order }) => transitionsFor(order.state),
+
+    shipmentTransitions: ({ order }) =>
+      order.state === 'fulfillment' && order.shipmentId ? shipmentTransitionsFor(order.shipment) : [],
+
+    shipmentText: ({ order }) => shipmentLabel(order.shipment),
+
+    shipmentClass: ({ order }) => (order.shipment === 'shipped' ? 'border-teal-3 bg-teal-2 text-teal-4' : ''),
 
     stateLabel: ({ order }) => label(order.state),
 
@@ -58,7 +77,8 @@ export default {
 
     responseText: ({ response, order }) => {
       if (!response) return ''
-      const head = `PATCH /jsonapi/orders/default/${order.uuid.slice(0, 8)}…  { "state": "${response.to}" }`
+      const path = response.path || `/jsonapi/orders/default/${order.uuid}`
+      const head = `PATCH ${path.replace(/([0-9a-f]{8})[0-9a-f-]{28}/, '$1…')}  { "state": "${response.to}" }`
       if (response.error) return `${head}\n${response.status} · ${response.ms} ms · refused: ${response.error}`
       return `${head}\n${response.status} · ${response.ms} ms · state: ${response.state}\nsocket: order:${order.uuid.slice(0, 8)}… · the visitor's order page moved at the same moment`
     },

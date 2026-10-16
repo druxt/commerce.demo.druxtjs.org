@@ -27,3 +27,15 @@ test('a source that never frees a code gives up', () => {
   const taken = new Set([roomCode(new Set(), () => 0)])
   assert.throws(() => roomCode(taken, () => 0), /No free room code/)
 })
+
+test('a room code admits someone, so it is drawn from crypto, not Math.random', () => {
+  const random = Math.random
+  Math.random = () => {
+    throw new Error('Math.random')
+  }
+  try {
+    assert.ok(isCode(roomCode(new Set())))
+  } finally {
+    Math.random = random
+  }
+})
