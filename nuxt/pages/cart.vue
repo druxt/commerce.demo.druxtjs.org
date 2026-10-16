@@ -94,6 +94,7 @@
 
 <script>
 import { mapState, mapGetters } from 'vuex'
+import { NOINDEX } from '~/utils/seo'
 
 export default {
   name: 'CartPage',
@@ -106,7 +107,7 @@ export default {
     return Promise.all([this.$store.dispatch('cart/load'), this.$store.dispatch('catalogue/load')])
   },
 
-  head: () => ({ title: 'Your cart' }),
+  head: () => ({ title: 'Your cart', meta: [NOINDEX] }),
 
   computed: {
     ...mapState('cart', ['lines', 'busy', 'error']),

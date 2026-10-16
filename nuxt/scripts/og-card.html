@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <!-- The share card, rendered to static/og/site.png by render-og.mjs. The
+         storefront's own tokens and fonts, from uno.config.js and assets/. -->
+    <style>
+      @font-face {
+        font-family: 'Archivo';
+        font-weight: 500;
+        src: url('../assets/fonts/Archivo-500.woff2') format('woff2');
+      }
+      @font-face {
+        font-family: 'Archivo';
+        font-weight: 700;
+        src: url('../assets/fonts/Archivo-700.woff2') format('woff2');
+      }
+      @font-face {
+        font-family: 'IBM Plex Mono';
+        font-weight: 500;
+        src: url('../assets/fonts/IBMPlexMono-500.woff2') format('woff2');
+      }
+      html,
+      body {
+        margin: 0;
+      }
+      body {
+        background: #f7f6f3;
+        color: #101214;
+        display: flex;
+        flex-direction: column;
+        font-family: Archivo, sans-serif;
+        height: 630px;
+        overflow: hidden;
+        width: 1200px;
+      }
+      .mono {
+        font-family: 'IBM Plex Mono', monospace;
+        font-weight: 500;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+      .main {
+        align-items: center;
+        display: flex;
+        flex: 1;
+        gap: 64px;
+        padding: 0 80px;
+      }
+      .copy {
+        flex: 1;
+      }
+      .kicker {
+        color: #036397;
+        font-size: 20px;
+        margin-bottom: 24px;
+      }
+      h1 {
+        font-size: 68px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        line-height: 1.04;
+        margin: 0 0 26px;
+      }
+      .line {
+        color: #5b6169;
+        font-size: 28px;
+        font-weight: 500;
+        line-height: 1.35;
+        margin: 0;
+      }
+      .mark {
+        align-items: center;
+        background: #ffffff;
+        border: 1px solid #e4e2dd;
+        border-radius: 2px;
+        display: flex;
+        flex-direction: column;
+        gap: 22px;
+        height: 344px;
+        justify-content: center;
+        width: 344px;
+      }
+      .mark svg {
+        height: 200px;
+        width: auto;
+      }
+      .mark .mono {
+        color: #101214;
+        font-size: 18px;
+      }
+      .band {
+        align-items: center;
+        background: #101214;
+        color: #9aa0a6;
+        display: flex;
+        font-size: 18px;
+        height: 92px;
+        justify-content: space-between;
+        padding: 0 80px;
+      }
+      .band .site {
+        color: #7fd4c1;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="main">
+      <div class="copy">
+        <div class="kicker mono">Druxt Store · demo</div>
+        <h1>Headless commerce with Drupal and Nuxt</h1>
+        <p class="line">Drupal Commerce on the back, Vue on the front.</p>
+      </div>
+      <div class="mark">
+        <svg viewBox="0 0 452 342" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path
+            fill="#3498DB"
+            d="M139 330l-1-2c-2-4-2-8-1-13H29L189 31l67 121 22-16-67-121c-1-2-9-14-22-14-6 0-15 2-22 15L5 303c-1 3-8 16-2 27 4 6 10 12 24 12h136c-14 0-21-6-24-12z"
+          />
+          <path
+            fill="#108775"
+            d="M447 304L317 70c-2-2-9-15-22-15-6 0-15 3-22 15l-17 28v54l39-67 129 230h-49a23 23 0 0 1-2 14l-1 1c-6 11-21 12-23 12h76c3 0 17-1 24-12 3-5 5-14-2-26z"
+          />
+          <path
+            fill="#2F495E"
+            d="M376 330v-1l1-2c1-4 2-8 1-12l-4-12-102-178-15-27h-1l-15 27-102 178-4 12a24 24 0 0 0 2 15c4 6 10 12 24 12h190c3 0 18-1 25-12zM256 152l93 163H163l93-163z"
+          />
+        </svg>
+        <div class="mono">Built with Druxt</div>
+      </div>
+    </div>
+    <div class="band mono">
+      <span class="site">commerce.demo.druxtjs.org</span>
+      <span>Commerce Kickstart by Centarro</span>
+    </div>
+  </body>
+</html>

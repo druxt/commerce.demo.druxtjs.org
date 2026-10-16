@@ -2,7 +2,7 @@ require('dotenv').config({ path: '../.env' })
 // Visitors' names on the live socket, drawn from the shop rather than the
 // sockets package's own pool.
 const { nameFor } = require('./server/live/names.js')
-const { liveOrigin } = require('./lib/site')
+const { SITE_DESCRIPTION, liveOrigin, siteOrigin } = require('./lib/site')
 
 const baseUrl = process.env.BASE_URL || ''
 
@@ -49,6 +49,8 @@ export default async () => ({
     // Where the live socket opens, when not on the page's own host: read when
     // each page generates, so a reused build still names it.
     socketsOrigin: liveOrigin(),
+    // The origin the head names in canonical links and share tags.
+    siteOrigin: siteOrigin(),
   },
 
   head: {
@@ -59,11 +61,16 @@ export default async () => ({
     meta: [
       { charset: 'utf-8' },
       { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-      { hid: 'description', name: 'description', content: 'A Drupal Commerce Kickstart store, served by Nuxt via Druxt.' },
+      { hid: 'description', name: 'description', content: SITE_DESCRIPTION },
       { name: 'format-detection', content: 'telephone=no' }
     ],
     link: [
-      { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' }
+      { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' },
+      // llms.txt discovery (https://llmstxt.org): every page points at the
+      // index and the full text beside it. The server sends the same as a
+      // Link header.
+      { rel: 'describedby', type: 'text/markdown', href: '/llms.txt' },
+      { rel: 'describedby', type: 'text/markdown', href: '/llms-full.txt' },
     ]
   },
 
@@ -121,6 +128,10 @@ export default async () => ({
     // attaches under `nuxt dev`; server/start.js attaches it in production.
     '@druxt-contrib/sockets',
     localhostListenURL,
+    // Last: it puts the storefront's page on the router's route, which
+    // druxt-site adds. It also writes robots.txt, sitemap.xml, llms.txt and
+    // llms-full.txt into the export.
+    '~/modules/seo-files',
   ],
 
   sockets: {

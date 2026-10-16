@@ -8,6 +8,7 @@
     "start": "nuxt start",
     "generate": "nuxt generate",
     "css:belgrade": "node scripts/build-belgrade-layout.mjs",
+    "og:card": "node scripts/render-og.mjs",
     "postinstall": "patch-package",
     "serve": "node server/start.js"
   },
