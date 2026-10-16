@@ -183,6 +183,12 @@ describe('readContent', () => {
     )
     assert.equal(doc.path, '/product/a1b2-uuid')
   })
+  it('breaks a line at a <br>, so the lines either side stay apart', () => {
+    assert.equal(
+      content.plainText('First<br>Second<br/>Third<br />Fourth'),
+      'First\nSecond\nThird\nFourth'
+    )
+  })
 })
 
 describe('llms.txt', () => {
