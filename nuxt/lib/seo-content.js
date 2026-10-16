@@ -15,7 +15,7 @@ const COLLECTIONS = [
 /** Text without its markup, one line per block, whitespace collapsed. */
 const plainText = (html) =>
   String(html || '')
-    .replace(/<\/(p|li|h[1-6]|div|br)>/gi, '$&\n')
+    .replace(/<\/(p|li|h[1-6]|div)>|<br\s*\/?>/gi, '$&\n')
     .replace(/<[^>]+>/g, '')
     .replace(/&nbsp;/g, ' ')
     .replace(/&amp;/g, '&')
