@@ -194,6 +194,7 @@
 
 <script>
 import { mapState, mapGetters } from 'vuex'
+import { NOINDEX } from '~/utils/seo'
 
 export default {
   name: 'CheckoutPage',
@@ -203,7 +204,7 @@ export default {
     return Promise.all([this.$store.dispatch('cart/load'), this.$store.dispatch('catalogue/load')])
   },
 
-  head: () => ({ title: 'Checkout' }),
+  head: () => ({ title: 'Checkout', meta: [NOINDEX] }),
 
   data: () => ({
     step: 0,

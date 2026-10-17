@@ -6,7 +6,12 @@
 </template>
 
 <script>
+import { NOINDEX } from '~/utils/seo'
+
 export default {
   name: 'PreviewLayout',
+
+  // An unsaved node, never a page to index.
+  head: () => ({ meta: [NOINDEX] }),
 }
 </script>

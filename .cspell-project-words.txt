@@ -1,4 +1,5 @@
 amazeeio
+apos
 appserver
 archivo
 bcmath
@@ -22,6 +23,7 @@ dbtype
 ddev
 dealerdirect
 Denormalizer
+describedby
 devpod
 docroot
 drupalcommerce
@@ -58,6 +60,7 @@ libxss
 libxtst
 libzip
 linkit
+llms
 lndo
 LOCALDEV
 luma

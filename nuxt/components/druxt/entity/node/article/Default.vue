@@ -70,6 +70,8 @@
 import { DruxtEntityMixin } from 'druxt-entity'
 import { DrupalJsonApiParams } from 'drupal-jsonapi-params'
 import { postDate } from '~/lib/dates'
+import { canonicalUrl } from '~/lib/site'
+import { seoHead, articleGraph, breadcrumbGraph, clampDescription } from '~/utils/seo'
 
 const formatDate = (iso) => postDate(iso, 'long')
 
@@ -140,8 +142,30 @@ export default {
     },
   },
 
+  // The post's own image is the share image, and its summary the
+  // description when it has one.
   head() {
-    return { title: this.title }
+    const origin = this.$config.siteOrigin
+    const path = this.$route.path
+    const url = canonicalUrl(origin, path)
+    const description = clampDescription((this.attrs.body || {}).summary || this.body)
+    const { title, image, tags } = this
+    return seoHead({
+      origin,
+      path,
+      title,
+      description,
+      image,
+      type: 'article',
+      graphs: [
+        articleGraph({ origin, url, title, description, image, created: this.attrs.created, changed: this.attrs.changed, tags }),
+        breadcrumbGraph(origin, [
+          { name: 'Home', path: '/' },
+          { name: 'Blog', path: '/blog' },
+          { name: title, path: url },
+        ]),
+      ],
+    })
   },
 
   computed: {

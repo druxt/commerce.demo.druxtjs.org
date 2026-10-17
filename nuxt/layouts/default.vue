@@ -12,7 +12,15 @@
 </template>
 
 <script>
+import { seoHead } from '~/utils/seo'
+
 export default {
   name: 'DefaultLayout',
+
+  // The head a page gets when it says nothing of its own: the canonical link,
+  // the share card and the site's structured data.
+  head() {
+    return seoHead({ origin: this.$config.siteOrigin, path: this.$route.path })
+  },
 }
 </script>

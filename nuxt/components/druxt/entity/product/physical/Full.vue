@@ -122,6 +122,8 @@
 
 <script>
 import { mapState } from 'vuex'
+import { canonicalUrl } from '~/lib/site'
+import { seoHead, productGraph, breadcrumbGraph, clampDescription } from '~/utils/seo'
 
 export default {
   name: 'DruxtEntityProductPhysicalFull',
@@ -155,8 +157,26 @@ export default {
     await this.$store.dispatch('catalogue/load')
   },
 
+  // The first photograph is the share image, and the offers are the
+  // variations the picker shows, at Commerce's prices.
   head() {
-    return { title: this.title }
+    const origin = this.$config.siteOrigin
+    const path = this.$route.path
+    const description = clampDescription(this.body)
+    const graphs = []
+    if (this.item) {
+      const url = canonicalUrl(origin, path)
+      const category = this.item.category
+      graphs.push(
+        productGraph({ origin, url, item: this.item, description }),
+        breadcrumbGraph(origin, [
+          { name: 'Catalogue', path: '/catalogue' },
+          ...(category ? [{ name: category, path: `/catalogue?category=${encodeURIComponent(category)}` }] : []),
+          { name: this.title, path: url },
+        ])
+      )
+    }
+    return seoHead({ origin, path, title: this.title, description, image: this.images[0], type: 'product', graphs })
   },
 
   computed: {
