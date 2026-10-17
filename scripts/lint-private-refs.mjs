@@ -5,7 +5,7 @@
  * a private URL in it is not a buried comment: composer-patches prints
  * every patch description during `composer install`, which is how a
  * self-hosted merge request link ended up in front of everyone who
- * followed the quickstart.
+ * installed the site.
  *
  * The rule is the shape of the host, not a list of known hostnames -
  * anything resolvable only inside a LAN. localhost, loopback, and the

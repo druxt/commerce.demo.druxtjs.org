@@ -1,8 +1,8 @@
 /**
  * Tests for the guards in scripts/dev.mjs, setup.mjs and postinstall.mjs.
  *
- * This starterkit has no OAuth consumer, so the callback and client-id
- * guards that quickstart carries have nothing to assert here.
+ * The demo has no OAuth callback, so the callback and client-id guards
+ * the quickstart starterkit carries have nothing to assert here.
  *
  * Each guard exists because something shipped broken and surfaced far
  * from its cause, so they are exercised the way a user meets them: the

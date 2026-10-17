@@ -1,46 +1,77 @@
 # Changelog
 
-All notable changes to this starterkit.
+Every change to the Druxt Commerce demo is documented in this file.
 
-**The version tracks Druxt, which is still pre-1.0** (`druxt` 0.24.0,
-`druxt-site` 0.14.3). A starterkit numbered above the framework it
-builds on would claim a stability neither has, so this stays on 0.x
-until Druxt reaches 1.0.
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
+The demo is a site without releases, so unreleased changes are grouped
+under one heading until they deploy. The numbered entries below are from
+when this repository was a starterkit.
 
-While it does, the usual 0.x reading applies:
+## [Unreleased]
 
-- **Minor** - anything that changes the setup you would follow, up to
-  and including a Drupal major. Breaking changes are called out under
-  their own heading; on 0.x the minor is where they live.
-- **Patch** - fixes and dependency updates that leave the documented
-  setup alone.
+### Added
 
-## Unreleased
+- The demo runs on Lagoon in one environment, `main`: Drupal, a storefront
+  that generates from it when its container starts, and the operator
+  console. Each deploy snapshots the fresh store, and a daily cron puts it
+  back at 16:00 UTC.
+- Pages built in Layout Builder, generated from the environment's own
+  Drupal, and a home page split between Centarro and Druxt.
+- The storefront's design, the demo bar and its overlay, the catalogue, and
+  a checkout that places real Drupal Commerce orders.
+- The live layer over WebSockets: shop together with a shared cart and a QR
+  code, a cart drawer, live stock, a demo courier, and an operator console
+  that follows a session's visitors and orders.
+- Blog pages, and Drupal's node preview shown in the storefront.
+- Share tags, structured data and a canonical link on every page, with
+  `robots.txt`, a sitemap, and `llms.txt` and `llms-full.txt` in the export.
 
-- The hosted demo runs in one Lagoon environment, `main`: Drupal, and a
-  storefront that generates from it when its container starts, then serves
-  the generated site with Drupal's paths proxied on the same origin. Each
-  deploy snapshots the fresh store, and a daily cron puts it back. The split
-  `staging/` and `production/` frontend and backend environments are gone.
-- Druxt 0.25.0 from the npm `dev` channel, with axios 0.34 and the Vue
-  packages pinned to 2.7.14 through npm `overrides`. The `druxt-site` `fs`
-  patch is rerolled for it.
+### Changed
 
-## 0.3.0 (2026-08-21)
+- Drupal 11.4.9 and Commerce 3.3.10.
+- Druxt from its development releases, the same builds the Umami demo
+  runs, with npm `overrides` keeping one copy of each Druxt package.
+- Drupal's own pages are closed to anonymous visitors by
+  `anonymous_redirect`. The storefront proxies the admin and sign-in
+  screens on its own origin.
+- The repository describes itself as a demo site.
 
-A full modernization: Drupal 11, a local backend that needs no Docker,
+### Removed
+
+- The split `staging/` and `production/` frontend and backend
+  environments.
+
+## [0.3.0] - 2026-08-21
+
+A full modernization: Drupal 11, a local backend that doesn't need Docker,
 and a one-command install.
 
 Breaking for anyone following the old setup, which on 0.x is what a
-minor is for.
+minor is for. Nuxt 2 and Node 16 are both end of life. This starterkit is pinned to
+them because Druxt targets Nuxt 2. The Nuxt 3 story is separate work.
 
-### Breaking changes
+### Changed
 
 - Drupal 9 to **Drupal 11.4.5**, with Commerce Kickstart 5.1 and druxt
   on 1.2, both D11-compatible releases.
 - The Gitpod configuration is gone, replaced by a dev container and CI.
+- `drupal/druxt` `^1.3.1` and `drupal/decoupled_router` `^2.0`, locked at
+  1.3.1 and 2.0.7. decoupled_router 2.0.7 gave
+  `RouterPathTranslatorSubscriber::onPathTranslation()` a `: void` return
+  type, and druxt 1.2.1 declared its three subscribers without one, so
+  the container failed to rebuild: `drush cr` aborted, Drupal kept
+  serving from the old container, and druxt's subscribers were silently
+  absent. druxt 1.2.2 carried the fix
+  ([#3618675](https://www.drupal.org/i/3618675)), so the hold below
+  2.0.7 is gone. `^1.3.1` requires the release that also makes the exposed
+  JSON:API resource list configurable at `/admin/config/services/druxt`
+  behind an `administer druxt` permission
+  ([#3309969](https://www.drupal.org/i/3309969)) and sets the CORS
+  `allowedMethods` default, so cross-origin requests from a browser succeed.
+  The floor is 1.3.1 rather than 1.3.0 because 1.3.0 fails with a fatal error when it is
+  enabled on a site that already runs JSON:API.
 
-### Features
+### Added
 
 - **One-command setup.** `npm install` on a fresh checkout provisions
   everything: frontend, Composer, and a local Drupal 11 backend with
@@ -63,10 +94,10 @@ minor is for.
   so immediately and names the routes that do work, instead of failing
   part way through key generation.
 - **A lint suite** - ESLint, Prettier, cspell, markdownlint, knip,
-  commitlint and Vale - so the starterkit holds itself to the practices
+  commitlint and Vale - so the repository holds itself to the practices
   it demonstrates.
 
-### Bug fixes
+### Fixed
 
 - JSON:API is proxied through Nuxt, so the client uses relative URLs and
   its requests stay same-origin instead of depending on CORS.
@@ -95,49 +126,26 @@ minor is for.
   phpunit, and it was 82 of the 273 locked packages - and
   `config.platform.php` now pins resolution to 8.3, so a later update
   cannot reintroduce the mismatch. The consumer-install CI job runs on
-  8.3 so a pass means the documented minimum genuinely works.
-- `npm install` stays green when the PHP on `PATH` is too old. The setup
+  8.3 so a pass means the documented minimum works.
+- `npm install` passes when the PHP on `PATH` is too old. The setup
   preflight rejects it with `process.exit`, which skips the catch that
   keeps installs passing, so a machine with PHP 8.2 failed `npm install`
   outright instead of getting the frontend-only fallback the missing-PHP
   case gets. postinstall now screens the version itself and steps aside
-  with the version it found; `npm run setup` still fails loudly.
+  with the version it found. `npm run setup` still exits with an error.
 
-### Dependencies
+## [0.2.0] - 2022-09-16
 
-- `drupal/druxt` `^1.3.1` and `drupal/decoupled_router` `^2.0`, locked at
-  1.3.1 and 2.0.7. decoupled_router 2.0.7 gave
-  `RouterPathTranslatorSubscriber::onPathTranslation()` a `: void` return
-  type, and druxt 1.2.1 declared its three subscribers without one, so
-  the container failed to rebuild: `drush cr` aborted, Drupal kept
-  serving from the old container, and druxt's subscribers were silently
-  absent. druxt 1.2.2 carried the fix
-  ([#3618675](https://www.drupal.org/i/3618675)), so the hold below
-  2.0.7 is gone. `^1.3.1` requires the release that also makes the exposed
-  JSON:API resource list configurable at `/admin/config/services/druxt`
-  behind an `administer druxt` permission
-  ([#3309969](https://www.drupal.org/i/3309969)) and sets the CORS
-  `allowedMethods` default, so cross-origin requests from a browser succeed.
-  The floor is 1.3.1 rather than 1.3.0 because 1.3.0 fails with a fatal error when it is
-  enabled on a site that already runs JSON:API.
-
-### Known limitations
-
-- Nuxt 2 and Node 16 are both end of life. This starterkit is pinned to
-  them because Druxt targets Nuxt 2; the Nuxt 3 story is separate work.
-
-## 0.2.0 (2022-09-16)
-
-### Features
+### Added
 
 - Added an initial Layout Builder integration and bootstrap-vue.
 
-### Bug fixes
+### Fixed
 
 - Added a Layout Builder JSON:API patch.
 - Pinned dependencies so builds stopped drifting.
 
-## 0.1.0 (2022-07-21)
+## [0.1.0] - 2022-07-21
 
-The first version of the starterkit: Drupal 9 with Commerce
+The first version: Drupal 9 with Commerce
 Kickstart and Nuxt 2, with DDEV and Gitpod for local development.

@@ -13,9 +13,8 @@
  *   this script never rewrites .env.
  *
  * The same pipeline is also triggered by `npm install` at the repository
- * root on a fresh checkout (scripts/postinstall.mjs) - that is what
- * makes `npx giget gh:druxt/quickstart-druxt-commerce my-site --install`
- * install everything, not just the (empty) root package.
+ * root on a fresh checkout (scripts/postinstall.mjs), so a fresh clone's
+ * `npm install` installs everything, not just the (empty) root package.
  */
 
 import path from 'node:path'
@@ -124,9 +123,7 @@ async function doSetup({ splash }) {
   if (splash) {
     console.log(SPLASH)
   }
-  console.log(
-    'Setting up the Druxt quickstart (Commerce Kickstart) (Drupal backend + Nuxt frontend)...'
-  )
+  console.log('Setting up the Druxt Commerce demo (Drupal backend + Nuxt frontend)...')
   console.log('')
 
   const backend = backendInfo(readEnv())
