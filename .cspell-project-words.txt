@@ -5,11 +5,13 @@ archivo
 bcmath
 Beachball
 behaviour
+blkchr
 bmewburn
 bootstrapvue
 Centarro
 centorium
 cklb
+Clusterfibre
 commitlint
 compomnent
 consolas
@@ -37,6 +39,7 @@ fieldsets
 furf
 gdlib
 giget
+handback
 hverlin
 instantiator
 intelephense
@@ -66,6 +69,7 @@ LOCALDEV
 luma
 makedirs
 mbstring
+MDEDT
 namelist
 netcat
 neue
@@ -87,6 +91,7 @@ phpmyadmin
 phpsab
 phpstan
 phpunit
+plantpots
 projectname
 projecttype
 qrcode
@@ -128,8 +133,11 @@ webflo
 webimage
 webmozart
 webroot
+whtsh
+whttbl
 wicd
 workrounds
 xauth
 xhprof
 zoneinfo
+zxqv

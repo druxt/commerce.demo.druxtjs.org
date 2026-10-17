@@ -17,6 +17,8 @@ import { cartToken, adoptToken, dropToken } from '~/store/cart'
 
 const SESSION_KEY = 'druxtDemoSession'
 const ROOM_KEY = 'druxtCartRoom'
+const THREAD_KEY = 'druxtAssistThread'
+const THREAD_SECRET = 'druxtAssistKey'
 const CODE = /^[A-Z0-9]{6}$/
 
 export default (context, inject) => {
@@ -131,6 +133,75 @@ export default (context, inject) => {
     },
   })
 
+  // The assist conversation this tab holds: the thread lives on the hub and
+  // in Drupal; the panel renders what arrives here.
+  const thread = Vue.observable({
+    code: '',
+    state: 'concierge',
+    operatorName: '',
+    turns: [],
+    waitingSince: 0,
+    error: '',
+  })
+  const threadChannel = () => `assist:${thread.code}`
+  const threadListeners = []
+  // The key the hub gave with the code: it makes this tab the visitor. Kept
+  // out of the observable, so nothing renders it.
+  let threadKey = ''
+  const resume = () => {
+    if (thread.code && threadKey) $sockets.send('resume', threadChannel(), { key: threadKey })
+  }
+  const forget = () => {
+    thread.code = ''
+    threadKey = ''
+    storage((s) => {
+      s.removeItem(THREAD_KEY)
+      s.removeItem(THREAD_SECRET)
+    })
+  }
+  // A new identity after a hub restart is a stranger until it shows the key.
+  $sockets.on('hello', resume)
+
+  $sockets.on('thread', (m) => {
+    if (!thread.code || m.channel !== threadChannel()) return
+    thread.state = m.payload.state
+    thread.operatorName = m.payload.operatorName || ''
+    thread.turns = m.payload.turns || []
+    thread.waitingSince = m.payload.state === 'waiting' ? m.payload.waitingSince || Date.now() : 0
+    threadListeners.forEach((fn) => fn('thread', m.payload))
+  })
+  $sockets.on('turn', (m) => {
+    if (!thread.code || m.channel !== threadChannel()) return
+    thread.turns = [...thread.turns, m.payload]
+    threadListeners.forEach((fn) => fn('turn', m.payload))
+  })
+  $sockets.on('operator', (m) => {
+    if (!thread.code || m.channel !== threadChannel()) return
+    thread.state = 'with_operator'
+    thread.operatorName = m.payload.name
+    thread.waitingSince = 0
+    threadListeners.forEach((fn) => fn('operator', m.payload))
+  })
+  $sockets.on('state', (m) => {
+    if (!thread.code || m.channel !== threadChannel()) return
+    thread.state = m.payload.state
+    thread.waitingSince = m.payload.state === 'waiting' ? Date.now() : 0
+    threadListeners.forEach((fn) => fn('state', m.payload))
+  })
+  $sockets.on('handback', (m) => {
+    if (!thread.code || m.channel !== threadChannel()) return
+    thread.state = 'concierge'
+    thread.operatorName = ''
+    threadListeners.forEach((fn) => fn('handback', m.payload))
+  })
+  $sockets.on('error', (m) => {
+    if (thread.code && m.channel === threadChannel() && /ended/.test(m.payload.message)) {
+      forget()
+      thread.turns = []
+      thread.state = 'concierge'
+    }
+  })
+
   // The catalogue's live numbers: carts per product, stock per SKU. One
   // room for the whole catalogue, joined once, so a card never counts as a
   // visitor looking at every product.
@@ -158,6 +229,7 @@ export default (context, inject) => {
     },
 
     room,
+    thread,
     catalogue,
 
     /** Hear the catalogue's numbers; joined once and kept for the tab. */
@@ -165,6 +237,81 @@ export default (context, inject) => {
       if (catalogue.joined) return
       catalogue.joined = true
       $sockets.join('catalogue:live')
+    },
+
+    /** Hear the thread's events: `fn(type, payload)`. Returns the stop. */
+    onThread(fn) {
+      threadListeners.push(fn)
+      return () => {
+        const i = threadListeners.indexOf(fn)
+        if (i !== -1) threadListeners.splice(i, 1)
+      }
+    },
+
+    /** The conversation for this tab: kept one, or a new one on the hub. */
+    openConversation(route) {
+      if (thread.code) return Promise.resolve(thread.code)
+      const kept = storage((s) => s.getItem(THREAD_KEY))
+      const keptKey = storage((s) => s.getItem(THREAD_SECRET))
+      if (kept && CODE.test(kept) && keptKey) {
+        thread.code = kept
+        threadKey = keptKey
+        $sockets.join(threadChannel())
+        resume()
+        return Promise.resolve(kept)
+      }
+      return new Promise((resolve, reject) => {
+        const done = () => {
+          offCode()
+          offError()
+          $sockets.leave('assist:new')
+        }
+        const offCode = $sockets.on('conversation', (m) => {
+          if (m.channel !== 'assist:new') return
+          done()
+          thread.code = m.payload.code
+          threadKey = m.payload.key || ''
+          storage((s) => {
+            s.setItem(THREAD_KEY, thread.code)
+            s.setItem(THREAD_SECRET, threadKey)
+          })
+          $sockets.join(threadChannel())
+          resume()
+          resolve(thread.code)
+        })
+        const offError = $sockets.on('error', (m) => {
+          if (m.channel !== 'assist:new') return
+          done()
+          reject(new Error(m.payload.message))
+        })
+        $sockets.join('assist:new')
+        $sockets.send('open', 'assist:new', { session, route })
+      })
+    },
+
+    /** One turn of the thread, by the visitor or relayed from the concierge. */
+    turn(author, text, picks, extra = {}) {
+      if (!thread.code) return
+      $sockets.send('turn', threadChannel(), { author, text, picks, ...extra })
+    },
+
+    /** Ask for a person; the session's consoles hear it. */
+    wait() {
+      if (thread.code) $sockets.send('wait', threadChannel(), {})
+    },
+
+    cancelWait() {
+      if (thread.code) $sockets.send('cancel', threadChannel(), {})
+    },
+
+    /** A fresh conversation: the old code is left behind. */
+    resetConversation() {
+      if (thread.code) $sockets.leave(threadChannel())
+      forget()
+      thread.state = 'concierge'
+      thread.operatorName = ''
+      thread.turns = []
+      thread.waitingSince = 0
     },
 
     /** The order this tab placed, for the session's console. */

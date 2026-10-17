@@ -25,6 +25,16 @@
           <SiteSearch class="hidden md:block max-w-380px" />
         </div>
 
+        <button
+          type="button"
+          class="shrink-0 h-11 px-3.5 hidden md:inline-flex items-center gap-2 text-13px font-600 bg-paper border border-line rounded hover:border-ink"
+          :aria-expanded="assistOpen ? 'true' : 'false'"
+          @click="$store.dispatch('assist/openPanel')"
+        >
+          <span class="w-1.5 h-1.5 rounded-full bg-teal" aria-hidden="true" />
+          Assist
+        </button>
+
         <!-- The cart is a drawer on every route; the page stays for the long view. -->
         <button
           type="button"
@@ -51,8 +61,9 @@
       <slot name="content" />
     </main>
 
-    <!-- The cart, on every route. -->
+    <!-- The concierge and the cart, on every route. -->
     <client-only>
+      <AssistPanel />
       <CartDrawer />
     </client-only>
 
@@ -76,6 +87,14 @@
         <span>{{ link.label }}</span>
         <span class="tabbar__mark w-4.5 h-0.5" aria-hidden="true" />
       </NuxtLink>
+      <button
+        type="button"
+        class="flex-1 min-w-0 h-14 flex flex-col items-center justify-center gap-0.75 text-13px font-500 text-ink-2 bg-transparent border-0"
+        @click="$store.dispatch('assist/openPanel')"
+      >
+        <span>Assist</span>
+        <span class="tabbar__mark w-4.5 h-0.5" aria-hidden="true" />
+      </button>
     </nav>
   </div>
 </template>
@@ -120,11 +139,13 @@ export default {
     slogan: ({ site }) => site.slogan || 'Drupal Commerce Kickstart, served by Nuxt via Druxt',
 
     // The bar's one line.
-    liveNotice: () => 'Live carts, live orders. Fresh every day.',
+    liveNotice: () => 'Live carts, live orders, a concierge on call. Fresh every day.',
 
     cartCount: ({ $store }) => $store.getters['cart/count'],
 
     cartLabel: ({ cartCount }) => (cartCount === 1 ? 'Cart, 1 item' : `Cart, ${cartCount} items`),
+
+    assistOpen: ({ $store }) => $store.state.assist.open,
 
     cartOpen: ({ $store }) => $store.state.cart.drawer,
   },

@@ -100,6 +100,10 @@ export default async () => ({
     '~/plugins/live.client.js',
   ],
 
+  // The concierge route under `nuxt dev`; server/start.js serves it on the
+  // generated site.
+  serverMiddleware: [{ path: '/_assist', handler: '~/server/assist/middleware.js' }],
+
   // Auto import components: https://go.nuxtjs.dev/config-components
   components: true,
 

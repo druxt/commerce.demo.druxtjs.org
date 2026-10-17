@@ -74,6 +74,12 @@
             :disabled="!activeVariation || busy || soldOut"
             @click="addToCart"
           >{{ soldOut ? 'Out of stock' : added ? 'Added to cart' : `Add to cart · ${price}` }}</button>
+          <!-- The concierge, seeded with this product. -->
+          <button
+            type="button"
+            class="h-12.5 px-4 bg-paper border border-line-2 rounded text-15px font-600 hover:border-ink"
+            @click="$store.dispatch('assist/openPanel', { seed: `What pairs with the ${title}?` })"
+          >Pair it</button>
         </div>
         <p class="font-mono text-11px text-ink-2 mb-6.5" aria-live="polite">
           {{ cartError || (added ? 'In your cart. Commerce has recalculated the order.' : stockLine) }}

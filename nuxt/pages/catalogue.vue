@@ -7,6 +7,11 @@
         matching “{{ query }}”
         <NuxtLink :to="{ query: { ...$route.query, q: undefined } }" class="text-accent ml-1">clear</NuxtLink>
       </p>
+      <!-- The concierge's picks, as a filter the facets clear. -->
+      <p v-if="picks.length" class="inline-flex items-center gap-2 h-8 px-2.5 bg-teal/10 border border-teal/40 rounded font-mono text-11px text-teal">
+        Concierge picks · {{ picks.length }}
+        <NuxtLink :to="{ query: { ...$route.query, picks: undefined } }" class="text-teal underline">clear</NuxtLink>
+      </p>
     </header>
 
     <!-- Below 768px the rail flattens into one scrolling row of pills. -->
@@ -63,7 +68,7 @@
             :price="p.price"
             :image="p.image"
             :category="p.category"
-            :variation="p.variations[0]"
+            :variation="(picks.length && p.variations.find((v) => picks.includes(v.sku))) || p.variations[0]"
           />
         </div>
 
@@ -108,6 +113,8 @@ export default {
     ...mapState('catalogue', ['items']),
 
     query: ({ $route }) => String($route.query.q || '').trim(),
+
+    picks: ({ $route }) => listOf($route.query.picks),
 
     active: ({ $route }) => Object.fromEntries(GROUPS.map((g) => [g, listOf($route.query[g])])),
 
@@ -157,8 +164,10 @@ export default {
         price: (p, v) => (PRICE_BANDS.find((b) => b.key === v) || { test: () => true }).test(p.amount),
         brand: (p, v) => p.brand === v,
       }
+      const picked = this.picks
       return this.items.filter((p) =>
         (!q || [p.title, p.category, p.brand, p.sku, ...p.collections].join(' ').toLowerCase().includes(q)) &&
+        (!picked.length || p.variations.some((v) => picked.includes(v.sku))) &&
         GROUPS.every((g) => g === except || !this.active[g].length || this.active[g].some((v) => tests[g](p, v)))
       )
     },
@@ -166,7 +175,8 @@ export default {
     toggle(group, value) {
       const current = this.active[group]
       const next = current.includes(value) ? current.filter((v) => v !== value) : [...current, value]
-      this.$router.replace({ query: { ...this.$route.query, [group]: next.length ? next.join(',') : undefined } })
+      // Touching a facet lets go of the concierge's picks.
+      this.$router.replace({ query: { ...this.$route.query, picks: undefined, [group]: next.length ? next.join(',') : undefined } })
     },
 
     clear() {

@@ -148,10 +148,34 @@ if (!MessageTemplate::load('demo_session')) {
     'text' => [['value' => 'Demo session', 'format' => 'plain_text']],
   ])->save();
 }
+// Assist: a conversation per visitor thread, a chat message per turn. The
+// hub writes both; the console reads them signed in; the visitor's panel
+// gets its thread from the socket.
+foreach ([
+  'conversation' => ['Conversation', 'A visitor\'s assist thread: its code, its session and whether a person has it.'],
+  'chat' => ['Chat', 'One turn of an assist conversation, by the visitor, the concierge or an operator.'],
+] as $template => [$label, $description]) {
+  if (!MessageTemplate::load($template)) {
+    MessageTemplate::create([
+      'template' => $template,
+      'label' => $label,
+      'description' => $description,
+      'text' => [['value' => $label, 'format' => 'plain_text']],
+    ])->save();
+  }
+}
 $fields = [
   ['message', 'demo_session', 'field_code', 'string', 'Code', []],
   ['message', 'demo_session', 'field_operator', 'entity_reference', 'Operator', ['target_type' => 'user']],
   ['commerce_order', 'default', 'field_demo_session', 'string', 'Demo session', []],
+  ['message', 'conversation', 'field_code', 'string', 'Code', []],
+  ['message', 'conversation', 'field_session', 'string', 'Session', []],
+  ['message', 'conversation', 'field_state', 'list_string', 'State', ['allowed_values' => ['concierge' => 'Concierge', 'waiting' => 'Waiting', 'with_operator' => 'With an operator', 'closed' => 'Closed']]],
+  ['message', 'conversation', 'field_operator', 'entity_reference', 'Operator', ['target_type' => 'user']],
+  ['message', 'chat', 'field_conversation', 'entity_reference', 'Conversation', ['target_type' => 'message']],
+  ['message', 'chat', 'field_author', 'list_string', 'Author', ['allowed_values' => ['visitor' => 'Visitor', 'concierge' => 'Concierge', 'operator' => 'Operator']]],
+  ['message', 'chat', 'field_body', 'string_long', 'Body', []],
+  ['message', 'chat', 'field_picks', 'string_long', 'Picks', []],
 ];
 foreach ($fields as [$entity_type, $bundle, $name, $type, $label, $storage_settings]) {
   if (!FieldStorageConfig::loadByName($entity_type, $name)) {
