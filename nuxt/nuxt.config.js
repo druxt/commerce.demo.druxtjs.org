@@ -98,6 +98,8 @@ export default async () => ({
     // The live layer: demo sessions, order rooms and who is looking. Browser
     // only, since it is all about this visitor's socket.
     '~/plugins/live.client.js',
+    // Products' displays under the names Druxt's schemas have for them.
+    '~/plugins/druxt-schema.js',
   ],
 
   // Auto import components: https://go.nuxtjs.dev/config-components
