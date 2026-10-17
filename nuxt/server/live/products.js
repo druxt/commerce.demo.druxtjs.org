@@ -9,6 +9,8 @@
  * moves them in every other.
  */
 const ORDER_TAG = /^commerce_order(:|_list)|^commerce_product_variation/
+// A product itself changed or arrived: the catalogue reads itself again.
+const PRODUCT_TAG = /^commerce_product:(\d+)$|^commerce_product_list/
 
 const CARTS_PATH =
   '/jsonapi/orders/default?filter[cart]=1&include=order_items.purchased_entity' +
@@ -163,6 +165,10 @@ const productHandler = ({ drupal, log = () => {}, debounceMs = 400, retryMs = 50
 
   /** Drupal purged these tags; an order among them means a cart or the stock may have moved. */
   const onTags = (tags = []) => {
+    // A product saved, published or dropped: every catalogue page reads again.
+    if (hubApi && tags.some((t) => PRODUCT_TAG.test(t)) && hubApi.members('catalogue:live').length) {
+      hubApi.broadcast('catalogue:live', 'products', { at: Date.now() })
+    }
     if (!tags.some((t) => ORDER_TAG.test(t))) return
     if (timer) return
     timer = setTimer(() => {

@@ -10,7 +10,7 @@
       {{ request.status }} in {{ request.ms }} ms on the {{ request.where }}, cache: {{ request.cache || 'none' }}
     </p>
     <p v-else class="font-mono text-11px text-ink-2 mt-3 mb-0">No request was made for this yet.</p>
-    <code v-if="file" class="block font-mono text-11px mt-2">{{ file }}</code>
+    <code v-if="file" class="block font-mono text-11px mt-2 break-all">{{ file }}</code>
     <a v-if="href" :href="href" rel="noopener" target="_blank" class="inline-block mt-2 text-accent font-600">{{ cta }}</a>
   </aside>
 </template>

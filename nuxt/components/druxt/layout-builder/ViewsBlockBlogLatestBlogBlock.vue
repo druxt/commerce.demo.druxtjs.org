@@ -30,6 +30,7 @@
 
 <script>
 import { DrupalJsonApiParams } from 'drupal-jsonapi-params'
+import { postDate } from '~/lib/dates'
 
 export default {
   name: 'DruxtLayoutBuilderViewsBlockBlogLatestBlogBlock',
@@ -68,9 +69,7 @@ export default {
         title: attrs.title,
         path: (attrs.path || {}).alias || `/node/${attrs.drupal_internal__nid}`,
         summary: (attrs.body || {}).summary || '',
-        date: attrs.created
-          ? new Date(attrs.created).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })
-          : '',
+        date: postDate(attrs.created),
         image: (((file || {}).attributes || {}).uri || {}).url || '',
       }
     })

@@ -176,8 +176,11 @@
       <aside v-if="!isEmpty" class="card p-5 flex flex-col gap-3">
         <h2 class="label-mono">Order summary</h2>
         <ul class="flex flex-col gap-2">
-          <li v-for="line in lines" :key="line.id" class="flex justify-between gap-3 text-sm">
-            <span class="text-ink-2">{{ line.quantity }} &times; {{ line.title }}</span>
+          <li v-for="line in lines" :key="line.id" class="flex items-center gap-3 text-sm">
+            <span class="shrink-0 w-10 h-10 bg-paper-3 overflow-hidden" aria-hidden="true">
+              <img v-if="imageOf(line)" :src="imageOf(line)" alt="" class="w-full h-full object-cover">
+            </span>
+            <span class="flex-1 text-ink-2">{{ line.quantity }} &times; {{ line.title }}</span>
             <span class="tabular-nums">{{ line.total }}</span>
           </li>
         </ul>
@@ -197,7 +200,7 @@ export default {
 
   fetchOnServer: false,
   fetch() {
-    return this.$store.dispatch('cart/load')
+    return Promise.all([this.$store.dispatch('cart/load'), this.$store.dispatch('catalogue/load')])
   },
 
   head: () => ({ title: 'Checkout' }),
@@ -227,7 +230,7 @@ export default {
 
   computed: {
     ...mapState('cart', ['lines']),
-    ...mapGetters('cart', ['total', 'isEmpty', 'orderId']),
+    ...mapGetters('cart', ['total', 'isEmpty', 'orderId', 'imageOf']),
   },
 
   watch: {

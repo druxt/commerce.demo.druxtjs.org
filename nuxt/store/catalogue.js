@@ -74,11 +74,18 @@ export const mutations = {
     state.items = items
     state.loaded = true
   },
+  unload(state) {
+    state.loaded = false
+  },
 }
 
 // One request in flight per tab, however many components ask for it. Only in
 // the browser: on the server this module is shared by every request.
 let pending
+
+// The reload in flight, and whether another change came in during it.
+let reloading
+let again = false
 
 // Every page of a collection, each with its own `included`. JSON:API gives
 // at most 50 resources a page.
@@ -121,15 +128,42 @@ const fetchAll = async (dispatch) => {
 }
 
 export const actions = {
+  // Read the catalogue again, whatever was read before: a product arrived.
+  // The old items stay on screen until the new ones are in.
+  // A burst of changes reads it twice at most: once in flight, and once more
+  // after that read for anything that changed while it ran.
+  reload({ dispatch, commit }) {
+    if (reloading) {
+      again = true
+      return reloading
+    }
+    const read = async () => {
+      do {
+        again = false
+        commit('unload')
+        pending = undefined
+        await dispatch('load')
+      } while (again)
+    }
+    reloading = read().finally(() => {
+      reloading = undefined
+    })
+    return reloading
+  },
+
   async load({ state, commit, dispatch }) {
     if (state.loaded) return state.items
     const request = process.server ? fetchAll(dispatch) : (pending = pending || fetchAll(dispatch))
+    // A reload started since this read began reads a newer catalogue, so an
+    // older read that answers last neither replaces its items nor drops its
+    // handle.
+    const current = () => process.server || pending === request
     try {
       const items = await request
-      commit('setItems', items)
+      if (current()) commit('setItems', items)
       return items
     } finally {
-      pending = undefined
+      if (current()) pending = undefined
     }
   },
 }

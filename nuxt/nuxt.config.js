@@ -6,6 +6,9 @@ const { liveOrigin } = require('./lib/site')
 
 const baseUrl = process.env.BASE_URL || ''
 
+// Which paths are Drupal's screens; the production server uses the same test.
+const { isDrupalScreen } = require('./lib/drupal-paths')
+
 
 // Bound to 0.0.0.0, Nuxt reports the container-internal interface IP as
 // its listen URL - unreachable from the host. Rewrite the reported URL
@@ -101,6 +104,10 @@ export default async () => ({
 
   // Modules: https://go.nuxtjs.dev/config-modules
   modules: [
+    // Drupal's Preview button renders the unsaved node here, at
+    // /druxt/node/preview, from the JSON:API Node Preview document whose path
+    // it is handed in the URL fragment. Before druxt-site, as on druxtjs.org.
+    '@druxt-contrib/node-preview',
     'druxt-site',
     // The demo layer: bar, notes, overlay. After druxt-site, so the Druxt
     // client exists when the plugin attaches its request log.
@@ -130,6 +137,31 @@ export default async () => ({
     css: false,
   },
 
+  // Drupal's login, admin and edit screens on this origin, so an editor's
+  // session is first party. The Host is kept, so Drupal builds its links and
+  // redirects for this origin; its cookies lose their Domain, and Secure on
+  // plain HTTP, where a browser would not store them.
+  proxy: [
+    // JSON:API and path lookups keep the visitor's Host too, ahead of Druxt's
+    // own entries, which change it. Drupal names its session cookie after the
+    // host, so a changed one reads an editor as signed out and a preview 404s.
+    ...['/jsonapi', '/router/translate-path'].map((context) => [context, { target: baseUrl, changeOrigin: false }]),
+    [
+      isDrupalScreen,
+      {
+        target: baseUrl,
+        changeOrigin: false,
+        cookieDomainRewrite: '',
+        onProxyRes: (proxyRes, req) => {
+          const https = String(req.headers['x-forwarded-proto'] || '').split(',')[0].trim() === 'https' || req.socket.encrypted
+          const cookies = proxyRes.headers['set-cookie']
+          if (https || !cookies) return
+          proxyRes.headers['set-cookie'] = cookies.map((cookie) => cookie.replace(/;\s*secure/gi, ''))
+        },
+      },
+    ],
+  ],
+
   // DruxtJS: https://druxtjs.org
   druxt: {
     baseUrl,
@@ -138,6 +170,14 @@ export default async () => ({
     // Proxy JSON:API through Nuxt, so the client uses relative URLs and
     // its requests stay same-origin rather than needing CORS.
     proxy: { api: true },
+    // No include: the module adds one list to every bundle's preview, and a
+    // field another bundle lacks fails the request. The article view reads
+    // its image and tags itself. The layouts are the ones the preview's
+    // Layout picker may switch the frame to: the page alone, which a preview
+    // opens on, or the store around it.
+    nodePreview: {
+      layouts: ['preview', 'default'],
+    },
     // The site's actual theme. Asking for one the site does not use returns an
     // empty region set, which renders no header, navigation or footer at all.
     site: { theme: 'belgrade' },

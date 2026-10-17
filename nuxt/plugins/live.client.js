@@ -134,12 +134,22 @@ export default (context, inject) => {
   // The catalogue's live numbers: carts per product, stock per SKU. One
   // room for the whole catalogue, joined once, so a card never counts as a
   // visitor looking at every product.
-  const catalogue = Vue.observable({ carts: {}, stock: {}, joined: false })
+  const catalogue = Vue.observable({ carts: {}, stock: {}, arrived: {}, joined: false })
   $sockets.on('carts', (m) => {
     if (m.channel === 'catalogue:live') catalogue.carts = { ...catalogue.carts, ...(m.payload.counts || {}) }
   })
   $sockets.on('stock', (m) => {
     if (m.channel === 'catalogue:live') catalogue.stock = { ...catalogue.stock, ...(m.payload.levels || {}) }
+  })
+  // A product arrived or changed in Drupal: the catalogue reads itself again
+  // and remembers what is new, so a card can say so.
+  $sockets.on('products', async (m) => {
+    if (m.channel !== 'catalogue:live') return
+    const before = new Set(store.state.catalogue.items.map((i) => i.id))
+    await store.dispatch('catalogue/reload')
+    const arrived = { ...catalogue.arrived }
+    for (const item of store.state.catalogue.items) if (!before.has(item.id)) arrived[item.id] = Date.now()
+    catalogue.arrived = arrived
   })
 
   const live = {

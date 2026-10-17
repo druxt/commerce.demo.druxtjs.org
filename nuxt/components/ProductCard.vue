@@ -15,6 +15,7 @@
         <NuxtLink :to="path" class="after:content-empty after:absolute after:inset-0">{{ title }}</NuxtLink>
       </h3>
       <!-- The catalogue's live numbers, from the hub: counts and levels only. -->
+      <p v-if="arrived" class="font-mono text-10px text-teal" aria-live="polite">new · arrived {{ arrived }}</p>
       <p v-if="liveLine" class="font-mono text-10px" :class="soldOut ? 'text-warn' : 'text-teal'" aria-live="polite">{{ liveLine }}</p>
       <div class="flex items-center justify-between gap-2">
         <span v-if="price" class="font-mono text-14px font-500">{{ price }}</span>
@@ -62,6 +63,12 @@ export default {
     },
 
     soldOut: ({ stockLeft }) => stockLeft === 0,
+
+    // A product Scheduler published while this tab was open.
+    arrived: ({ catalogueLive, id }) => {
+      const at = id && (catalogueLive.arrived || {})[id]
+      return at ? new Date(at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''
+    },
 
     liveLine: ({ catalogueLive, id, stockLeft }) => {
       const parts = []

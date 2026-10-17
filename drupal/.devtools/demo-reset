@@ -54,6 +54,9 @@ rm -rf "$FILES/css" "$FILES/js" "$FILES/styles" "$FILES/php"
 rm -f "$FLAG"
 trap - EXIT
 
+# The drop again: the snapshot's schedule is in the past by now.
+"$DRUSH" php:script .devtools/drop-setup.php
+
 # The storefront builds the fresh store. Not fatal: Drupal is back either
 # way, and the storefront rebuilds on the next deploy.
 HOST="${DRUXT_REGENERATE_HOST:-app}"

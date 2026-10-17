@@ -112,6 +112,11 @@ export const getters = {
   subtotal: (state) => ((((state.order || {}).order_total || {}).subtotal) || {}).formatted || '',
   isEmpty: (state) => !state.lines.length,
   orderId: (state) => (state.order || {}).id,
+  // A line's product and image, from the catalogue the rest of the store holds.
+  productOf: (state, getters, rootState) => (line) =>
+    rootState.catalogue.items.find((p) => p.variations.some((v) => v.id === line.variationId)) || null,
+  imageOf: (state, getters) => (line) => (getters.productOf(line) || {}).image || '',
+  pathOf: (state, getters) => (line) => (getters.productOf(line) || {}).path || '',
   token: () => cartToken(),
   shared: () => typeof window !== 'undefined' && !!sharedToken(),
 }
@@ -151,6 +156,8 @@ export const actions = {
           type: item.type,
           title: item.attributes.title,
           quantity: Number(item.attributes.quantity),
+          // The variation bought, which the catalogue knows the product and image of.
+          variationId: ((((item.relationships || {}).purchased_entity || {}).data) || {}).id || '',
           unitPrice: (item.attributes.unit_price || {}).formatted || '',
           total: (item.attributes.total_price || {}).formatted || '',
         }))

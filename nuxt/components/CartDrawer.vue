@@ -17,11 +17,11 @@
           <p class="font-mono text-11px text-ink-2">
             {{ count }} {{ count === 1 ? 'item' : 'items' }}
             <template v-if="room.code"> · shared with {{ others.length }} {{ others.length === 1 ? 'other' : 'others' }}</template>
-            <template v-else> · Drupal's order, live</template>
+            <template v-else> · live</template>
           </p>
         </div>
         <NuxtLink to="/cart" class="h-9 px-2.5 border border-line rounded font-mono text-11px text-ink-2 hover:text-ink inline-flex items-center" @click.native="close">cart page</NuxtLink>
-        <button ref="closeButton" type="button" class="w-11 h-11 -mr-2.5 text-22px text-ink-2 hover:text-ink" aria-label="Close" @click="close">×</button>
+        <button ref="closeButton" type="button" class="w-11 h-11 -mr-2.5 bg-transparent border-0 text-22px text-ink-2 hover:text-ink" aria-label="Close" @click="close">×</button>
       </header>
 
       <div class="flex-1 overflow-auto bg-paper-3" aria-live="polite">
@@ -30,23 +30,32 @@
           <p class="text-15px text-ink-2">Your cart is empty.</p>
           <NuxtLink to="/catalogue" class="btn-primary" @click.native="close">Browse the catalogue</NuxtLink>
         </div>
-        <ul v-else class="divide-y divide-line bg-paper">
-          <li v-for="line in lines" :key="line.id" class="p-4 flex items-center gap-3">
-            <div class="flex-1 min-w-0">
-              <p class="text-14px font-600 leading-tight">{{ line.title }}</p>
-              <p class="font-mono text-11px text-ink-2 mt-1">{{ line.unitPrice }} each</p>
+        <!-- The quantity goes under the title, so a phone-width drawer never
+             squeezes the product's name between its stepper and total. -->
+        <ul v-else class="list-none m-0 p-0 bg-paper">
+          <li v-for="line in lines" :key="line.id" class="border-0 border-t border-solid border-line first:border-t-0 px-4 py-3.5 grid grid-cols-[3.5rem_1fr_auto] gap-x-3 gap-y-2.5 items-start">
+            <NuxtLink :to="pathOf(line) || '/catalogue'" class="row-span-2 w-14 h-14 bg-paper-3 overflow-hidden" :aria-label="line.title" @click.native="close">
+              <img v-if="imageOf(line)" :src="imageOf(line)" alt="" class="w-full h-full object-cover">
+            </NuxtLink>
+            <div class="min-w-0">
+              <p class="text-14px font-600 leading-snug">{{ line.title }}</p>
+              <p class="font-mono text-11px text-ink-2 mt-0.5">{{ line.unitPrice }} each</p>
               <p v-if="room.added[line.title]" class="font-mono text-11px text-teal mt-0.5">
                 added by {{ room.added[line.title] === room.you ? 'you' : room.names[room.added[line.title]] || 'someone' }}
               </p>
             </div>
-            <div class="flex items-center border border-line rounded" role="group" :aria-label="`Quantity for ${line.title}`">
-              <button type="button" class="w-10 h-10 hover:bg-paper-2 disabled:opacity-40" :disabled="busy" :aria-label="`Decrease quantity of ${line.title}`" @click="change(line, line.quantity - 1)">&minus;</button>
-              <span class="w-8 text-center tabular-nums text-14px">{{ line.quantity }}</span>
-              <button type="button" class="w-10 h-10 hover:bg-paper-2 disabled:opacity-40" :disabled="busy" :aria-label="`Increase quantity of ${line.title}`" @click="change(line, line.quantity + 1)">+</button>
+            <p class="font-600 tabular-nums text-14px text-right">{{ line.total }}</p>
+            <div class="col-span-2 justify-self-start flex items-center border border-solid border-line rounded" role="group" :aria-label="`Quantity for ${line.title}`">
+              <button type="button" class="w-11 h-9 bg-transparent border-0 hover:bg-paper-2 disabled:opacity-40" :disabled="busy" :aria-label="`Decrease quantity of ${line.title}`" @click="change(line, line.quantity - 1)">&minus;</button>
+              <span class="w-8 text-center tabular-nums text-13px">{{ line.quantity }}</span>
+              <button type="button" class="w-11 h-9 bg-transparent border-0 hover:bg-paper-2 disabled:opacity-40" :disabled="busy" :aria-label="`Increase quantity of ${line.title}`" @click="change(line, line.quantity + 1)">+</button>
             </div>
-            <p class="w-18 text-right font-600 tabular-nums text-14px">{{ line.total }}</p>
           </li>
         </ul>
+        <!-- The room opens here, link and QR included, with no trip to the cart page. -->
+        <div v-if="together && !isEmpty" ref="together" class="p-4">
+          <ShopTogether />
+        </div>
         <p v-if="room.lastChange && recent" class="m-4 inline-flex items-center gap-2 bg-ink text-paper text-12px px-3 py-2 rounded">
           <span class="w-1.5 h-1.5 rounded-full bg-mint" aria-hidden="true" />
           {{ room.lastChange.byName }} {{ (room.lastChange.what || {}).verb || 'changed' }} {{ (room.lastChange.what || {}).title || 'the cart' }}
@@ -59,7 +68,9 @@
         </div>
         <p class="label-mono">Shipping calculated at checkout</p>
         <div class="flex gap-2.5">
-          <NuxtLink to="/cart" class="btn-secondary flex-1" @click.native="close">{{ room.code ? 'The room' : 'Shop together' }}</NuxtLink>
+          <button type="button" class="btn-secondary flex-1" :disabled="opening" :aria-expanded="together ? 'true' : 'false'" @click="shopTogether">
+            {{ opening ? 'Opening…' : together ? 'Hide the room' : room.code ? 'The room' : 'Shop together' }}
+          </button>
           <span v-if="room.closed" class="btn-primary flex-1 opacity-50 cursor-default" aria-disabled="true">Checked out</span>
           <NuxtLink v-else to="/checkout" class="btn-primary flex-1" @click.native="close">Checkout</NuxtLink>
         </div>
@@ -77,11 +88,11 @@ import { mapState, mapGetters } from 'vuex'
 export default {
   name: 'CartDrawer',
 
-  data: () => ({ now: Date.now(), timer: null }),
+  data: () => ({ now: Date.now(), timer: null, together: false, opening: false }),
 
   computed: {
     ...mapState('cart', ['lines', 'busy', 'error']),
-    ...mapGetters('cart', ['count', 'total', 'isEmpty']),
+    ...mapGetters('cart', ['count', 'total', 'isEmpty', 'imageOf', 'pathOf']),
 
     open: ({ $store }) => $store.state.cart.drawer,
 
@@ -97,6 +108,7 @@ export default {
   watch: {
     open(on) {
       if (on) {
+        this.$store.dispatch('catalogue/load')
         this.opened = document.activeElement
         this.$nextTick(() => this.$refs.closeButton && this.$refs.closeButton.focus())
         document.addEventListener('focusin', this.trap)
@@ -124,6 +136,25 @@ export default {
   methods: {
     close() {
       if (this.open) this.$store.commit('cart/setDrawer', false)
+    },
+    // One press opens the room and shows it; a second hides it again.
+    async shopTogether() {
+      if (this.together) {
+        this.together = false
+        return
+      }
+      if (!this.room.code && this.$live) {
+        this.opening = true
+        try {
+          await this.$live.openRoom()
+        } catch (e) {
+          // The room card below says what went wrong and offers it again.
+        } finally {
+          this.opening = false
+        }
+      }
+      this.together = true
+      this.$nextTick(() => this.$refs.together && this.$refs.together.scrollIntoView({ block: 'nearest', behavior: 'smooth' }))
     },
     change(line, quantity) {
       return this.$store.dispatch('cart/setQuantity', { line, quantity })
