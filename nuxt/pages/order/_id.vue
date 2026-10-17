@@ -46,6 +46,8 @@
         <dd class="m-0">{{ order.email }}</dd>
         <dt class="font-mono text-11px uppercase tracking-wider text-ink-2 self-center">Paid</dt>
         <dd class="m-0 font-mono">{{ (order.total_paid || {}).formatted || '–' }}</dd>
+        <dt class="font-mono text-11px uppercase tracking-wider text-ink-2 self-center">Shipment</dt>
+        <dd class="m-0 font-mono">{{ shipment === null ? 'none yet' : shipment }} <span class="text-ink-2">· demo courier, nothing ships</span></dd>
       </dl>
 
       <DruxtDemoNote
@@ -64,6 +66,7 @@
 const STEPS = [
   { id: 'draft', label: 'Placed' },
   { id: 'fulfillment', label: 'Being fulfilled' },
+  { id: 'shipped', label: 'Shipped' },
   { id: 'completed', label: 'Completed' },
 ]
 
@@ -73,16 +76,20 @@ export default {
   // The read depends on the session the browser holds, so it happens there.
   fetchOnServer: false,
 
-  data: () => ({ order: null, error: '', live: false, movedAt: 0 }),
+  data: () => ({ order: null, error: '', live: false, movedAt: 0, shipment: null }),
 
   // Follow the order on the socket: Drupal's purge of the order's tag reaches
   // the hub, which reads the order as itself and tells this room.
   mounted() {
     if (!this.$live) return
-    this.unfollow = this.$live.follow(this.$route.params.id, ({ state }) => {
+    this.unfollow = this.$live.follow(this.$route.params.id, ({ state, shipment }) => {
       this.live = true
       // The hub can answer before the read below does, and the read keeps this.
       this.heard = state
+      if (shipment !== undefined && shipment !== this.shipment) {
+        if (this.shipment !== null) this.movedAt = Date.now()
+        this.shipment = shipment
+      }
       if (this.order && this.order.state !== state) {
         this.order = { ...this.order, state }
         this.movedAt = Date.now()
@@ -115,12 +122,15 @@ export default {
 
     liveTitle: ({ movedAt }) => (movedAt ? 'Moved by Drupal while this page was open' : 'Following this order on the live socket'),
 
-    reached: ({ order }) => {
+    // Where the order is: the shipment's state puts it at Shipped between
+    // fulfilment and completion.
+    reached: ({ order, shipment }) => {
       if (!order) return -1
       if (order.state === 'canceled') return -1
-      const i = STEPS.findIndex((s) => s.id === order.state)
+      if (order.state === 'completed') return 3
+      if (shipment === 'shipped') return 2
       // A placed order's state is already past draft.
-      return i === -1 ? 1 : Math.max(i, 1)
+      return 1
     },
   },
 }

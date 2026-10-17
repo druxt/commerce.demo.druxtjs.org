@@ -55,6 +55,7 @@
 
         <div class="grid gap-[clamp(12px,1.4vw,18px)] grid-cols-[repeat(auto-fill,minmax(min(100%,160px),1fr))]">
           <ProductCard
+            :id="p.id"
             v-for="p in results"
             :key="p.id"
             :title="p.title"

@@ -2,6 +2,7 @@ amazeeio
 appserver
 archivo
 bcmath
+Beachball
 behaviour
 bmewburn
 bootstrapvue
@@ -11,6 +12,7 @@ cklb
 commitlint
 compomnent
 consolas
+conv
 cweagans
 davidanson
 dbaeumer
@@ -74,6 +76,7 @@ opcache
 openssl
 openvscode
 packagist
+Parfum
 phar
 phpcodesniffer
 phpdotenv
@@ -90,8 +93,10 @@ rels
 repository
 scule
 Segoe
+SESS
 setuptools
 shivammathur
+skus
 someenv
 somename
 someotherenv
@@ -121,3 +126,4 @@ wicd
 workrounds
 xauth
 xhprof
+zoneinfo

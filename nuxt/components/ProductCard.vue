@@ -14,16 +14,18 @@
              Add button still sits above it. -->
         <NuxtLink :to="path" class="after:content-empty after:absolute after:inset-0">{{ title }}</NuxtLink>
       </h3>
+      <!-- The catalogue's live numbers, from the hub: counts and levels only. -->
+      <p v-if="liveLine" class="font-mono text-10px" :class="soldOut ? 'text-warn' : 'text-teal'" aria-live="polite">{{ liveLine }}</p>
       <div class="flex items-center justify-between gap-2">
         <span v-if="price" class="font-mono text-14px font-500">{{ price }}</span>
         <button
           v-if="variation"
           type="button"
           class="card-add relative z-1 h-7 px-2.5 font-600 text-12px border border-ink rounded bg-paper hover:bg-ink hover:text-paper transition-colors duration-150 disabled:opacity-50"
-          :disabled="adding"
+          :disabled="adding || soldOut"
           :aria-label="`Add ${title} to cart`"
           @click="add"
-        >{{ added ? 'Added' : 'Add' }}</button>
+        >{{ soldOut ? 'Sold out' : added ? 'Added' : 'Add' }}</button>
       </div>
     </div>
   </article>
@@ -45,14 +47,40 @@ export default {
     wide: { type: Boolean, default: false },
     // A variation to add straight from the card. Without one there is no button.
     variation: { type: Object, default: undefined },
+    // The product's uuid, for the cart count the hub keeps per product.
+    id: { type: String, default: '' },
   },
 
   data: () => ({ adding: false, added: false }),
 
+  computed: {
+    catalogueLive: ({ $live }) => ($live && $live.catalogue) || { carts: {}, stock: {} },
+
+    stockLeft: ({ catalogueLive, variation }) => {
+      const level = variation && catalogueLive.stock[variation.sku]
+      return typeof level === 'number' ? level : null
+    },
+
+    soldOut: ({ stockLeft }) => stockLeft === 0,
+
+    liveLine: ({ catalogueLive, id, stockLeft }) => {
+      const parts = []
+      const carts = id ? catalogueLive.carts[id] || 0 : 0
+      if (stockLeft === 0) parts.push('out of stock')
+      else if (stockLeft !== null && stockLeft <= 3) parts.push(`only ${stockLeft} left`)
+      if (carts > 0) parts.push(`in ${carts} ${carts === 1 ? 'cart' : 'carts'}`)
+      return parts.join(' · ')
+    },
+  },
+
+  mounted() {
+    if (this.$live) this.$live.watchCatalogue()
+  },
+
   methods: {
     async add() {
       this.adding = true
-      await this.$store.dispatch('cart/add', { type: this.variation.type, id: this.variation.id, quantity: 1 })
+      await this.$store.dispatch('cart/add', { type: this.variation.type, id: this.variation.id, quantity: 1, title: this.title })
       this.adding = false
       if (this.$store.state.cart.error) return
       this.added = true
