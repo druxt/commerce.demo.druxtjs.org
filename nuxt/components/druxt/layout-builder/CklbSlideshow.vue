@@ -104,6 +104,12 @@
 export default {
   name: 'DruxtLayoutBuilderCklbSlideshow',
 
+  // LayoutBuilder passes every layout its section. Declared, as the column
+  // layouts do through blbSection, so it does not render on the element.
+  props: {
+    section: { type: Object, default: undefined },
+  },
+
   data: () => ({
     current: 0,
     slides: [],

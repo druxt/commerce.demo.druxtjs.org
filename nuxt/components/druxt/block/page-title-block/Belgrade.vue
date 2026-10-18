@@ -17,7 +17,12 @@
 </template>
 
 <script>
+import { DruxtBlocksBlockMixin } from 'druxt-blocks'
+
 export default {
   name: 'DruxtBlockPageTitleBlockBelgrade',
+
+  // Declares the block, so it does not render on the empty div.
+  mixins: [DruxtBlocksBlockMixin],
 }
 </script>
