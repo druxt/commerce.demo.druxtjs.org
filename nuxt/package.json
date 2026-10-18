@@ -14,7 +14,7 @@
   "dependencies": {
     "@druxt-contrib/sockets": "file:vendor/druxt-sockets",
     "@druxt/demo": "file:vendor/druxt-demo",
-    "axios": "^0.34.0",
+    "axios": "^1.20.0",
     "bootstrap-vue": "^2.22.0",
     "core-js": "3.25.1",
     "dotenv": "^16.0.3",
@@ -44,7 +44,7 @@
     "druxt-router": "0.32.0-dev.20261011015353",
     "druxt-schema": "0.12.0-dev.20261011015353",
     "druxt-views": "0.23.0-dev.20261011015353",
-    "axios": "^0.34.0",
+    "axios": "^1.20.0",
     "vue": "2.7.14",
     "vue-server-renderer": "2.7.14",
     "vue-template-compiler": "2.7.14"
