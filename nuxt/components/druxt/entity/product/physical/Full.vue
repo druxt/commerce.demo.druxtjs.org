@@ -122,13 +122,14 @@
 
 <script>
 import { mapState } from 'vuex'
+import { DruxtEntityMixin } from 'druxt-entity'
 
 export default {
   name: 'DruxtEntityProductPhysicalFull',
 
-  props: {
-    entity: { type: Object, required: true },
-  },
+  // The mixin declares everything DruxtEntity hands a theme, so none of it
+  // renders on the article as an attribute.
+  mixins: [DruxtEntityMixin],
 
   data: () => ({
     activeVariationId: undefined,
