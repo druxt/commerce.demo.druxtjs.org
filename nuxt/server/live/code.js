@@ -1,16 +1,21 @@
 // cspell:ignore ABCDEFGHJKLMNPQRSTUVWXYZ
+const { randomInt } = require('crypto')
+
 /** Room codes: six characters, with nothing that reads as another. */
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
 const LENGTH = 6
+// A code admits whoever holds it, and Math.random can be predicted from the
+// codes it gave before.
+const secureRandom = () => randomInt(2 ** 32) / 2 ** 32
 
 /**
  * A room code free in `taken`.
  *
  * @param {Set<string>} taken - Codes in use.
- * @param {Function} [rand] - A random source in [0, 1).
+ * @param {Function} [rand] - A random source in [0, 1). Tests pass their own.
  * @returns {string} The code.
  */
-function roomCode(taken, rand = Math.random) {
+function roomCode(taken, rand = secureRandom) {
   for (let i = 0; i < 1000; i++) {
     let code = ''
     for (let j = 0; j < LENGTH; j++)

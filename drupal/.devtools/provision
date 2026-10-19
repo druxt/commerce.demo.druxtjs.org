@@ -160,6 +160,10 @@ if (!file_exists(dirname(__DIR__) . '/keys/private.key')) {
   drush('simple-oauth:generate-keys %s', dirname(__DIR__) . '/keys');
 }
 drush('php:script %s', __DIR__ . '/live-setup.php');
+// Stock: local stock, one warehouse, opening counts, so the storefront can
+// show units left and a sale moving them.
+drush('pm:enable commerce_stock commerce_stock_local commerce_stock_field');
+drush('php:script %s', __DIR__ . '/stock-setup.php');
 PASS('jsonapi.settings read_only disabled.');
 
 TASK('Enabling decoupled settings.');

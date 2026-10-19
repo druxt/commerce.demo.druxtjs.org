@@ -19,7 +19,7 @@ const sessionHandler = ({
   drupalUrl,
   accountOf,
   orderForToken,
-  rand = Math.random,
+  rand,
   log = () => {},
 } = {}) => {
   const sessions = new Map()

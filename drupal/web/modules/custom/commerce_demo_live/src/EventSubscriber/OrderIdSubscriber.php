@@ -9,7 +9,7 @@ use Drupal\jsonapi\ResourceType\ResourceTypeBuildEvents;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 /**
- * Keeps the order's internal id public, as `order_id`.
+ * Keeps the order's and the shipment's internal ids public.
  *
  * Drupal's cache tags name an order by its internal id, and the live hub
  * learns of a change from those tags. commerce_api disables every
@@ -29,12 +29,19 @@ final class OrderIdSubscriber implements EventSubscriberInterface {
    * Renames the order's internal id so it survives commerce_api's pass.
    */
   public function onResourceTypeBuild(ResourceTypeBuildEvent $event): void {
-    if (!str_starts_with($event->getResourceTypeName(), 'commerce_order--')) {
-      return;
-    }
-    foreach ($event->getFields() as $field) {
-      if ($field->getPublicName() === 'drupal_internal__order_id') {
-        $event->setPublicFieldName($field, 'order_id');
+    // Orders and shipments: the ids their cache tags name.
+    $kept = [
+      'commerce_order--' => ['drupal_internal__order_id' => 'order_id'],
+      'commerce_shipment--' => ['drupal_internal__shipment_id' => 'shipment_id'],
+    ];
+    foreach ($kept as $prefix => $renames) {
+      if (!str_starts_with($event->getResourceTypeName(), $prefix)) {
+        continue;
+      }
+      foreach ($event->getFields() as $field) {
+        if (isset($renames[$field->getPublicName()])) {
+          $event->setPublicFieldName($field, $renames[$field->getPublicName()]);
+        }
       }
     }
   }

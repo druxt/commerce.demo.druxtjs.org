@@ -1,121 +1,57 @@
 <script>
 
-import DruxtModule from 'druxt/dist/components/DruxtModule.vue'
-
-/** How long a change counts as just arrived, in milliseconds. */
-const FLASH = 6000
+import DruxtSockets from './DruxtSockets.vue'
 
 /**
- * Who has a channel open, live, as a Druxt module.
+ * Who has a channel open, live: a `DruxtSockets` that hands on presence only.
  *
- * A site themes it the Druxt way: a `DruxtPresence<Kind>` component for the
- * channel's kind (`DruxtPresencePage` for `page:` channels), else
- * `DruxtPresenceDefault`. That component receives `people`, `self`,
- * `editors`, `updated`, `updatedAt`, `channel` and `role` as props, and
- * writes its own words. Without one, a plain count renders.
+ * Its theme component receives `channel`, `activity`, `self` and `people`,
+ * each `{ id, name, signedIn, roles, activity }` as the server describes
+ * them to this visitor; `roles` are Drupal's. A site themes it the Druxt
+ * way: a `DruxtPresence<Kind>` component for the channel's kind
+ * (`DruxtPresencePage` for `page:` channels), else `DruxtPresenceDefault`.
+ * Without one, it lists the names of who is here in a live status region;
+ * the module names nobody, so an unnamed person is not listed.
+ *
+ * @example <caption>DruxtPresence</caption> @lang vue
+ * <DruxtPresence :activity="editing ? 'editing' : ''" />
+ *
+ * @example <caption>A theme component, components/druxt/presence/Page.vue</caption> @lang vue
+ * <template>
+ *   <p role="status">{{ people.filter((p) => p.activity === 'editing').length }} editing</p>
+ * </template>
+ *
+ * <script>
+ * import { DruxtPresenceMixin } from '@druxt-contrib/sockets/mixins'
+ * export default {
+ *   mixins: [DruxtPresenceMixin],
+ * }
+ *
+ * @example <caption>Default slot (template injection)</caption> @lang vue
+ * <DruxtPresence>
+ *   <template #default="{ people }">
+ *     <span>{{ people.length }}</span>
+ *   </template>
+ * </DruxtPresence>
  */
 export default {
   name: 'DruxtPresence',
 
-  extends: DruxtModule,
-
-  props: {
-    /** The channel, `kind:key`; the current route's page by default. */
-    channel: { type: String, default: '' },
-    /** `editor` while this visitor edits what the channel shows. */
-    role: { type: String, default: 'reader' },
-  },
-
-  data: () => ({ people: [], now: Date.now() }),
+  extends: DruxtSockets,
 
   computed: {
-    channelName() {
-      return this.channel || `page:${this.$route.path}`
-    },
-    kind() {
-      return this.channelName.split(':')[0]
-    },
-    /** This visitor's id, to tell themselves apart from the others. */
-    self() {
-      return this.$sockets ? this.$sockets.state.id : null
-    },
-    /** Everyone else with the editor role in this channel. */
-    editors() {
-      return this.people.filter(
-        (p) => p.role === 'editor' && p.id !== this.self
-      )
-    },
-    /** When Drupal's last change reached this page. */
-    updatedAt() {
-      return this.$sockets ? this.$sockets.state.updatedAt : 0
-    },
-    updated() {
-      return !!this.updatedAt && this.now - this.updatedAt < FLASH
+    /** The people who have a name to show. */
+    named() {
+      return this.people.filter((p) => p.name)
     },
     /** What the theme component receives. */
     presence() {
       return {
-        people: this.people,
-        self: this.self,
-        editors: this.editors,
-        updated: this.updated,
-        updatedAt: this.updatedAt,
         channel: this.channelName,
-        role: this.role,
+        activity: this.activity,
+        self: this.self,
+        people: this.people,
       }
-    },
-  },
-
-  watch: {
-    channelName(next, prev) {
-      this.$sockets.leave(prev)
-      this.people = []
-      this.$sockets.join(next, this.role)
-    },
-    role(next) {
-      this.$sockets.join(this.channelName, next)
-    },
-    updatedAt() {
-      this.now = Date.now()
-      clearTimeout(this.fade)
-      this.fade = setTimeout(() => {
-        this.now = Date.now()
-      }, FLASH + 100)
-    },
-    // Released Druxt builds a module's props once; presence changes.
-    presence: {
-      deep: true,
-      handler() {
-        this.refreshProps()
-      },
-    },
-  },
-
-  mounted() {
-    if (!this.$sockets) return
-    this.off = this.$sockets.on('presence', ({ channel, payload }) => {
-      if (channel === this.channelName) this.people = payload.people
-    })
-    this.$sockets.join(this.channelName, this.role)
-  },
-
-  beforeDestroy() {
-    clearTimeout(this.fade)
-    if (!this.$sockets) return
-    this.off()
-    this.$sockets.leave(this.channelName)
-  },
-
-  methods: {
-    /** The theme component's props, rebuilt from the presence now. */
-    refreshProps() {
-      const component = this.component || {}
-      if (!component.props || component.is === 'DruxtDebug') return
-      const propsData = { langcode: this.lang, ...this.presence }
-      const props = {}
-      for (const key of Object.keys(component.props))
-        props[key] = propsData[key]
-      this.component = { ...component, props, propsData }
     },
   },
 
@@ -126,14 +62,25 @@ export default {
       return {
         default: () =>
           h(
-            'span',
+            'div',
             {
               class: 'druxt-presence',
               attrs: { role: 'status', 'aria-live': 'polite' },
             },
-            this.people.length ? `${this.people.length} here` : ''
+            this.named.length
+              ? [
+                  h(
+                    'ul',
+                    this.named.map((p) => h('li', { key: p.id }, p.name))
+                  ),
+                ]
+              : []
           ),
       }
+    },
+    template: {
+      debug: 'people',
+      mixins: { DruxtPresenceMixin: '@druxt-contrib/sockets/mixins' },
     },
   },
 }

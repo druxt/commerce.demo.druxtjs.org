@@ -71,12 +71,12 @@
           <button
             type="button"
             class="flex-[1_1_180px] h-12.5 bg-ink text-paper rounded text-15px font-600 hover:bg-ink-2 disabled:opacity-50"
-            :disabled="!activeVariation || busy"
+            :disabled="!activeVariation || busy || soldOut"
             @click="addToCart"
-          >{{ added ? 'Added to cart' : `Add to cart · ${price}` }}</button>
+          >{{ soldOut ? 'Out of stock' : added ? 'Added to cart' : `Add to cart · ${price}` }}</button>
         </div>
         <p class="font-mono text-11px text-ink-2 mb-6.5" aria-live="polite">
-          {{ cartError || (added ? 'In your cart. Commerce has recalculated the order.' : 'Ships in 2 business days.') }}
+          {{ cartError || (added ? 'In your cart. Commerce has recalculated the order.' : stockLine) }}
         </p>
 
         <dl class="border-t border-line pt-5 grid gap-x-6 gap-y-3.5 grid-cols-[repeat(auto-fit,minmax(130px,1fr))]">
@@ -137,7 +137,7 @@ export default {
     touchX: undefined,
     busy: false,
     added: false,
-    live: { looking: 0, carts: 0 },
+    live: { looking: 0, carts: 0, stock: {} },
   }),
 
   // The product's room on the live socket: how many have it open, how many
@@ -199,6 +199,23 @@ export default {
       ? items.filter((p) => p.id !== item.id && p.category === item.category).slice(0, 4)
       : []),
 
+    // The active variation's units, from the hub after a checkout anywhere.
+    stockLeft: ({ live, activeVariation }) => {
+      const level = activeVariation && live.stock[activeVariation.sku]
+      return typeof level === 'number' ? level : null
+    },
+
+    soldOut: ({ stockLeft }) => stockLeft === 0,
+
+    stockLine: ({ stockLeft }) =>
+      stockLeft === null
+        ? 'Ships in 2 business days.'
+        : stockLeft === 0
+          ? 'Out of stock. Commerce Stock counted the last one out.'
+          : stockLeft <= 3
+            ? `Only ${stockLeft} left. Ships in 2 business days.`
+            : `${stockLeft} in stock. Ships in 2 business days.`,
+
     interest: ({ live }) => {
       const parts = []
       if (live.looking > 1) parts.push(`${live.looking - 1} ${live.looking === 2 ? 'other is' : 'others are'} looking at this`)
@@ -220,7 +237,7 @@ export default {
   methods: {
     watchLive() {
       if (this.unwatch) this.unwatch()
-      this.live = { looking: 0, carts: 0 }
+      this.live = { looking: 0, carts: 0, stock: {} }
       if (this.$live) this.unwatch = this.$live.watch(this.entity.id, (counts) => { this.live = counts })
     },
 
@@ -239,7 +256,7 @@ export default {
       const v = this.activeVariation
       if (!v) return
       this.busy = true
-      await this.$store.dispatch('cart/add', { type: v.type, id: v.id, quantity: 1 })
+      await this.$store.dispatch('cart/add', { type: v.type, id: v.id, quantity: 1, title: this.title })
       this.busy = false
       this.added = !this.cartError
       setTimeout(() => { this.added = false }, 2400)
