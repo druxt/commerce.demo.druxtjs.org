@@ -16,7 +16,7 @@
     "@nuxtjs/proxy": "2.1.0",
     "axios": "^0.34.0",
     "body-parser": "^1.20.2",
-    "consola": "2.15.3",
+    "consola": "3.4.2",
     "core-js": "3.25.1",
     "druxt": "0.25.0-dev.20261011015353",
     "druxt-auth": "0.5.1-dev-20261011002540",
@@ -42,6 +42,6 @@
     "druxt-auth": {
       "axios": "$axios"
     },
-    "consola": "2.15.3"
+    "consola": "3.4.2"
   }
 }
