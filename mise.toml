@@ -5,7 +5,7 @@
 # bundled with Node). This Node version bundles npm 8.19.2, matching
 # package.json's "packageManager" field.
 [tools]
-node = "20.19.0"
+node = "24.22.1"
 php = "8.4"
 
 [tasks.setup]
