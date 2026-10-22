@@ -3,7 +3,7 @@
   "version": "0.3.0",
   "private": true,
   "description": "Druxt quickstart (Commerce): fully decoupled Drupal + Nuxt mono-repo starter, with Commerce Kickstart.",
-  "packageManager": "npm@8.15.0",
+  "packageManager": "npm@12.2.1",
   "scripts": {
     "setup": "node scripts/setup.mjs",
     "dev": "node scripts/dev.mjs",
