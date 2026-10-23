@@ -22,9 +22,9 @@ While it does, the usual 0.x reading applies:
   the generated site with Drupal's paths proxied on the same origin. Each
   deploy snapshots the fresh store, and a daily cron puts it back. The split
   `staging/` and `production/` frontend and backend environments are gone.
-- Druxt 0.25.0 from the npm `dev` channel, with axios 0.34 and the Vue
-  packages pinned to 2.7.14 through npm `overrides`. The `druxt-site` `fs`
-  patch is rerolled for it.
+- Druxt 0.25.0, with `druxt-site` 0.15.0, `druxt-auth` 0.5.1, axios 0.34
+  and the Vue packages pinned to 2.7.14 through npm `overrides`. The
+  `druxt-site` `fs` patch is rerolled for it.
 
 ## 0.3.0 (2026-08-21)
 
