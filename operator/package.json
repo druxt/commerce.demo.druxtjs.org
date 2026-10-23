@@ -18,8 +18,8 @@
     "body-parser": "^1.20.2",
     "consola": "2.15.3",
     "core-js": "3.25.1",
-    "druxt": "0.25.0-dev.20261011015353",
-    "druxt-auth": "0.5.1-dev-20261011002540",
+    "druxt": "^0.25.0",
+    "druxt-auth": "^0.5.1",
     "nuxt": "2.15.8",
     "qrcode": "1.5.4",
     "vue": "2.7.16",
@@ -39,9 +39,6 @@
     "node": ">=20"
   },
   "overrides": {
-    "druxt-auth": {
-      "axios": "$axios"
-    },
     "consola": "2.15.3"
   }
 }
