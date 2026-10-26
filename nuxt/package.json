@@ -27,13 +27,13 @@
   },
   "devDependencies": {
     "@nuxtjs/storybook": "4.3.2",
-    "@unocss/nuxt": "^0.58.9",
-    "@unocss/preset-uno": "^0.58.9",
+    "@unocss/nuxt": "^66.12.0",
+    "@unocss/preset-uno": "^66.12.0",
     "bootstrap": "^5.3.8",
     "patch-package": "^8.0.1",
     "postcss": "8.4.16",
     "sass": "^1.32.13",
-    "unocss": "^0.58.9"
+    "unocss": "^66.12.0"
   },
   "overrides": {
     "druxt": "0.25.0-dev.20261011015353",
