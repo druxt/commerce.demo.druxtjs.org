@@ -15,7 +15,7 @@
     "@nuxtjs/axios": "5.13.6",
     "@nuxtjs/proxy": "2.1.0",
     "axios": "^0.34.0",
-    "body-parser": "^1.20.2",
+    "body-parser": "^2.0.0",
     "consola": "2.15.3",
     "core-js": "3.25.1",
     "druxt": "0.25.0-dev.20261011015353",
