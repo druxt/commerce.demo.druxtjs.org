@@ -1,4 +1,4 @@
-FROM uselagoon/php-8.3-cli-drupal:26.8.1
+FROM uselagoon/php-8.3-cli-drupal:26.10.0
 
 # composer.json first, so a dependency-only change does not invalidate the
 # layer that copies the rest of the site. The core patch applies during the
