@@ -31,7 +31,7 @@
     "@unocss/preset-uno": "^0.58.9",
     "bootstrap": "^5.3.8",
     "patch-package": "^8.0.1",
-    "postcss": "8.4.16",
+    "postcss": "8.5.23",
     "sass": "^1.32.13",
     "unocss": "^0.58.9"
   },
