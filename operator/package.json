@@ -22,7 +22,7 @@
     "druxt-auth": "0.5.1-dev-20261011002540",
     "nuxt": "2.15.8",
     "qrcode": "1.5.4",
-    "vue": "2.7.16",
+    "vue": "3.0.0",
     "vue-server-renderer": "2.7.16",
     "vue-template-compiler": "2.7.16",
     "ws": "8.22.0"
